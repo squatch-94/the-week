@@ -1,0 +1,2808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Week</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#fdf1d5;--bg-warm:#f7e8c0;--surface:#fffdf5;
+    --border:#e8d9b0;--border-light:#f0e4c2;
+    --text:#2a2218;--text-muted:#8a7a5a;--text-faint:#bca98a;
+    --shadow:rgba(42,34,24,.08);--shadow-md:rgba(42,34,24,.14);
+    --health:#2d77ea;--health-l:#e8f0fd;--health-t:#1a4fa0;--health-b:#c5d9f9;
+    --admin:#179e9a;--admin-l:#e0f4f3;--admin-t:#0d6b68;--admin-b:#b8e8e6;
+    --personal:#5dac5b;--personal-l:#e5f4e5;--personal-t:#2d6b2c;--personal-b:#bde4bc;
+    --work:#496bb8;--work-l:#e8ecf7;--work-t:#2a3f7a;--work-b:#c0ccee;
+    --social:#fb7c23;--social-l:#fef0e6;--social-t:#a04d0a;--social-b:#fdd6b6;
+    --creative:#da2266;--creative-l:#fce8ef;--creative-t:#8f0f3d;--creative-b:#f4bcd0;
+    --sh:28px;--cw:148px;--lw:200px;--tw:52px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:auto;}
+  .header{background:var(--surface);border-bottom:1.5px solid var(--border);padding:0 20px;display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:16px;position:sticky;top:0;z-index:100;height:52px;}
+  .logo{font-family:'DM Serif Display',serif;font-size:19px;letter-spacing:-.3px;white-space:nowrap;color:var(--text);}
+  .logo em{font-style:italic;color:var(--text-muted);}
+  .tabs{display:flex;gap:2px;background:var(--bg-warm);border-radius:8px;padding:3px;}
+  .tab{padding:5px 12px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text-muted);transition:all .15s;font-family:inherit;white-space:nowrap;}
+  .tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px var(--shadow-md);}
+  .hdr-centre{display:flex;align-items:center;justify-content:center;gap:10px;}
+  .hdr-r{display:flex;align-items:center;gap:7px;margin-left:auto;}
+  .wk-nav{display:flex;align-items:center;gap:4px;background:var(--bg-warm);border-radius:8px;padding:3px 6px;}
+  .wk-nav button{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:17px;padding:1px 4px;border-radius:4px;line-height:1;}
+  .wk-nav button:hover{background:var(--border);}
+  .wk-label{font-size:13px;font-weight:500;min-width:210px;text-align:center;color:var(--text);}
+  .btn-copy{padding:6px 11px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-muted);transition:all .15s;white-space:nowrap;}
+  .btn-copy:hover{background:var(--bg-warm);color:var(--text);}
+  .btn-export{background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:6px 13px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .btn-export:hover{opacity:.8;}
+  /* Header overflow menu */
+  .hdr-menu-wrap{position:relative;}
+  .hdr-more{font-size:18px;letter-spacing:2px;padding:4px 8px;line-height:1;}
+  .hdr-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 6px 24px var(--shadow-md);min-width:180px;padding:5px;z-index:300;display:none;flex-direction:column;gap:1px;}
+  .hdr-menu.open{display:flex;}
+  .hdr-menu-item{padding:9px 12px;border-radius:7px;border:none;background:transparent;font-family:inherit;font-size:13px;cursor:pointer;color:var(--text);text-align:left;transition:background .1s;white-space:nowrap;}
+  .hdr-menu-item:hover{background:var(--bg-warm);}
+  .hdr-menu-divider{border:none;border-top:1px solid var(--border-light);margin:3px 0;}
+  .intent-bar{background:var(--surface);border-bottom:1px solid var(--border-light);padding:7px 20px 7px calc(var(--lw) + 20px);display:flex;align-items:center;gap:10px;}
+  .intent-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-faint);white-space:nowrap;}
+  .intent-inp{flex:1;border:none;background:transparent;font-family:'DM Serif Display',serif;font-style:italic;font-size:14px;color:var(--text);outline:none;max-width:560px;}
+  .intent-inp::placeholder{color:var(--text-faint);}
+  .budget-bar{background:var(--surface);border-bottom:1.5px solid var(--border);padding:6px 20px 6px calc(var(--lw) + 20px);display:flex;align-items:center;gap:10px;}
+  .budget-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-faint);white-space:nowrap;}
+  .budget-segs{display:flex;flex:1;height:7px;border-radius:6px;overflow:hidden;background:var(--border-light);max-width:400px;gap:1px;}
+  .bseg{height:100%;transition:width .3s;min-width:0;}
+  .budget-leg{display:flex;gap:10px;flex-wrap:wrap;}
+  .bi{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-muted);}
+  .bd{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .page{display:none;}.page.active{display:flex;flex-direction:column;}
+  .pw{display:flex;flex:1;height:calc(100vh - 120px);overflow:hidden;}
+  .lib{width:var(--lw);min-width:var(--lw);background:var(--surface);border-right:1.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+  .lib-hdr{padding:11px 13px 9px;border-bottom:1px solid var(--border-light);display:flex;flex-direction:column;gap:7px;}
+  .lib-hdr-top{display:flex;align-items:center;justify-content:space-between;}
+  .lib-hdr h3{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);}
+  .lib-btns{display:flex;gap:4px;flex-wrap:nowrap;}
+  .btn-ladd{height:26px;padding:0 9px;border-radius:6px;background:var(--bg-warm);border:1px solid var(--border);cursor:pointer;font-size:11px;font-weight:600;color:var(--text-muted);display:flex;align-items:center;gap:3px;font-family:inherit;transition:all .15s;white-space:nowrap;flex:1;justify-content:center;}
+  .btn-ladd:hover{background:var(--border);color:var(--text);}
+  .lib-scroll{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:3px;}
+  .lib-cat{margin-top:5px;}
+  .lib-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-faint);padding:0 4px;margin-bottom:3px;}
+  .li{padding:5px 9px;border-radius:7px;font-size:12px;font-weight:500;cursor:grab;user-select:none;display:flex;align-items:center;gap:6px;border:1px solid transparent;transition:transform .1s,box-shadow .1s;}
+  .li:active{cursor:grabbing;}
+  .li:hover{transform:translateX(2px);box-shadow:0 2px 8px var(--shadow);}
+  .ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .cat-health .li{background:var(--health-l);border-color:var(--health-b);color:var(--health-t);} .cat-health .ldot{background:var(--health);}
+  .cat-admin .li{background:var(--admin-l);border-color:var(--admin-b);color:var(--admin-t);} .cat-admin .ldot{background:var(--admin);}
+  .cat-personal .li{background:var(--personal-l);border-color:var(--personal-b);color:var(--personal-t);} .cat-personal .ldot{background:var(--personal);}
+  .cat-food .li{background:#fef8e6;border-color:#fde7a0;color:#8a5f00;} .cat-food .ldot{background:#f6b121;}
+  .cat-travel .li{background:#f3eafc;border-color:#d9b8f5;color:#5a1f8a;} .cat-travel .ldot{background:#8237bc;}
+  .cat-work .li{background:var(--work-l);border-color:var(--work-b);color:var(--work-t);} .cat-work .ldot{background:var(--work);}
+  .cat-social .li{background:var(--social-l);border-color:var(--social-b);color:var(--social-t);} .cat-social .ldot{background:var(--social);}
+  .cat-creative .li{background:var(--creative-l);border-color:var(--creative-b);color:var(--creative-t);} .cat-creative .ldot{background:var(--creative);}
+  .oo-sec{margin-top:8px;}
+  .oo-item{padding:5px 9px;border-radius:7px;font-size:12px;font-weight:500;cursor:grab;user-select:none;display:flex;align-items:center;gap:6px;border:1.5px dashed var(--border);background:var(--bg);color:var(--text-muted);transition:transform .1s,box-shadow .1s;}
+  .oo-item:active{cursor:grabbing;}
+  .oo-item:hover{transform:translateX(2px);box-shadow:0 2px 8px var(--shadow);border-color:var(--text-faint);}
+  .oo-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--text-faint);flex-shrink:0;}
+  .oo-del{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:13px;padding:0;display:none;}
+  .oo-item:hover .oo-del{display:block;}
+  .oo-del:hover{color:var(--creative);}
+  .tpl-sec{margin-top:10px;padding-top:10px;border-top:1px solid var(--border-light);}
+  .tpl-row{display:flex;align-items:center;gap:4px;margin-bottom:4px;}
+  .tpl-btn{flex:1;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);display:flex;align-items:center;gap:5px;font-family:inherit;overflow:hidden;transition:all .15s;}
+  .tpl-btn:hover{background:var(--bg-warm);color:var(--text);}
+  .tpl-icon{font-size:12px;flex-shrink:0;}
+  .tpl-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .btn-dtpl{width:17px;height:17px;border-radius:4px;border:none;background:none;cursor:pointer;color:var(--text-faint);font-size:12px;}
+  .btn-dtpl:hover{color:var(--creative);}
+  .grid-wrap{flex:1;overflow:auto;position:relative;}
+  .grid-table{display:grid;grid-template-columns:var(--tw) repeat(7,var(--cw));min-width:calc(52px + 148px * 7);}
+  .dh-spacer{position:sticky;top:0;z-index:22;background:var(--surface);border-bottom:2px solid var(--border);border-right:2px solid var(--border);}
+  .dh{position:sticky;top:0;z-index:22;background:var(--surface);border-bottom:2px solid var(--border);border-right:2px solid var(--border);padding:7px 8px 5px;text-align:center;cursor:context-menu;}
+  .dh:hover{background:var(--bg-warm);}
+  .dn{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);}
+  .dd{font-size:18px;font-family:'DM Serif Display',serif;line-height:1.1;margin-top:1px;}
+  .dh.today .dd,.dh.today .dn{color:var(--creative);}
+  .wx-spacer{background:var(--surface);border-right:2px solid var(--border);border-bottom:1px solid var(--border);position:sticky;left:0;z-index:11;}
+  /* All-day row */
+  .ad-spacer{background:var(--surface);border-right:2px solid var(--border);border-bottom:2px solid var(--border);position:sticky;left:0;z-index:11;display:flex;align-items:center;justify-content:flex-end;padding-right:7px;}
+  .ad-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-faint);}
+  .ad-cell{border-right:2px solid var(--border);border-bottom:2px solid var(--border);min-height:28px;padding:3px 4px;display:flex;flex-direction:column;gap:2px;background:var(--bg-warm);position:relative;}
+  .ad-cell.dov{background:rgba(218,34,102,.07);}
+  .ad-ev{border-radius:5px;padding:2px 7px;font-size:11px;font-weight:600;cursor:grab;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:4px;border:1px solid transparent;white-space:nowrap;overflow:hidden;}
+  .ad-ev:active{cursor:grabbing;}
+  .ad-ev-del{background:none;border:none;cursor:pointer;font-size:10px;padding:0;opacity:0;line-height:1;flex-shrink:0;}
+  .ad-ev:hover .ad-ev-del{opacity:1;}
+  .wx-cell{border-right:2px solid var(--border);border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;gap:3px;height:26px;padding:0 4px;font-size:10px;color:var(--text-muted);}
+  .wx-ic{font-size:13px;line-height:1;}
+  .wx-hi{font-weight:600;font-size:11px;color:var(--text);}
+  .wx-lo{font-size:9px;color:var(--text-faint);}
+  .tc{height:var(--sh);border-right:2px solid var(--border);border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:flex-end;padding-right:7px;font-size:10px;color:var(--text-faint);font-weight:500;position:sticky;left:0;background:var(--surface);z-index:10;}
+  .tc.hr{color:var(--text-muted);font-size:11px;font-weight:700;border-top:2px solid var(--border);border-bottom:1px solid var(--border-light);}
+  .slot{height:var(--sh);border-right:2px solid var(--border);border-bottom:1px solid var(--border-light);position:relative;transition:background .1s;}
+  .slot.ht{border-top:2px solid var(--border);border-bottom:1px solid var(--border-light);}
+  .slot.dov{background:rgba(218,34,102,.07);}
+  .gev{position:absolute;left:3px;right:3px;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:500;cursor:grab;z-index:5;overflow:hidden;display:flex;flex-direction:column;justify-content:center;box-shadow:0 1px 4px var(--shadow);border:1px solid transparent;user-select:none;transition:box-shadow .1s;}
+  .gev:hover{box-shadow:0 3px 10px var(--shadow-md);z-index:6;}
+  .gev:active{cursor:grabbing;}
+  .ev-t{line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ev-tm{font-size:10px;opacity:.75;margin-top:1px;}
+  .rh{position:absolute;bottom:0;left:0;right:0;height:6px;cursor:ns-resize;border-radius:0 0 6px 6px;opacity:0;transition:opacity .15s;}
+  .gev:hover .rh{opacity:1;}
+  .ev-del{position:absolute;top:2px;right:3px;width:14px;height:14px;border-radius:50%;background:rgba(0,0,0,.15);border:none;cursor:pointer;font-size:10px;color:white;display:none;align-items:center;justify-content:center;line-height:1;}
+  .gev:hover .ev-del{display:flex;}
+  .ev-dup{position:absolute;top:2px;right:20px;width:14px;height:14px;border-radius:50%;background:rgba(0,0,0,.12);border:none;cursor:pointer;font-size:9px;color:white;display:none;align-items:center;justify-content:center;line-height:1;}
+  .gev:hover .ev-dup{display:flex;}
+  .tp{width:220px;min-width:220px;background:var(--surface);border-left:1.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width .22s,min-width .22s;position:relative;flex-shrink:0;}
+  .tp.col{width:36px;min-width:36px;}
+  .tp.col .tp-inner{opacity:0;pointer-events:none;}
+  .tp-tog{position:absolute;top:12px;left:8px;width:22px;height:22px;border-radius:6px;border:1px solid var(--border);background:var(--bg-warm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text-muted);z-index:10;}
+  .tp-tog:hover{background:var(--border);color:var(--text);}
+  .tp-inner{display:flex;flex-direction:column;height:100%;overflow:hidden;transition:opacity .18s;padding-left:36px;}
+  .tp-hdr{padding:12px 10px 10px 4px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .tp-hdr h3{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);}
+  .btn-at{width:20px;height:20px;border-radius:5px;background:var(--bg-warm);border:1px solid var(--border);cursor:pointer;font-size:14px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;line-height:1;}
+  .btn-at:hover{background:var(--border);color:var(--text);}
+  .tp-scroll{flex:1;overflow-y:auto;padding:8px 8px 8px 4px;display:flex;flex-direction:column;gap:6px;}
+  .tc2{background:var(--bg);border:1.5px solid var(--border-light);border-radius:9px;padding:9px 10px;cursor:grab;user-select:none;transition:box-shadow .12s,transform .1s;position:relative;}
+  .tc2:active{cursor:grabbing;}
+  .tc2:hover{box-shadow:0 3px 10px var(--shadow-md);border-color:var(--border);transform:translateY(-1px);}
+  .tc2-title{font-size:12px;font-weight:600;line-height:1.3;margin-bottom:3px;padding-right:18px;}
+  .tc2-dates{font-size:10px;color:var(--text-muted);margin-bottom:5px;}
+  .tc2-foot{display:flex;align-items:center;justify-content:space-between;}
+  .tc2-acts{display:flex;gap:3px;opacity:0;transition:opacity .12s;}
+  .tc2:hover .tc2-acts{opacity:1;}
+  .tc2-btn{height:18px;padding:0 5px;border-radius:4px;border:1px solid var(--border);background:var(--surface);font-family:inherit;font-size:10px;cursor:pointer;color:var(--text-muted);}
+  .tc2-btn:hover{background:var(--bg-warm);color:var(--text);}
+  .tc2-btn.cal{background:var(--work-l);color:var(--work-t);border-color:transparent;}
+  .tc2-btn.cal:hover{background:var(--work);color:white;}
+  .tc2-edit{position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:4px;background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:11px;display:flex;align-items:center;justify-content:center;opacity:0;}
+  .tc2:hover .tc2-edit{opacity:1;}
+  .tc2-edit:hover{color:var(--text);}
+  .tc2-hint{font-size:9px;color:var(--text-faint);}
+  .tp-empty{color:var(--text-faint);font-size:11px;text-align:center;padding:20px 6px;line-height:1.6;}
+  .mo{display:none;position:fixed;inset:0;background:rgba(42,34,24,.35);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+  .mo.open{display:flex;}
+  .md{background:var(--surface);border-radius:14px;padding:24px;width:380px;box-shadow:0 8px 40px var(--shadow-md);border:1px solid var(--border);max-height:90vh;overflow-y:auto;}
+  .md h3{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:18px;}
+  .fg{margin-bottom:14px;}
+  .fg label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:5px;}
+  .fg input,.fg select,.fg textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--text);outline:none;}
+  .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--text-muted);}
+  .fg textarea{resize:vertical;min-height:60px;}
+  .md-btns{display:flex;gap:8px;margin-top:20px;justify-content:flex-end;}
+  .btn-cancel{padding:9px 16px;border-radius:8px;border:1.5px solid var(--border);background:transparent;font-family:inherit;font-size:13px;cursor:pointer;color:var(--text-muted);}
+  .btn-save{padding:9px 20px;border-radius:8px;border:none;background:var(--text);color:var(--bg);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-save:hover{opacity:.8;}
+  .dp{display:flex;gap:5px;flex-wrap:wrap;}
+  .dp-btn{padding:6px 10px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);font-family:inherit;font-size:12px;cursor:pointer;color:var(--text-muted);}
+  .dp-btn.sel,.dp-btn:hover{background:var(--text);color:var(--bg);border-color:var(--text);}
+  .goals-pg{padding:28px 32px;max-width:1000px;}
+  .goals-pg h2{font-family:'DM Serif Display',serif;font-size:28px;margin-bottom:6px;}
+  .goals-pg .sub{color:var(--text-muted);font-size:13px;margin-bottom:22px;}
+  /* Goals filter bar */
+  .goal-filter-bar{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;}
+  .goal-filter-btn{padding:5px 13px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-muted);transition:all .15s;white-space:nowrap;}
+  .goal-filter-btn:hover{background:var(--bg-warm);color:var(--text);}
+  .goal-filter-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+  /* Goal time indicator chip */
+  .goal-time-chip{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;margin-top:3px;width:fit-content;}
+  .goal-time-chip.overdue{background:#fce8ef;color:#8f0f3d;}
+  .goal-time-chip.soon{background:#fef8e6;color:#8a5f00;}
+  .goal-time-chip.future{background:var(--bg-warm);color:var(--text-muted);}
+  .goal-time-chip.done-chip{background:#e5f4e5;color:#2d6b2c;}
+  .goal-time-chip.someday-chip{background:var(--bg-warm);color:var(--text-faint);}
+  .goals-cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+  .g-col{background:var(--surface);border-radius:12px;border:1.5px solid var(--border);overflow:hidden;}
+  .g-col-hdr{padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:7px;}
+  .g-col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .g-list{display:flex;flex-direction:column;gap:0;padding:6px 8px;}
+  .g-sec{background:var(--surface);border-radius:12px;border:1.5px solid var(--border);padding:18px;}
+  .g-sec h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+  .btn-gadd{width:22px;height:22px;border-radius:6px;background:var(--bg-warm);border:1px solid var(--border);cursor:pointer;font-size:15px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;line-height:1;}
+  .btn-gadd:hover{background:var(--border);color:var(--text);}
+  /* Weekly goals in sidebar */
+  .wg-item{display:flex;align-items:flex-start;gap:7px;padding:5px 4px;border-radius:6px;}
+  .wg-item:hover{background:var(--bg-warm);}
+  .wg-check{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--border);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;}
+  .wg-check.done{background:var(--creative);border-color:var(--creative);}
+  .wg-text{font-size:11px;font-weight:500;color:var(--text);flex:1;line-height:1.3;}
+  .wg-text.done{text-decoration:line-through;opacity:.45;}
+  .wg-del{background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:12px;padding:0;opacity:0;}
+  .wg-item:hover .wg-del{opacity:1;}
+  .wg-del:hover{color:var(--creative);}
+  .wg-add{display:flex;align-items:center;gap:5px;padding:5px 4px;font-size:11px;color:var(--text-faint);cursor:pointer;border:none;background:none;font-family:inherit;width:100%;border-radius:6px;}
+  .wg-add:hover{background:var(--bg-warm);color:var(--text-muted);}
+  /* Tally items */
+  .tally-item{padding:6px 4px;border-radius:6px;}
+  .tally-item:hover{background:var(--bg-warm);}
+  .tally-hdr{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+  .tally-label{font-size:11px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tally-count{font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;}
+  .tally-count.done{color:var(--personal);}
+  .tally-track{height:5px;background:var(--border-light);border-radius:3px;overflow:hidden;}
+  .tally-fill{height:100%;border-radius:3px;transition:width .3s ease;}
+  .tally-actions{display:flex;gap:3px;opacity:0;margin-left:auto;}
+  .tally-item:hover .tally-actions{opacity:1;}
+  .tally-btn{width:18px;height:18px;border-radius:4px;border:1px solid var(--border);background:var(--surface);font-family:inherit;font-size:11px;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;justify-content:center;line-height:1;}
+  .tally-btn:hover{background:var(--bg-warm);color:var(--text);}
+  /* GCal button on grid events */
+  .ev-gcal{position:absolute;bottom:3px;right:3px;height:13px;padding:0 5px;border-radius:3px;background:rgba(0,0,0,.13);border:none;cursor:pointer;font-size:8px;font-weight:700;color:white;display:none;align-items:center;line-height:1;white-space:nowrap;letter-spacing:.2px;}
+  .gev:hover .ev-gcal{display:flex;}
+  /* Tally items */
+  .tally-item{background:var(--bg);border:1px solid var(--border-light);border-radius:8px;padding:7px 9px;}
+  .tally-item:hover{border-color:var(--border);}
+  .tally-row1{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+  .tally-label{font-size:11px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tally-fraction{font-size:10px;color:var(--text-muted);white-space:nowrap;font-weight:600;}
+  .tally-fraction.done{color:#2d6b2c;}
+  .tally-pips{display:flex;gap:3px;flex-wrap:wrap;}
+  .tally-pip{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--border);background:transparent;cursor:pointer;transition:all .12s;flex-shrink:0;}
+  .tally-pip.filled{background:var(--creative);border-color:var(--creative);}
+  .tally-pip.filled.done{background:#5dac5b;border-color:#5dac5b;}
+  .tally-actions{display:flex;gap:3px;margin-top:5px;opacity:0;transition:opacity .12s;}
+  .tally-item:hover .tally-actions{opacity:1;}
+  .tally-act-btn{height:18px;padding:0 7px;border-radius:4px;border:1px solid var(--border);background:var(--surface);font-family:inherit;font-size:10px;cursor:pointer;color:var(--text-muted);}
+  .tally-act-btn:hover{background:var(--bg-warm);color:var(--text);}
+  .pin-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:background .15s;}
+  .pin-dot.filled{background:var(--text);border-color:var(--text);}
+  .pin-btn{width:60px;height:60px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:20px;font-weight:500;cursor:pointer;color:var(--text);transition:all .1s;}
+  .pin-btn:hover{background:var(--bg-warm);}
+  .gi{background:var(--bg);border-radius:9px;padding:11px 13px;border:1.5px solid var(--border-light);display:flex;gap:10px;align-items:flex-start;}
+  .g-dot{width:10px;height:10px;border-radius:50%;border:2px solid currentColor;flex-shrink:0;margin-top:3px;cursor:pointer;}
+  .g-dot.done{background:currentColor;}
+  .g-cnt{flex:1;min-width:0;}
+  .g-ttl{font-size:13px;font-weight:500;}
+  .g-meta{font-size:11px;color:var(--text-muted);margin-top:2px;}
+  .g-bdg{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;flex-shrink:0;align-self:center;}
+  .bp{background:var(--work-l);color:var(--work-t);}
+  .bb{background:var(--personal-l);color:var(--personal-t);}
+  .bd2{background:var(--admin-l);color:var(--admin-t);}
+  .g-acts{display:flex;gap:4px;align-items:center;flex-shrink:0;}
+  .btn-ga{height:24px;padding:0 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:11px;cursor:pointer;color:var(--text-muted);}
+  .btn-ga:hover{background:var(--bg-warm);color:var(--text);}
+  .g-del{background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:14px;padding:0;align-self:center;}
+  .g-del:hover{color:var(--creative);}
+
+  /* ── VIEW SWITCHER ── */
+  .view-switcher{display:flex;gap:2px;background:var(--bg-warm);border-radius:8px;padding:3px;}
+  .vsw{padding:5px 11px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text-muted);transition:all .15s;font-family:inherit;white-space:nowrap;}
+  .vsw.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px var(--shadow-md);}
+  .vsw:hover:not(.active){background:var(--border-light);}
+
+  /* ── ALT VIEWS ── */
+  .alt-view{flex:1;overflow:auto;padding:24px 28px;}
+  .alt-view-inner{max-width:1100px;margin:0 auto;}
+
+  /* Rhythm view */
+  .rv-title{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:4px;}
+  .rv-sub{font-size:12px;color:var(--text-muted);margin-bottom:20px;}
+  .rv-day{margin-bottom:18px;}
+  .rv-day-hdr{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .rv-day-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);min-width:32px;}
+  .rv-day-date{font-size:11px;color:var(--text-faint);}
+  .rv-day-hrs{font-size:10px;color:var(--text-faint);margin-left:auto;}
+  .rv-track{position:relative;height:32px;background:var(--bg-warm);border-radius:8px;overflow:hidden;border:1px solid var(--border-light);}
+  .rv-block{position:absolute;top:3px;bottom:3px;border-radius:5px;display:flex;align-items:center;overflow:hidden;cursor:default;transition:opacity .1s;}
+  .rv-block:hover{opacity:.85;z-index:2;}
+  .rv-block-label{font-size:9px;font-weight:600;padding:0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rv-empty{font-size:11px;color:var(--text-faint);padding:8px 0;font-style:italic;}
+  .rv-legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px;}
+  .rv-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);}
+  .rv-legend-dot{width:8px;height:8px;border-radius:3px;flex-shrink:0;}
+
+  /* Activities page */
+  .act-pg{padding:28px 32px;max-width:900px;}
+  .act-pg h2{font-family:'DM Serif Display',serif;font-size:28px;margin-bottom:6px;}
+  .act-pg .sub{color:var(--text-muted);font-size:13px;margin-bottom:22px;}
+  .act-cat-section{background:var(--surface);border-radius:12px;border:1.5px solid var(--border);margin-bottom:14px;overflow:hidden;}
+  .act-cat-hdr{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;}
+  .act-cat-hdr:hover{background:var(--bg-warm);}
+  .act-cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  .act-cat-name{font-size:13px;font-weight:600;color:var(--text);flex:1;}
+  .act-cat-count{font-size:11px;color:var(--text-muted);}
+  .act-cat-chevron{font-size:11px;color:var(--text-faint);transition:transform .2s;}
+  .act-cat-chevron.open{transform:rotate(90deg);}
+  .act-cat-body{padding:0 14px 12px;display:flex;flex-direction:column;gap:5px;}
+  .act-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--border-light);background:var(--bg);}
+  .act-item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .act-item-name{flex:1;font-size:13px;font-weight:500;color:var(--text);}
+  .act-item-cat{font-size:10px;color:var(--text-muted);padding:2px 7px;border-radius:20px;background:var(--bg-warm);border:1px solid var(--border-light);}
+  .act-item-del{background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:16px;padding:0 2px;line-height:1;}
+  .act-item-del:hover{color:var(--creative);}
+  .act-empty{font-size:11px;color:var(--text-faint);font-style:italic;padding:4px 0;}
+  /* Collapsible library sidebar sections */
+  .lib-cat-items{overflow:hidden;transition:max-height .2s ease;}
+  .lib-cat-items.collapsed{max-height:0!important;}
+  .cv-sub{font-size:12px;color:var(--text-muted);margin-bottom:20px;}
+  .cv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+  .cv-card{background:var(--surface);border-radius:12px;border:1.5px solid var(--border);overflow:hidden;}
+  .cv-card-hdr{padding:12px 14px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border-light);}
+  .cv-card-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  .cv-card-title{font-size:12px;font-weight:700;color:var(--text);}
+  .cv-card-hrs{font-size:11px;color:var(--text-muted);margin-left:auto;}
+  .cv-events{padding:8px 10px;display:flex;flex-direction:column;gap:4px;min-height:40px;}
+  .cv-ev{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:7px;font-size:11px;}
+  .cv-ev-day{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;min-width:22px;color:inherit;opacity:.7;}
+  .cv-ev-name{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cv-ev-time{font-size:9px;opacity:.65;white-space:nowrap;}
+  .cv-empty{font-size:11px;color:var(--text-faint);padding:6px 0;font-style:italic;}
+
+  /* ── MOBILE BOTTOM SHEETS ── */
+  .mob-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:18px 18px 0 0;box-shadow:0 -4px 32px rgba(42,34,24,.18);z-index:500;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);max-height:80vh;display:flex;flex-direction:column;}
+  .mob-sheet.open{transform:translateY(0);}
+  .mob-sheet-overlay{position:fixed;inset:0;background:rgba(42,34,24,.3);z-index:499;display:none;backdrop-filter:blur(1px);}
+  .mob-sheet-overlay.open{display:block;}
+  .mob-sheet-bar{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;flex-shrink:0;}
+  .mob-sheet-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 8px;flex-shrink:0;}
+  .mob-sheet-title{font-family:'DM Serif Display',serif;font-size:18px;color:var(--text);}
+  .mob-sheet-time{font-size:12px;color:var(--text-muted);padding:0 20px 10px;flex-shrink:0;}
+  .mob-sheet-close{background:none;border:none;font-size:22px;color:var(--text-faint);cursor:pointer;padding:0;line-height:1;}
+  .mob-sheet-list{overflow-y:auto;padding:4px 14px 32px;display:flex;flex-direction:column;gap:4px;}
+  .mob-sheet-item{display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:10px;border:1px solid var(--border-light);background:var(--bg);cursor:pointer;transition:background .1s;}
+  .mob-sheet-item:active{background:var(--bg-warm);}
+  .mob-sheet-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .mob-sheet-name{font-size:14px;font-weight:500;color:var(--text);}
+  .mob-action-btn{width:100%;padding:14px 16px;border-radius:10px;border:1px solid var(--border-light);background:var(--bg);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;color:var(--text);text-align:left;transition:background .1s;}
+  .mob-action-btn:active{background:var(--bg-warm);}
+  .mob-action-btn.danger{color:var(--creative);border-color:var(--creative-border);}
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 768px) {
+    /* Header */
+    .header{padding:8px 14px;display:flex;flex-wrap:nowrap;height:auto;gap:8px;}
+    .logo{font-size:16px;}
+    .tabs{display:none;}
+    .hdr-centre{flex:1;justify-content:center;}
+    .hdr-r{gap:5px;}
+    .view-switcher{display:none;}
+    .btn-copy{display:none;}
+    .wk-label{min-width:80px;font-size:12px;}
+    .btn-export{padding:6px 10px;font-size:12px;}
+
+    /* Bars */
+    .intent-bar{padding:7px 14px;}
+    .budget-bar{display:none;}
+
+    /* Planner layout */
+    .pw{flex-direction:column;height:auto;overflow:visible;}
+    .lib{display:none;}
+    .tp{display:none;}
+
+    /* Grid wrapper */
+    .grid-wrap{overflow-x:scroll;overflow-y:auto;height:calc(100vh - 190px);-webkit-overflow-scrolling:touch;}
+
+    /* Grid table — time col fixed, each day col = 88vw so next col peeks */
+    .grid-table{
+      display:grid;
+      grid-template-columns:52px repeat(7,88vw);
+      min-width:calc(52px + 88vw * 7);
+    }
+
+    /* Sticky overrides for mobile — reset top values */
+    .dh-spacer,.dh{top:0;position:sticky;z-index:22;}
+    .wx-spacer,.wx-cell{top:46px;position:sticky;z-index:21;}
+    .ad-spacer,.ad-cell{top:72px;position:sticky;z-index:20;}
+    .tc{position:sticky;left:0;z-index:10;}
+
+    /* Day header sizing on mobile */
+    .dh{padding:7px 8px 5px;width:88vw;}
+    .dd{font-size:16px;}
+    .dn{font-size:10px;}
+
+    /* Highlight active day */
+    .dh.mob-active{background:var(--bg-warm);}
+    .dh.mob-active .dn,.dh.mob-active .dd{color:var(--creative);}
+
+    /* Mobile day strip */
+    .mob-day-strip{display:flex;background:var(--surface);border-bottom:1.5px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+    .mob-day-strip::-webkit-scrollbar{display:none;}
+    .mob-day-pill{flex:1;min-width:44px;padding:8px 4px;text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+    .mob-day-pill.active{border-bottom-color:var(--creative);}
+    .mob-day-pill .mpn{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);}
+    .mob-day-pill .mpd{font-size:16px;font-family:'DM Serif Display',serif;color:var(--text);line-height:1.2;}
+    .mob-day-pill.active .mpd,.mob-day-pill.active .mpn{color:var(--creative);}
+    .mob-day-pill.today .mpd{color:var(--creative);}
+
+    /* Tap targets */
+    .slot{cursor:pointer;}
+    .slot:active{background:rgba(218,34,102,.06);}
+    .gev .ev-del{display:flex;}
+    .gev .ev-gcal{display:none;}
+    .gev{cursor:pointer;}
+
+    /* Modals full-screen */
+    .md{width:100%!important;max-width:100%;border-radius:0;min-height:100vh;max-height:100vh;border:none;padding:20px 18px;}
+    .mo{align-items:flex-start;}
+
+    /* Goals / activities */
+    .goals-pg,.act-pg{padding:18px 16px;}
+    .goals-cols{grid-template-columns:1fr 1fr;}
+    .goals-cols .g-col:nth-child(n+3){display:block;}
+
+    /* Bottom nav */
+    .mob-bottom-bar{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1.5px solid var(--border);z-index:400;padding-bottom:env(safe-area-inset-bottom);}
+    .mob-bottom-btn{flex:1;padding:10px 4px 8px;border:none;background:none;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-muted);font-size:10px;font-weight:500;}
+    .mob-bottom-btn.active{color:var(--creative);}
+    .mob-bottom-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+    .mob-add-fab{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));right:18px;width:52px;height:52px;border-radius:50%;background:var(--creative);border:none;cursor:pointer;box-shadow:0 4px 18px rgba(218,34,102,.4);display:flex;align-items:center;justify-content:center;z-index:401;color:white;font-size:26px;line-height:1;}
+    body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
+    .page.active{min-height:calc(100vh - 64px - env(safe-area-inset-bottom));}
+  }
+
+  @media (min-width: 769px) {
+    .mob-day-strip{display:none;}
+    .mob-bottom-bar{display:none;}
+    .mob-add-fab{display:none;}
+    .mob-sheet{display:none;}
+    .mob-sheet-overlay{display:none!important;}
+  }
+
+  /* ── SCROLLBARS ── */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+  /* ── LIST PAGE ── */
+  .list-pg{padding:24px 28px;height:calc(100vh - 52px);display:flex;flex-direction:column;overflow:hidden;}
+  .list-pg-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-shrink:0;}
+  .list-pg-hdr h2{font-family:'DM Serif Display',serif;font-size:28px;margin:0;}
+  .list-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;flex:1;overflow:hidden;min-height:0;}
+  .list-col{display:flex;flex-direction:column;background:var(--bg-warm);border-radius:12px;border:1.5px solid var(--border);overflow:hidden;}
+  .list-col-hdr{padding:12px 14px 10px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--surface);}
+  .list-col-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);}
+  .list-col-count{font-size:11px;font-weight:600;color:var(--text-faint);background:var(--bg-warm);border-radius:10px;padding:1px 7px;}
+  .list-col-body{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;}
+  .list-col-body.drag-over{background:rgba(218,34,102,.05);}
+  /* List cards */
+  .lcard{background:var(--surface);border-radius:10px;border:1.5px solid var(--border-light);padding:11px 12px;cursor:grab;transition:box-shadow .15s,border-color .15s;position:relative;}
+  .lcard:hover{box-shadow:0 3px 12px var(--shadow-md);border-color:var(--border);}
+  .lcard:active{cursor:grabbing;}
+  .lcard.dragging{opacity:.4;}
+  .lcard-cat{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+  .lcard-cat-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .lcard-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:4px;}
+  .lcard-body{font-size:12px;color:var(--text-muted);line-height:1.5;white-space:pre-wrap;}
+  .lcard-actions{display:flex;gap:4px;margin-top:9px;align-items:center;}
+  .lcard-move{padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;font-family:inherit;font-size:11px;cursor:pointer;color:var(--text-muted);transition:all .1s;}
+  .lcard-move:hover{background:var(--bg-warm);color:var(--text);}
+  .lcard-cal{padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;font-family:inherit;font-size:11px;cursor:pointer;color:var(--text-muted);transition:all .1s;}
+  .lcard-cal:hover{background:var(--bg-warm);color:var(--text);}
+  .lcard-edit{padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;font-family:inherit;font-size:11px;cursor:pointer;color:var(--text-muted);transition:all .1s;}
+  .lcard-edit:hover{background:var(--bg-warm);color:var(--text);}
+  .lcard-del{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;border:none;background:transparent;cursor:pointer;color:var(--text-faint);font-size:14px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;line-height:1;padding:0;}
+  .lcard:hover .lcard-del{opacity:1;}
+  .lcard-del:hover{color:var(--creative);}
+  /* Add card button */
+  .list-add-btn{width:100%;padding:8px;border-radius:8px;border:1.5px dashed var(--border);background:transparent;font-family:inherit;font-size:12px;color:var(--text-faint);cursor:pointer;transition:all .15s;margin-top:2px;flex-shrink:0;}
+  .list-add-btn:hover{border-color:var(--creative);color:var(--creative);background:rgba(218,34,102,.03);}
+  /* Mobile list */
+  @media (max-width:768px){
+    .list-pg{padding:14px;height:auto;}
+    .list-cols{grid-template-columns:1fr;overflow:visible;}
+    .list-col{max-height:none;}
+  }
+
+  /* ── TRIPS PAGE ── */
+  .trips-pg{padding:24px 28px;height:calc(100vh - 52px);display:flex;flex-direction:column;overflow:hidden;}
+  .trips-pg-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-shrink:0;}
+  .trips-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;flex:1;overflow:hidden;min-height:0;}
+  .trips-col{display:flex;flex-direction:column;background:var(--bg-warm);border-radius:12px;border:1.5px solid var(--border);overflow:hidden;}
+  .trips-col-hdr{padding:11px 14px 9px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--surface);font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;}
+  .trips-col-body{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px;}
+  /* Trip brainstorm cards */
+  .tbc{background:var(--surface);border-radius:10px;border:1.5px solid var(--border-light);padding:12px 13px;transition:box-shadow .15s,border-color .15s;}
+  .tbc:hover{box-shadow:0 3px 12px var(--shadow-md);border-color:var(--border);}
+  .tbc-emoji{font-size:18px;margin-bottom:6px;display:block;}
+  .tbc-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:4px;}
+  .tbc-dates{font-size:11px;color:var(--text-muted);margin-bottom:6px;}
+  .tbc-notes{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;white-space:pre-wrap;}
+  .tbc-actions{display:flex;gap:5px;flex-wrap:wrap;}
+  .tbc-btn{padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:transparent;font-family:inherit;font-size:11px;cursor:pointer;color:var(--text-muted);transition:all .1s;white-space:nowrap;}
+  .tbc-btn:hover{background:var(--bg-warm);color:var(--text);}
+  .tbc-btn.promote{background:var(--text);color:var(--bg);border-color:var(--text);}
+  .tbc-btn.promote:hover{opacity:.8;}
+  @media (max-width:768px){
+    .trips-pg{padding:14px;height:auto;}
+    .trips-cols{grid-template-columns:1fr;overflow:visible;}
+  }
+
+</style>
+</head>
+<body>
+<!-- AUTH SCREEN — PIN only, no email needed -->
+<div id="authScreen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:2000;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+  <div style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--text);">The Week</div>
+  <div style="font-size:13px;color:var(--text-muted);margin-top:-12px;">Enter your PIN to continue</div>
+  <div style="display:flex;gap:10px;" id="pinDotsAuth">
+    <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,64px);gap:8px;">
+    <button class="pin-btn" onclick="authPinPress('1')">1</button>
+    <button class="pin-btn" onclick="authPinPress('2')">2</button>
+    <button class="pin-btn" onclick="authPinPress('3')">3</button>
+    <button class="pin-btn" onclick="authPinPress('4')">4</button>
+    <button class="pin-btn" onclick="authPinPress('5')">5</button>
+    <button class="pin-btn" onclick="authPinPress('6')">6</button>
+    <button class="pin-btn" onclick="authPinPress('7')">7</button>
+    <button class="pin-btn" onclick="authPinPress('8')">8</button>
+    <button class="pin-btn" onclick="authPinPress('9')">9</button>
+    <button class="pin-btn" onclick="authPinPress('back')" style="font-size:16px;">⌫</button>
+    <button class="pin-btn" onclick="authPinPress('0')">0</button>
+    <div></div>
+  </div>
+  <div id="authPinError" style="font-size:12px;color:var(--creative);min-height:18px;"></div>
+  <button onclick="authSkipPin()" style="font-size:11px;color:var(--text-faint);background:none;border:none;cursor:pointer;margin-top:-8px;">No PIN set — enter app</button>
+</div>
+<div class="header">
+  <div class="logo">The Week</div>
+  <div class="tabs">
+    <button class="tab active" onclick="showPage('planner')">Planner</button>
+    <button class="tab" onclick="showPage('list')">Tasks</button>
+    <button class="tab" onclick="showPage('goals')">Goals</button>
+    <button class="tab" onclick="showPage('activities')">Categories</button>
+    <button class="tab" onclick="showPage('trips')">Trips</button>
+  </div>
+  <div class="hdr-centre" id="hdrCentre">
+    <div class="wk-nav">
+      <button onclick="chWk(-1)">‹</button>
+      <span class="wk-label" id="wkLbl"></span>
+      <button onclick="chWk(1)">›</button>
+      <button onclick="goToday()" style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;border:1.5px solid var(--border);background:transparent;cursor:pointer;color:var(--text-muted);font-family:inherit;margin-left:4px;" title="Jump to current week">Today</button>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <button class="btn-export" onclick="openExportModal()">↓ Export</button>
+    <div class="hdr-menu-wrap" id="hdrMenuWrap">
+      <button class="btn-copy hdr-more" onclick="toggleHdrMenu()" title="More options">···</button>
+      <div class="hdr-menu" id="hdrMenu">
+        <button class="hdr-menu-item" onclick="copyLastWeek();closeHdrMenu()">↩ Copy last week</button>
+        <button class="hdr-menu-item" onclick="triggerImport();closeHdrMenu()">↑ Import ICS</button>
+        <hr class="hdr-menu-divider">
+        <button class="hdr-menu-item" onclick="openSetPin();closeHdrMenu()">🔒 Set PIN lock</button>
+        <hr class="hdr-menu-divider">
+        <button class="hdr-menu-item" onclick="startTour();closeHdrMenu()">✦ Take the tour</button>
+        <hr class="hdr-menu-divider">
+        <button class="hdr-menu-item" onclick="signOut();closeHdrMenu()">🔒 Lock app</button>
+      </div>
+    </div>
+    <input type="file" id="icsImportInput" accept=".ics" style="display:none" onchange="importICS(event)">
+  </div>
+</div>
+<div class="page active" id="page-planner">
+  <!-- Mobile day strip (hidden on desktop) -->
+  <div class="mob-day-strip" id="mobDayStrip"></div>
+  <div class="intent-bar">
+    <span class="intent-lbl">This week</span>
+    <input class="intent-inp" id="intentInp" placeholder="Set an intention for the week..." maxlength="120">
+  </div>
+  <div class="budget-bar">
+    <span class="budget-lbl">Time</span>
+    <div class="budget-segs" id="bSegs"></div>
+    <div class="budget-leg" id="bLeg"></div>
+  </div>
+  <div class="pw" id="gridView">
+    <div class="lib">
+      <div class="lib-hdr">
+        <div class="lib-hdr-top"><h3>Activities</h3></div>
+        <div class="lib-btns">
+          <button class="btn-ladd" onclick="openLibModal('ongoing')">+ Ongoing</button>
+          <button class="btn-ladd" onclick="openLibModal('oneoff')">+ One-off</button>
+          <button class="btn-ladd" onclick="openAdModal()">☀︎ All Day</button>
+        </div>
+        <div id="tplHeaderSection">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-faint);margin-bottom:4px;">Templates</div>
+          <div id="tplHeaderList" style="display:flex;flex-direction:column;gap:3px;"></div>
+          <div id="tplEmptyHint" style="font-size:10px;color:var(--text-faint);font-style:italic;padding:2px 4px;display:none;">Right-click any day header to save a template.</div>
+        </div>
+      </div>
+      <div class="lib-scroll" id="libScroll"></div>
+    </div>
+    <div class="grid-wrap"><div class="grid-table" id="gridTbl"></div></div>
+    <div class="tp" id="tripsP">
+      <button class="tp-tog" id="tpTog" onclick="togTrips()">✈</button>
+      <div class="tp-inner">
+        <!-- Weekly goals: simple checklist -->
+        <div class="tp-hdr" style="flex-direction:column;align-items:flex-start;gap:5px;padding-bottom:8px;border-bottom:1px solid var(--border-light);">
+          <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+            <h3>Goals this week</h3>
+            <button class="btn-at" onclick="addWeekGoal()" title="Add a goal">+</button>
+          </div>
+          <div id="weekGoalsList" style="width:100%;display:flex;flex-direction:column;gap:3px;"></div>
+        </div>
+        <!-- Tallies: auto-counting targets -->
+        <div class="tp-hdr" style="flex-direction:column;align-items:flex-start;gap:5px;padding-bottom:8px;border-bottom:1px solid var(--border-light);">
+          <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+            <h3>Targets</h3>
+            <button class="btn-at" onclick="openAddTally()" title="Add a target">+</button>
+          </div>
+          <div id="tallyList" style="width:100%;display:flex;flex-direction:column;gap:5px;"></div>
+        </div>
+        <!-- Trips section -->
+        <div class="tp-hdr"><h3>Trips & Plans</h3><button class="btn-at" onclick="openGoalModal('trip')">+</button></div>
+        <div class="tp-scroll" id="tripsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY VIEW -->
+  <div class="alt-view" id="categoryView" style="display:none">
+    <div class="alt-view-inner" id="categoryInner"></div>
+  </div>
+</div>
+
+<!-- GOALS PAGE -->
+<div class="page" id="page-goals">
+  <div class="goals-pg">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div>
+        <h2>Goals</h2>
+        <p class="sub">Your bigger picture. Sorted by urgency.</p>
+      </div>
+      <button class="btn-gadd" onclick="openGoalModal('goal')" style="width:auto;padding:7px 14px;font-size:12px;font-weight:600;border-radius:8px;">+ Add Goal</button>
+    </div>
+    <!-- Weekly checklist on goals page -->
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);">Goals this week</span>
+        <button class="btn-at" onclick="addWeekGoal()" title="Add a goal for this week">+</button>
+      </div>
+      <div id="weekGoalsListGoalsPage" style="display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+    <!-- Filter bar -->
+    <div class="goal-filter-bar">
+      <button class="goal-filter-btn active" onclick="setGoalFilter('all',this)">All</button>
+      <button class="goal-filter-btn" onclick="setGoalFilter('current',this)">Current</button>
+      <button class="goal-filter-btn" onclick="setGoalFilter('overdue',this)">Overdue</button>
+      <button class="goal-filter-btn" onclick="setGoalFilter('someday',this)">Someday</button>
+      <button class="goal-filter-btn" onclick="setGoalFilter('done',this)">Done</button>
+    </div>
+    <!-- Goals columns -->
+    <div class="goals-cols">
+      <div class="g-col">
+        <div class="g-col-hdr"><span class="g-col-dot" style="background:#da2266"></span>Creative</div>
+        <div class="g-list" id="goals-creative"></div>
+      </div>
+      <div class="g-col">
+        <div class="g-col-hdr"><span class="g-col-dot" style="background:#496bb8"></span>Work & Career</div>
+        <div class="g-list" id="goals-work"></div>
+      </div>
+      <div class="g-col">
+        <div class="g-col-hdr"><span class="g-col-dot" style="background:#2d77ea"></span>Health & Wellbeing</div>
+        <div class="g-list" id="goals-health"></div>
+      </div>
+      <div class="g-col">
+        <div class="g-col-hdr"><span class="g-col-dot" style="background:#5dac5b"></span>Personal</div>
+        <div class="g-list" id="goals-personal"></div>
+      </div>
+    </div>
+    <div class="g-sec" id="goals-other-sec" style="margin-top:18px;display:none;">
+      <h3>Other <button class="btn-gadd" onclick="openGoalModal('goal')" style="width:auto;padding:3px 10px;font-size:11px;border-radius:6px;">+</button></h3>
+      <div class="g-list" id="goals-other"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ACTIVITIES PAGE -->
+<!-- LIST PAGE -->
+<div class="page" id="page-list">
+  <div class="list-pg">
+    <div class="list-pg-hdr">
+      <h2>The List</h2>
+      <button class="btn-gadd" onclick="openListCardModal()" style="width:auto;padding:7px 14px;font-size:12px;font-weight:600;border-radius:8px;">+ Add item</button>
+    </div>
+    <div class="list-cols">
+      <div class="list-col" id="listCol-todo" ondragover="listColDragOver(event,'todo')" ondragleave="listColDragLeave(event)" ondrop="listColDrop(event,'todo')">
+        <div class="list-col-hdr">
+          <span class="list-col-title">On The List</span>
+          <span class="list-col-count" id="listCount-todo">0</span>
+        </div>
+        <div class="list-col-body" id="listBody-todo"></div>
+        <button class="list-add-btn" onclick="openListCardModal('todo')" style="margin:6px 8px 8px;width:calc(100% - 16px);">+ Add item</button>
+      </div>
+      <div class="list-col" id="listCol-priority" ondragover="listColDragOver(event,'priority')" ondragleave="listColDragLeave(event)" ondrop="listColDrop(event,'priority')">
+        <div class="list-col-hdr">
+          <span class="list-col-title" style="color:var(--creative);">⚡ Priority</span>
+          <span class="list-col-count" id="listCount-priority">0</span>
+        </div>
+        <div class="list-col-body" id="listBody-priority"></div>
+        <button class="list-add-btn" onclick="openListCardModal('priority')" style="margin:6px 8px 8px;width:calc(100% - 16px);">+ Add item</button>
+      </div>
+      <div class="list-col" id="listCol-done" ondragover="listColDragOver(event,'done')" ondragleave="listColDragLeave(event)" ondrop="listColDrop(event,'done')">
+        <div class="list-col-hdr">
+          <span class="list-col-title" style="color:#5dac5b;">✓ Completed</span>
+          <span class="list-col-count" id="listCount-done">0</span>
+        </div>
+        <div class="list-col-body" id="listBody-done"></div>
+        <button class="list-add-btn" onclick="openListCardModal('done')" style="margin:6px 8px 8px;width:calc(100% - 16px);">+ Add item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIST CARD MODAL -->
+<div class="mo" id="listCardMo">
+  <div class="md">
+    <h3 id="listCardMoTitle">Add item</h3>
+    <input type="hidden" id="listCardId">
+    <div class="fg"><label>Title</label><input type="text" id="listCardTitle" placeholder="What needs doing?"></div>
+    <div class="fg"><label>Notes (optional)</label><textarea id="listCardBody" placeholder="Details, links, context..." style="min-height:80px;"></textarea></div>
+    <div class="fg"><label>Category</label>
+      <select id="listCardCat">
+        <option value="none">— No category —</option>
+        <option value="health">Health & Fitness</option>
+        <option value="admin">Admin & Errands</option>
+        <option value="personal">Personal / Self-care</option>
+        <option value="food">Food & Drink</option>
+        <option value="work">Work</option>
+        <option value="social">Social</option>
+        <option value="creative">Creative / Side Projects</option>
+        <option value="travel">Travel</option>
+      </select>
+    </div>
+    <div class="fg"><label>Column</label>
+      <select id="listCardCol">
+        <option value="todo">On The List</option>
+        <option value="priority">Priority</option>
+        <option value="done">Completed</option>
+      </select>
+    </div>
+    <div class="md-btns">
+      <button class="btn-cancel" onclick="closeMo('listCardMo')">Cancel</button>
+      <button class="btn-save" onclick="saveListCard()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIST → CALENDAR MODAL -->
+<div class="mo" id="listCalMo">
+  <div class="md">
+    <h3>Add to calendar</h3>
+    <input type="hidden" id="listCalCardId">
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;" id="listCalCardName"></p>
+    <div class="fg"><label>Day</label>
+      <select id="listCalDay">
+        <option value="0">Monday</option>
+        <option value="1">Tuesday</option>
+        <option value="2">Wednesday</option>
+        <option value="3">Thursday</option>
+        <option value="4">Friday</option>
+        <option value="5">Saturday</option>
+        <option value="6">Sunday</option>
+      </select>
+    </div>
+    <div class="fg"><label>Time</label>
+      <select id="listCalTime"></select>
+    </div>
+    <div class="fg"><label>Duration</label>
+      <select id="listCalDur">
+        <option value="1">30 min</option>
+        <option value="2" selected>1 hour</option>
+        <option value="3">1.5 hours</option>
+        <option value="4">2 hours</option>
+        <option value="6">3 hours</option>
+      </select>
+    </div>
+    <div class="md-btns">
+      <button class="btn-cancel" onclick="closeMo('listCalMo')">Cancel</button>
+      <button class="btn-save" onclick="addListCardToCal()">Add to this week</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-activities">
+  <div class="act-pg">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">
+      <div>
+        <h2>Categories</h2>
+        <p class="sub">Manage your reusable activity library. Drag items from the sidebar onto your weekly grid.</p>
+      </div>
+      <button class="btn-gadd" onclick="openLibModal('ongoing')" style="width:auto;padding:7px 14px;font-size:12px;font-weight:600;border-radius:8px;">+ Add Activity</button>
+    </div>
+    <div id="actPageList"></div>
+  </div>
+</div>
+
+<!-- TRIPS PAGE -->
+<div class="page" id="page-trips">
+  <div class="trips-pg">
+    <div class="trips-pg-hdr">
+      <div>
+        <h2 style="font-family:'DM Serif Display',serif;font-size:28px;margin:0 0 4px;">Trips</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin:0;">Brainstorm, plan, and track your trips. Move one to the planner when you're ready to block time.</p>
+      </div>
+      <button class="btn-gadd" onclick="openTripBrainModal()" style="width:auto;padding:7px 14px;font-size:12px;font-weight:600;border-radius:8px;">+ Add trip</button>
+    </div>
+    <div class="trips-cols">
+      <div class="trips-col">
+        <div class="trips-col-hdr">
+          <span>✨ Dream it</span>
+          <span class="list-col-count" id="tripCount-dream">0</span>
+        </div>
+        <div class="trips-col-body" id="tripBody-dream"></div>
+      </div>
+      <div class="trips-col">
+        <div class="trips-col-hdr">
+          <span>📋 Planning</span>
+          <span class="list-col-count" id="tripCount-planning">0</span>
+        </div>
+        <div class="trips-col-body" id="tripBody-planning"></div>
+      </div>
+      <div class="trips-col">
+        <div class="trips-col-hdr">
+          <span>✈ Booked</span>
+          <span class="list-col-count" id="tripCount-booked">0</span>
+        </div>
+        <div class="trips-col-body" id="tripBody-booked"></div>
+      </div>
+      <div class="trips-col">
+        <div class="trips-col-hdr">
+          <span>✓ Done</span>
+          <span class="list-col-count" id="tripCount-done">0</span>
+        </div>
+        <div class="trips-col-body" id="tripBody-done"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRIP BRAINSTORM MODAL -->
+<div class="mo" id="tripBrainMo">
+  <div class="md">
+    <h3 id="tripBrainMoTitle">Add trip</h3>
+    <input type="hidden" id="tripBrainId">
+    <div class="fg"><label>Destination / Name</label><input type="text" id="tripBrainTitle" placeholder="e.g. Tokyo, Glastonbury 2027..."></div>
+    <div class="fg"><label>Type</label>
+      <select id="tripBrainType">
+        <option value="holiday">✈ Holiday</option>
+        <option value="weekend">🏡 Weekend Away</option>
+        <option value="daytrip">🚂 Day Trip</option>
+        <option value="event">🎟 Concert / Event</option>
+        <option value="social">🍻 Night Out</option>
+        <option value="other">📌 Other</option>
+      </select>
+    </div>
+    <div class="fg"><label>Status</label>
+      <select id="tripBrainStatus">
+        <option value="dream">✨ Dream it</option>
+        <option value="planning">📋 Planning</option>
+        <option value="booked">✈ Booked</option>
+        <option value="done">✓ Done</option>
+      </select>
+    </div>
+    <div class="fg"><label>Dates / Timeframe (optional)</label><input type="text" id="tripBrainDates" placeholder="e.g. Summer 2027, March long weekend..."></div>
+    <div class="fg"><label>Notes (optional)</label><textarea id="tripBrainNotes" placeholder="Who's coming, ideas, links, budget..."></textarea></div>
+    <div class="md-btns">
+      <button class="btn-cancel" onclick="closeMo('tripBrainMo')">Cancel</button>
+      <button class="btn-save" onclick="saveTripBrain()">Save</button>
+    </div>
+  </div>
+</div>
+<div class="mo" id="libMo">
+  <div class="md">
+    <h3 id="libMoTitle">Add Activity</h3>
+    <input type="hidden" id="libType">
+    <div class="fg"><label>Name</label><input type="text" id="libName" placeholder="e.g. Yoga, Call mum..."></div>
+    <div class="fg"><label>Category</label>
+      <select id="libCat">
+        <option value="health">Health & Fitness</option>
+        <option value="admin">Admin & Errands</option>
+        <option value="personal" selected>Personal / Self-care</option>
+        <option value="food">Food & Drink</option>
+        <option value="travel">Travel</option>
+        <option value="work">Work</option>
+        <option value="social">Social</option>
+        <option value="creative">Creative / Side Projects</option>
+      </select>
+    </div>
+    <div class="md-btns"><button class="btn-cancel" onclick="closeMo('libMo')">Cancel</button><button class="btn-save" onclick="saveLibItem()">Add</button></div>
+  </div>
+</div>
+<!-- SAVE TEMPLATE MODAL -->
+<div class="mo" id="saveTplMo">
+  <div class="md">
+    <h3>Save as Day Template</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Saves all events on this day as a reusable template. Right-click any day header to trigger.</p>
+    <input type="hidden" id="tplDayIdx">
+    <div class="fg"><label>Template Name</label><input type="text" id="tplName" placeholder="e.g. WFH Day, Creative Day..."></div>
+    <div class="fg"><label>Icon (emoji)</label><input type="text" id="tplIcon" placeholder="🏠" maxlength="4"></div>
+    <div class="md-btns"><button class="btn-cancel" onclick="closeMo('saveTplMo')">Cancel</button><button class="btn-save" onclick="saveTpl()">Save Template</button></div>
+  </div>
+</div>
+<!-- APPLY TEMPLATE MODAL -->
+<div class="mo" id="applyTplMo">
+  <div class="md">
+    <h3 id="applyTplTitle">Apply Template</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Choose which day to apply this template to.</p>
+    <input type="hidden" id="applyTplId">
+    <div class="fg"><label>Day</label><div class="dp" id="dayPick"></div></div>
+    <div class="md-btns"><button class="btn-cancel" onclick="closeMo('applyTplMo')">Cancel</button><button class="btn-save" onclick="applyTpl()">Apply</button></div>
+  </div>
+</div>
+<!-- GOAL / TRIP MODAL -->
+<div class="mo" id="goalMo">
+  <div class="md">
+    <h3 id="goalMoTitle">Add Trip</h3>
+    <input type="hidden" id="goalType"><input type="hidden" id="goalEditId">
+    <div class="fg"><label>Title</label><input type="text" id="goalTitle" placeholder="e.g. Amsterdam for the weekend"></div>
+    <div class="fg" id="goalAreaFg" style="display:none"><label>Area</label>
+      <select id="goalArea">
+        <option value="creative">Creative</option>
+        <option value="work">Work & Career</option>
+        <option value="health">Health & Wellbeing</option>
+        <option value="personal">Personal</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="fg" id="goalTargetFg" style="display:none">
+      <label>Target Month</label>
+      <input type="month" id="goalTargetMonth" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
+    </div>
+    <div class="fg" id="tripCatFg" style="display:none"><label>Type</label>
+      <select id="tripCat">
+        <option value="holiday">✈ Holiday</option>
+        <option value="weekend">🏡 Weekend Away</option>
+        <option value="daytrip">🚂 Day Trip</option>
+        <option value="event">🎟 Concert / Event</option>
+        <option value="social">🍻 Night Out</option>
+        <option value="other">📌 Other</option>
+      </select>
+    </div>
+    <div class="fg"><label id="goalDateLbl">Dates / Timeframe</label><input type="text" id="goalDate" placeholder="e.g. May long weekend..."></div>
+    <div class="fg" id="goalStatusFg"><label>Status</label>
+      <select id="goalStatus">
+        <option value="planning">Planning</option>
+        <option value="booked">Booked ✓</option>
+        <option value="done">Done</option>
+        <option value="current">Current — working on it</option>
+        <option value="someday">Someday — no rush</option>
+      </select>
+    </div>
+    <div class="fg"><label>Notes (optional)</label><textarea id="goalNotes" placeholder="Ideas, links, who you're going with..."></textarea></div>
+    <div class="md-btns"><button class="btn-cancel" onclick="closeMo('goalMo')">Cancel</button><button class="btn-save" onclick="saveGoal()">Save</button></div>
+  </div>
+</div>
+
+<!-- EDIT EVENT MODAL -->
+<div class="mo" id="editEvMo">
+  <div class="md">
+    <h3>Edit Event</h3>
+    <input type="hidden" id="editEvId">
+    <div class="fg"><label>Name</label><input type="text" id="editEvName" placeholder="Event name"></div>
+    <div class="fg"><label>Category</label>
+      <select id="editEvCat">
+        <option value="health">Health & Fitness</option>
+        <option value="admin">Admin & Errands</option>
+        <option value="personal">Personal / Self-care</option>
+        <option value="food">Food & Drink</option>
+        <option value="travel">Travel</option>
+        <option value="work">Work</option>
+        <option value="social">Social</option>
+        <option value="creative">Creative / Side Projects</option>
+      </select>
+    </div>
+    <div class="fg"><label>Notes (optional)</label><textarea id="editEvNote" placeholder="Any notes..."></textarea></div>
+    <div class="md-btns">
+      <button class="btn-cancel" onclick="closeMo('editEvMo')">Cancel</button>
+      <button class="btn-save" onclick="saveEvEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TALLY MODAL -->
+<div class="mo" id="tallyMo">
+  <div class="md" style="width:340px;">
+    <h3 id="tallyMoTitle">Add Tally</h3>
+    <input type="hidden" id="tallyEditIdx" value="">
+    <div class="fg">
+      <label>What's the goal?</label>
+      <input type="text" id="tallyLabel" placeholder="e.g. Go to the gym, Read, Cook at home...">
+    </div>
+    <div class="fg">
+      <label>Target this week</label>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button onclick="tallyTargetAdj(-1)" style="width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:18px;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;justify-content:center;">−</button>
+        <span id="tallyTargetDisplay" style="font-family:'DM Serif Display',serif;font-size:24px;min-width:28px;text-align:center;">3</span>
+        <button onclick="tallyTargetAdj(1)" style="width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:18px;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;justify-content:center;">+</button>
+        <span style="font-size:12px;color:var(--text-muted);">times this week</span>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Auto-count when I place… <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--text-faint)">(optional)</span></label>
+      <select id="tallyLinked">
+        <option value="">— don't auto-count —</option>
+      </select>
+    </div>
+    <div class="md-btns">
+      <button class="btn-cancel" onclick="closeMo('tallyMo')">Cancel</button>
+      <button class="btn-save" onclick="saveTally()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE QUICK-ADD SHEET -->
+<div id="mobileSheet" class="mob-sheet">
+  <div class="mob-sheet-bar"></div>
+  <div class="mob-sheet-hdr">
+    <span class="mob-sheet-title" id="mobileSheetTitle">Add activity</span>
+    <button class="mob-sheet-close" onclick="closeMobileSheet()">×</button>
+  </div>
+  <div class="mob-sheet-time" id="mobileSheetTime"></div>
+  <div class="mob-sheet-list" id="mobileSheetList"></div>
+</div>
+<div id="mobileSheetOverlay" class="mob-sheet-overlay" onclick="closeMobileSheet()"></div>
+
+<!-- MOBILE EVENT ACTION SHEET -->
+<div id="mobileEvSheet" class="mob-sheet">
+  <div class="mob-sheet-bar"></div>
+  <div class="mob-sheet-hdr">
+    <span class="mob-sheet-title" id="mobileEvTitle">Event</span>
+    <button class="mob-sheet-close" onclick="closeMobileEvSheet()">×</button>
+  </div>
+  <div class="mob-sheet-time" id="mobileEvTime"></div>
+  <div style="display:flex;flex-direction:column;gap:8px;padding:0 20px 28px;">
+    <button class="mob-action-btn" onclick="mobileEvEdit()">✎  Edit event</button>
+    <button class="mob-action-btn" onclick="mobileEvGcal()">→  Open in Google Calendar</button>
+    <button class="mob-action-btn danger" onclick="mobileEvDelete()">×  Delete event</button>
+  </div>
+</div>
+<div id="mobileEvSheetOverlay" class="mob-sheet-overlay" onclick="closeMobileEvSheet()"></div>
+
+<!-- EXPORT MODAL -->
+<div class="mo" id="exportMo">
+  <div class="md" style="width:360px;">
+    <h3>Export to Calendar</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">Choose which week to export as an ICS file.</p>
+    <div class="fg">
+      <label>Week</label>
+      <select id="exportWeekSel" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--text);outline:none;"></select>
+    </div>
+    <div class="md-btns">
+      <button class="btn-cancel" onclick="closeMo('exportMo')">Cancel</button>
+      <button class="btn-save" onclick="doExport()">↓ Download ICS</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN LOCK SCREEN -->
+<div id="lockScreen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+  <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--text);">The Week</div>
+  <div style="font-size:13px;color:var(--text-muted);margin-top:-8px;">Enter your PIN to continue</div>
+  <div style="display:flex;gap:10px;margin-top:4px;" id="pinDots">
+    <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,60px);gap:8px;">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn" onclick="pinPress('back')" style="font-size:16px;">⌫</button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <div></div>
+  </div>
+  <div id="pinError" style="font-size:12px;color:var(--creative);min-height:18px;"></div>
+  <button onclick="skipPin()" style="font-size:11px;color:var(--text-faint);background:none;border:none;cursor:pointer;margin-top:-8px;">No PIN set — enter app</button>
+</div>
+
+<!-- SET PIN MODAL -->
+<div class="mo" id="setPinMo">
+  <div class="md" style="width:320px;text-align:center;">
+    <h3>Set a PIN</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">4-digit PIN to lock this planner. Leave blank to remove the PIN.</p>
+    <div class="fg"><label>New PIN (4 digits)</label><input type="password" id="pinInput1" maxlength="4" placeholder="e.g. 1234" inputmode="numeric" pattern="[0-9]*"></div>
+    <div class="fg"><label>Confirm PIN</label><input type="password" id="pinInput2" maxlength="4" placeholder="repeat PIN" inputmode="numeric" pattern="[0-9]*"></div>
+    <div id="pinSetError" style="font-size:12px;color:var(--creative);min-height:16px;margin-bottom:8px;"></div>
+    <div class="md-btns">
+      <button class="btn-cancel" onclick="closeMo('setPinMo')">Cancel</button>
+      <button class="btn-save" onclick="savePin()">Save PIN</button>
+    </div>
+  </div>
+</div>
+<!-- ALL-DAY EVENT MODAL -->
+<div class="mo" id="adMo">
+  <div class="md">
+    <h3 id="adMoTitle">Add All-Day Event</h3>
+    <input type="hidden" id="adEditId">
+    <div class="fg"><label>Name</label><input type="text" id="adName" placeholder="e.g. Artie's Birthday, Bank Holiday..."></div>
+    <div class="fg"><label>Category</label>
+      <select id="adCat">
+        <option value="health">Health & Fitness</option>
+        <option value="admin">Admin & Errands</option>
+        <option value="personal" selected>Personal / Self-care</option>
+        <option value="food">Food & Drink</option>
+        <option value="travel">Travel</option>
+        <option value="work">Work</option>
+        <option value="social">Social</option>
+        <option value="creative">Creative / Side Projects</option>
+      </select>
+    </div>
+    <div class="fg"><label>Day</label><div class="dp" id="adDayPick"></div></div>
+    <div class="md-btns"><button class="btn-cancel" onclick="closeMo('adMo')">Cancel</button><button class="btn-save" onclick="saveAdEv()">Add</button></div>
+  </div>
+</div>
+<script>
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const SH=6,EH=22,SPH=2,TOTAL=(EH-SH)*SPH,SHP=28;
+const CATS={
+  health:{label:'Health & Fitness',color:'#2d77ea',l:'#e8f0fd',t:'#1a4fa0',b:'#c5d9f9'},
+  admin:{label:'Admin & Errands',color:'#179e9a',l:'#e0f4f3',t:'#0d6b68',b:'#b8e8e6'},
+  personal:{label:'Personal / Self-care',color:'#5dac5b',l:'#e5f4e5',t:'#2d6b2c',b:'#bde4bc'},
+  food:{label:'Food & Drink',color:'#f6b121',l:'#fef8e6',t:'#8a5f00',b:'#fde7a0'},
+  travel:{label:'Travel',color:'#8237bc',l:'#f3eafc',t:'#5a1f8a',b:'#d9b8f5'},
+  work:{label:'Work',color:'#496bb8',l:'#e8ecf7',t:'#2a3f7a',b:'#c0ccee'},
+  social:{label:'Social',color:'#fb7c23',l:'#fef0e6',t:'#a04d0a',b:'#fdd6b6'},
+  creative:{label:'Creative / Side Projects',color:'#da2266',l:'#fce8ef',t:'#8f0f3d',b:'#f4bcd0'},
+};
+const DEF=[
+  {id:'l1',name:'Exercise / Gym',cat:'health'},
+  {id:'l3',name:'Job Applications',cat:'admin'},{id:'l4',name:'Groceries',cat:'admin'},{id:'l5',name:'Commute',cat:'admin'},{id:'l2',name:'Dog Walk (Artie)',cat:'admin'},
+  {id:'l8',name:'Shower / Wash Hair',cat:'personal'},{id:'l9',name:'Skin Care',cat:'personal'},{id:'l10',name:'Evening Wind-down',cat:'personal'},
+  {id:'lf1',name:'Breakfast',cat:'food'},{id:'lf2',name:'Lunch',cat:'food'},{id:'lf3',name:'Dinner',cat:'food'},{id:'lf4',name:'Coffee',cat:'food'},{id:'lf5',name:'Cafe',cat:'food'},{id:'lf6',name:'Pub',cat:'food'},
+  {id:'lt1',name:'Flight',cat:'travel'},{id:'lt2',name:'Train',cat:'travel'},{id:'lt3',name:'Airport',cat:'travel'},{id:'lt4',name:'Taxi / Uber',cat:'travel'},{id:'lt5',name:'Hotel',cat:'travel'},{id:'lt6',name:'Packing',cat:'travel'},{id:'lt7',name:'Road Trip',cat:'travel'},
+  {id:'l11',name:'Work-From-Home',cat:'work'},{id:'l12',name:'Work-In-Office',cat:'work'},
+  {id:'l13',name:'Play Guitar',cat:'creative'},{id:'l14',name:'Learn Italian',cat:'creative'},
+  {id:'l15',name:'Read Book',cat:'creative'},{id:'l16',name:'Watch TV',cat:'creative'},
+  {id:'l17',name:'Watch Film',cat:'creative'},{id:'l18',name:'Write / Record Music',cat:'creative'},
+];
+// ── SUPABASE ──
+const SUPA_URL = 'https://jheqwqwbnzkpyssjxfoa.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoZXF3cXdibnprcHlzc2p4Zm9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzU3OTYsImV4cCI6MjA4OTYxMTc5Nn0.hRDfju1g7sUmhzDDEhX_qTHgnyYunEYwzTj3GG4Xpxg';
+const SUPA_ROW = 'sasha'; // single fixed row — personal app
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+let svTimer = null;
+
+// Save — always writes localStorage, debounced write to Supabase
+function sv() {
+  const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};  try { localStorage.setItem('stw-v7', JSON.stringify(data)); } catch(e) {}
+  clearTimeout(svTimer);
+  svTimer = setTimeout(async () => {
+    await supa.from('planner_data').upsert({ id: SUPA_ROW, data, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+  }, 800);
+}
+
+// Load — Supabase first, localStorage fallback
+async function ldRemote() {
+  try {
+    const { data: row } = await supa.from('planner_data').select('data').eq('id', SUPA_ROW).single();
+    if (row?.data) {
+      try { localStorage.setItem('stw-v7', JSON.stringify(row.data)); } catch(e) {}
+      return row.data;
+    }
+  } catch(e) {}
+  try { const s = localStorage.getItem('stw-v7'); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+}
+
+function applyState(S) {
+  lib   = S?.lib   || [...DEF];
+  oo    = S?.oo    || [];
+  wev   = S?.wev   || {};
+  adev  = S?.adev  || {};
+  goals = S?.goals || [];
+  trips = S?.trips || [];
+  tpls  = S?.tpls  || [];
+  ints  = S?.ints  || {};
+  tpo   = S?.tpo   !== undefined ? S.tpo : true;
+}
+
+// PIN-gated boot — loads remote data, then shows PIN if one is set
+async function boot() {
+  const S = await ldRemote();
+  if (S) applyState(S);
+  renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();loadIntent();
+  if (getStoredPin()) {
+    document.getElementById('authScreen').style.display = 'flex';
+  } else {
+    showApp();
+  }
+}
+
+function showApp() { document.getElementById('authScreen').style.display = 'none'; }
+async function signOut() { document.getElementById('authScreen').style.display = 'flex'; }
+async function sendMagicLink() {}
+function resetAuthForm() {}
+
+// Auth screen PIN handlers — reuse existing PIN logic
+let authPinEntry = '';
+function authPinPress(val) {
+  if (val === 'back') { authPinEntry = authPinEntry.slice(0, -1); }
+  else if (authPinEntry.length < 4) { authPinEntry += val; }
+  document.querySelectorAll('#pinDotsAuth .pin-dot').forEach((d, i) => d.classList.toggle('filled', i < authPinEntry.length));
+  document.getElementById('authPinError').textContent = '';
+  if (authPinEntry.length === 4) {
+    setTimeout(() => {
+      const stored = getStoredPin();
+      if (!stored || authPinEntry === stored) {
+        showApp(); authPinEntry = '';
+        document.querySelectorAll('#pinDotsAuth .pin-dot').forEach(d => d.classList.remove('filled'));
+      } else {
+        document.getElementById('authPinError').textContent = 'Incorrect PIN. Try again.';
+        authPinEntry = '';
+        document.querySelectorAll('#pinDotsAuth .pin-dot').forEach(d => d.classList.remove('filled'));
+      }
+    }, 150);
+  }
+}
+function authSkipPin() { if (!getStoredPin()) showApp(); }
+
+// Initialise variables from localStorage immediately (fast first paint)
+const S = (() => { try { const s = localStorage.getItem('stw-v7'); return s ? JSON.parse(s) : null; } catch(e) { return null; } })();
+let lib=S?.lib||[...DEF],oo=S?.oo||[],wev=S?.wev||{},adev=S?.adev||{},goals=S?.goals||[],trips=S?.trips||[],tpls=S?.tpls||[],ints=S?.ints||{},tpo=S?.tpo!==undefined?S.tpo:true;
+let wko=0,applyDay=null,wxc={};
+const p2=n=>String(n).padStart(2,'0');
+function wkKey(o=wko){const d=wkStart(o);return`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;}
+function getEvs(){return wev[wkKey()]||[];}
+function setEvs(e){wev[wkKey()]=e;sv();}
+function getAdEvs(){return adev[wkKey()]||[];}
+function setAdEvs(e){adev[wkKey()]=e;sv();}
+
+// ── ALL-DAY EVENTS ──
+function renderAdRow(){const adEvs=getAdEvs();for(let i=0;i<7;i++){const cell=document.querySelector(`.ad-cell[data-adday="${i}"]`);if(!cell)continue;const dayEvs=adEvs.filter(e=>e.day===i);cell.innerHTML='';dayEvs.forEach(ev=>{const cat=CATS[ev.cat]||CATS.personal;const el=document.createElement('div');el.className='ad-ev';el.draggable=true;el.style.cssText=`background:${cat.l};border-color:${cat.b};color:${cat.t};`;el.innerHTML=`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${ev.name}</span><button class="ad-ev-del" onclick="delAdEv('${ev.id}',event)" style="color:${cat.t}">×</button>`;el.addEventListener('dragstart',e=>{drag={type:'adlib',adname:ev.name,adcat:ev.cat,lid:null,evid:null,tid:null,oo:false};e.dataTransfer.effectAllowed='copy';});cell.appendChild(el);});}}
+function delAdEv(id,e){e.stopPropagation();e.preventDefault();setAdEvs(getAdEvs().filter(ev=>ev.id!==id));renderAdRow();}
+function openAdModal(){document.getElementById('adEditId').value='';document.getElementById('adMoTitle').textContent='Add All-Day Event';document.getElementById('adName').value='';document.getElementById('adCat').value='personal';const pick=document.getElementById('adDayPick');pick.innerHTML=DAYS.map((d,i)=>`<button class="dp-btn" onclick="pickAdDay(${i},this)">${d}</button>`).join('');adPickedDay=null;document.getElementById('adMo').classList.add('open');setTimeout(()=>document.getElementById('adName').focus(),100);}
+let adPickedDay=null;
+function pickAdDay(idx,btn){adPickedDay=idx;document.querySelectorAll('#adDayPick .dp-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
+function saveAdEv(){const name=document.getElementById('adName').value.trim();if(!name)return;if(adPickedDay===null){alert('Please select a day.');return;}const cat=document.getElementById('adCat').value;const evs=getAdEvs();evs.push({id:'ad'+Date.now(),day:adPickedDay,name,cat});setAdEvs(evs);renderAdRow();closeMo('adMo');}
+function wkStart(o=0){const n=new Date(),d=n.getDay(),diff=d===0?-6:1-d,m=new Date(n);m.setDate(n.getDate()+diff+o*7);m.setHours(0,0,0,0);return m;}
+function wkDates(o=0){const s=wkStart(o);return Array.from({length:7},(_,i)=>{const d=new Date(s);d.setDate(s.getDate()+i);return d;});}
+function wkNum(d){const jan4=new Date(d.getFullYear(),0,4);const startOfW1=new Date(jan4);startOfW1.setDate(jan4.getDate()-(jan4.getDay()||7)+1);const diff=d-startOfW1;return diff<0?wkNum(new Date(d.getFullYear()-1,11,31)):Math.floor(diff/604800000)+1;}
+function wkLabel(ds){const a=ds[0],b=ds[6],mo=d=>d.toLocaleDateString('en-GB',{month:'short'}),dy=d=>d.getDate();const range=mo(a)===mo(b)?`${dy(a)} – ${dy(b)} ${mo(a)} ${a.getFullYear()}`:`${dy(a)} ${mo(a)} – ${dy(b)} ${mo(b)} ${b.getFullYear()}`;return `Week ${wkNum(a)} · ${range}`;}
+function chWk(d){wko+=d;renderGrid();renderBudget();loadIntent();fetchWx();renderTallies();renderWeekGoals();}
+function copyLastWeek(){const prev=wev[wkKey(wko-1)];if(!prev?.length){alert('No events found in the previous week.');return;}const cur=getEvs();if(cur.length&&!confirm(`This week has ${cur.length} event(s). Add last week on top?`))return;setEvs([...cur,...prev.map(e=>({...e,id:'ev'+Date.now()+Math.random()}))]);renderEvents();renderBudget();}
+function loadIntent(){const el=document.getElementById('intentInp');if(el)el.value=ints[wkKey()]||'';}
+async function fetchWx(){
+  document.querySelectorAll('.wx-cell').forEach(c=>c.innerHTML='<span style="color:var(--text-faint);font-size:10px">…</span>');
+  const dates=wkDates(wko),today=new Date();today.setHours(0,0,0,0);
+  const diff=Math.round((wkStart(wko)-today)/86400000);
+  if(diff>14||diff<-7){document.querySelectorAll('.wx-cell').forEach(c=>c.innerHTML='');return;}
+  const key=wkKey();
+  if(wxc[key]){applyWx(wxc[key],dates);return;}
+  try{const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=51.5886&longitude=-0.0176&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Europe%2FLondon&forecast_days=14');const d=await r.json();wxc[key]=d;applyWx(d,dates);}catch(e){document.querySelectorAll('.wx-cell').forEach(c=>c.innerHTML='');}
+}
+function wxIcon(c){if(c===0)return'☀️';if(c<=2)return'⛅';if(c<=3)return'☁️';if(c<=49)return'🌫️';if(c<=67)return'🌧️';if(c<=77)return'❄️';if(c<=82)return'🌦️';if(c<=99)return'⛈️';return'🌡️';}
+function applyWx(data,dates){if(!data?.daily?.time)return;dates.forEach((date,i)=>{const ds=date.toISOString().slice(0,10),idx=data.daily.time.indexOf(ds);if(idx===-1)return;const c=document.querySelector(`.wx-cell[data-wi="${i}"]`);if(c)c.innerHTML=`<span class="wx-ic">${wxIcon(data.daily.weathercode[idx])}</span><span class="wx-hi">${Math.round(data.daily.temperature_2m_max[idx])}°</span><span class="wx-lo">${Math.round(data.daily.temperature_2m_min[idx])}°</span>`;});}
+function renderBudget(){const evs=getEvs(),tots={};Object.keys(CATS).forEach(c=>tots[c]=0);evs.forEach(e=>{if(tots[e.cat]!==undefined)tots[e.cat]+=e.slots*30;});const tot=Object.values(tots).reduce((a,b)=>a+b,0);const segs=document.getElementById('bSegs'),leg=document.getElementById('bLeg');if(!segs||!leg)return;if(!tot){segs.innerHTML='<div class="bseg" style="width:100%;background:var(--border-light)"></div>';leg.innerHTML='<span style="font-size:10px;color:var(--text-faint)">No events yet</span>';return;}segs.innerHTML=Object.entries(tots).filter(([,m])=>m>0).map(([cat,m])=>`<div class="bseg" style="width:${(m/tot*100).toFixed(1)}%;background:${CATS[cat].color}" title="${CATS[cat].label}: ${(m/60).toFixed(1)}h"></div>`).join('');leg.innerHTML=Object.entries(tots).filter(([,m])=>m>0).map(([cat,m])=>`<div class="bi"><div class="bd" style="background:${CATS[cat].color}"></div><span>${(m/60).toFixed(1)}h</span></div>`).join('');}
+function renderLib(){
+  const scroll=document.getElementById('libScroll');
+  scroll.innerHTML='';
+  const g={};
+  lib.forEach(i=>{if(!g[i.cat])g[i.cat]=[];g[i.cat].push(i);});
+  Object.keys(CATS).forEach(cat=>{
+    if(!g[cat]?.length)return;
+    const isCollapsed=libCollapsed[cat]||false;
+    const sec=document.createElement('div');
+    sec.className=`lib-cat cat-${cat}`;
+    // Collapsible header
+    const lbl=document.createElement('div');
+    lbl.className='lib-lbl';
+    lbl.style.cssText='display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:2px 4px 3px;border-radius:5px;';
+    lbl.innerHTML=`<span>${CATS[cat].label}</span><span style="font-size:9px;color:var(--text-faint);transition:transform .2s;display:inline-block;transform:rotate(${isCollapsed?'0':'90'}deg)">▶</span>`;
+    lbl.onclick=()=>toggleLibCat(cat);
+    sec.appendChild(lbl);
+    // Items wrapper
+    const items=document.createElement('div');
+    items.className='lib-cat-items'+(isCollapsed?' collapsed':'');
+    items.style.maxHeight=isCollapsed?'0':(g[cat].length*36)+'px';
+    g[cat].forEach(item=>{
+      const el=document.createElement('div');
+      el.className='li';el.draggable=true;
+      el.innerHTML=`<span class="ldot"></span>${item.name}`;
+      el.dataset.lid=item.id;
+      el.addEventListener('dragstart',onLDrag);
+      items.appendChild(el);
+    });
+    sec.appendChild(items);
+    scroll.appendChild(sec);
+  });
+  if(oo.length){
+    const sec=document.createElement('div');
+    sec.className='oo-sec';
+    sec.innerHTML='<div class="lib-lbl" style="margin-top:8px">One-off</div>';
+    oo.forEach(item=>{
+      const el=document.createElement('div');
+      el.className='oo-item';el.draggable=true;
+      const cat=CATS[item.cat]||{};
+      el.innerHTML=`<span class="oo-dot" style="${item.cat?`border-color:${cat.color};background:${cat.color}30`:''}"></span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.name}</span><button class="oo-del" onclick="delOO('${item.id}',event)">×</button>`;
+      el.dataset.lid=item.id;el.dataset.oo='true';
+      el.addEventListener('dragstart',onLDrag);
+      sec.appendChild(el);
+    });
+    scroll.appendChild(sec);
+  }
+  // Templates in header section — always visible
+  const tplList=document.getElementById('tplHeaderList');
+  const tplHint=document.getElementById('tplEmptyHint');
+  if(tplList){
+    tplList.innerHTML='';
+    tpls.forEach(t=>{
+      const row=document.createElement('div');
+      row.className='tpl-row';
+      row.innerHTML=`<button class="tpl-btn" onclick="openApplyTpl('${t.id}')"><span class="tpl-icon">${t.icon||'📋'}</span><span class="tpl-name">${t.name}</span></button><button class="btn-dtpl" onclick="delTpl('${t.id}')">×</button>`;
+      tplList.appendChild(row);
+    });
+    if(tplHint) tplHint.style.display = tpls.length ? 'none' : '';
+  }
+}
+let libCollapsed={};
+function toggleLibCat(cat){
+  libCollapsed[cat]=!libCollapsed[cat];
+  renderLib();
+}
+function renderGrid(){const dates=wkDates(wko);document.getElementById('wkLbl').textContent=wkLabel(dates);const today=new Date();today.setHours(0,0,0,0);const tbl=document.getElementById('gridTbl');tbl.innerHTML='';tbl.appendChild(Object.assign(document.createElement('div'),{className:'dh-spacer'}));dates.forEach((date,i)=>{const isT=date.getTime()===today.getTime();const h=document.createElement('div');h.className='dh'+(isT?' today':'');h.title='Right-click to save as template';h.innerHTML=`<div class="dn">${DAYS[i]}</div><div class="dd">${date.getDate()}</div>`;h.addEventListener('contextmenu',e=>{e.preventDefault();openSaveTpl(i);});tbl.appendChild(h);});
+// Weather row
+const ws=document.createElement('div');ws.className='wx-spacer';tbl.appendChild(ws);for(let i=0;i<7;i++){const wc=document.createElement('div');wc.className='wx-cell';wc.dataset.wi=i;wc.innerHTML='<span style="color:var(--text-faint);font-size:10px">…</span>';tbl.appendChild(wc);}
+// All-day row
+const ads=document.createElement('div');ads.className='ad-spacer';ads.innerHTML='<span class="ad-lbl">all day</span>';tbl.appendChild(ads);for(let i=0;i<7;i++){const ac=document.createElement('div');ac.className='ad-cell';ac.dataset.adday=i;ac.addEventListener('dragover',e=>{e.preventDefault();ac.classList.add('dov');});ac.addEventListener('dragleave',()=>ac.classList.remove('dov'));ac.addEventListener('drop',e=>{e.preventDefault();ac.classList.remove('dov');if(drag.type==='adlib'){const day=parseInt(ac.dataset.adday);getAdEvs().push({id:'ad'+Date.now(),day,name:drag.adname,cat:drag.adcat});setAdEvs(getAdEvs());renderAdRow();drag={type:null,lid:null,evid:null,tid:null,oo:false,adname:null,adcat:null};}});tbl.appendChild(ac);}
+// Time slots
+for(let s=0;s<TOTAL;s++){const hour=SH+Math.floor(s/SPH),min=(s%SPH)*30,isHr=min===0;const tc=document.createElement('div');tc.className='tc'+(isHr?' hr':'');tc.textContent=isHr?`${p2(hour)}:00`:'';tbl.appendChild(tc);for(let d=0;d<7;d++){const slot=document.createElement('div');slot.className='slot'+(isHr?' ht':'');slot.dataset.day=d;slot.dataset.slot=s;slot.addEventListener('dragover',onSOver);slot.addEventListener('dragleave',onSLeave);slot.addEventListener('drop',onSDrop);slot.addEventListener('click',()=>{if(isMobile())openMobileAddSheet(d,s);});tbl.appendChild(slot);}}renderEvents();renderAdRow();if(isMobile()){renderMobDayStrip();setMobDay(mobDayIdx);}}
+function renderEvents(){document.querySelectorAll('.gev').forEach(e=>e.remove());const evs=getEvs();
+// Build overlap groups per day: for each event find all others that overlap it
+// An event occupies slots [slot, slot+slots). Two events overlap if their slot ranges intersect.
+function overlaps(a,b){return a.day===b.day&&a.slot<b.slot+b.slots&&b.slot<a.slot+a.slots;}
+// For each event, compute column index within its overlap group using a greedy column assignment
+const cols={},maxcols={};evs.forEach(ev=>{cols[ev.id]=0;});
+// Per day, sort by slot then greedy assign columns
+const byDay={};evs.forEach(ev=>{if(!byDay[ev.day])byDay[ev.day]=[];byDay[ev.day].push(ev);});
+Object.values(byDay).forEach(dayEvs=>{dayEvs.sort((a,b)=>a.slot-b.slot);const colEnd=[];// colEnd[c] = last slot used in column c
+dayEvs.forEach(ev=>{let c=0;while(colEnd[c]!==undefined&&colEnd[c]>ev.slot)c++;cols[ev.id]=c;colEnd[c]=ev.slot+ev.slots;});
+// For each event, find total columns in its overlap group
+dayEvs.forEach(ev=>{const overlapping=dayEvs.filter(o=>overlaps(ev,o));const mc=Math.max(...overlapping.map(o=>cols[o.id]))+1;overlapping.forEach(o=>{maxcols[o.id]=Math.max(maxcols[o.id]||1,mc);});});});
+evs.forEach(ev=>{const cat=CATS[ev.cat]||CATS.personal;const el=document.createElement('div');el.className='gev';
+const c=cols[ev.id]||0,mc=maxcols[ev.id]||1;
+const pct=100/mc,left=c*pct,right=100-(c+1)*pct;
+el.style.cssText=`background:${cat.l};border-color:${cat.b};color:${cat.t};top:0;height:${ev.slots*SHP-2}px;left:calc(${left}% + 2px);right:calc(${right}% + 2px);${mc>1?`border-left:2px solid ${cat.color}`:''};`;
+el.draggable=true;el.dataset.evid=ev.id;
+const is30=ev.slots===1;
+el.innerHTML=`<button class="ev-del" onclick="delEv('${ev.id}',event)">×</button><button class="ev-dup" onclick="dupEv('${ev.id}',event)" title="Duplicate">⧉</button><button class="ev-gcal" onclick="openGcal('${ev.id}')" title="Open in Google Calendar">→ GCal</button><div class="ev-t" style="${is30?'font-size:10px;line-height:1.1;':''}"> ${ev.name}</div>${!is30?`<div class="ev-tm">${s2t(ev.slot)} – ${s2t(ev.slot+ev.slots)}</div>`:''}<div class="rh" style="background:${cat.color}20"></div>`;el.addEventListener('dragstart',onEvDrag);
+el.addEventListener('dblclick', e => { e.stopPropagation(); openEvEdit(ev.id); });
+el.addEventListener('click', e => { if(isMobile()){e.stopPropagation();openMobileEvSheet(ev.id);} });
+el.querySelector('.rh').addEventListener('mousedown',mkResize(ev.id));const slotEl=document.querySelector(`.slot[data-day="${ev.day}"][data-slot="${ev.slot}"]`);if(slotEl)slotEl.appendChild(el);});renderBudget();}
+function s2t(slot){const m=SH*60+slot*30;return`${p2(Math.floor(m/60))}:${m%60===0?'00':m%60}`;}
+let drag={type:null,lid:null,evid:null,tid:null,oo:false,adname:null,adcat:null};
+function onLDrag(e){drag={type:'lib',lid:e.currentTarget.dataset.lid,oo:e.currentTarget.dataset.oo==='true',evid:null,tid:null};e.dataTransfer.effectAllowed='copy';}
+function onEvDrag(e){drag={type:'ev',evid:e.currentTarget.dataset.evid,lid:null,tid:null,oo:false};e.dataTransfer.effectAllowed='move';e.stopPropagation();}
+function onTDrag(e){drag={type:'trip',tid:e.currentTarget.dataset.tid,lid:null,evid:null,oo:false};e.dataTransfer.effectAllowed='copy';}
+function onSOver(e){e.preventDefault();e.currentTarget.classList.add('dov');}
+function onSLeave(e){e.currentTarget.classList.remove('dov');}
+function onSDrop(e){e.preventDefault();e.currentTarget.classList.remove('dov');const day=parseInt(e.currentTarget.dataset.day),slot=parseInt(e.currentTarget.dataset.slot);let evs=getEvs();if(drag.type==='lib'){const item=[...lib,...oo].find(i=>i.id===drag.lid);if(!item)return;evs.push({id:'ev'+Date.now(),day,slot,slots:1,name:item.name,cat:item.cat,note:''});if(drag.oo){oo=oo.filter(i=>i.id!==drag.lid);renderLib();}autoIncrementTallies(item.name);}else if(drag.type==='ev'){const ev=evs.find(e=>e.id===drag.evid);if(ev){ev.day=day;ev.slot=slot;}}else if(drag.type==='trip'){const t=trips.find(t=>t.id===drag.tid);if(t)evs.push({id:'ev'+Date.now(),day,slot,slots:2,name:'✈ '+t.title,cat:'social',note:t.notes||''});}setEvs(evs);renderEvents();renderBudget();drag={type:null,lid:null,evid:null,tid:null,oo:false};}
+function mkResize(evId){return function(e){e.preventDefault();e.stopPropagation();let evs=getEvs();const ev=evs.find(e=>e.id===evId);if(!ev)return;const sy=e.clientY,ss=ev.slots;function mm(e){const d=Math.round((e.clientY-sy)/SHP);ev.slots=Math.max(1,Math.min(TOTAL-ev.slot,ss+d));setEvs(evs);renderEvents();renderBudget();}function mu(){document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);}document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);};}
+function delEv(id,e){e.stopPropagation();e.preventDefault();setEvs(getEvs().filter(ev=>ev.id!==id));renderEvents();renderBudget();}
+function dupEv(id,e){e.stopPropagation();e.preventDefault();const evs=getEvs();const ev=evs.find(ev=>ev.id===id);if(!ev)return;const copy={...ev,id:'ev'+Date.now(),slot:Math.min(ev.slot+ev.slots,TOTAL-1)};evs.push(copy);setEvs(evs);renderEvents();renderBudget();}
+
+function openEvEdit(id) {
+  const ev = getEvs().find(e => e.id === id);
+  if (!ev) return;
+  document.getElementById('editEvId').value = id;
+  document.getElementById('editEvName').value = ev.name;
+  document.getElementById('editEvCat').value = ev.cat || 'personal';
+  document.getElementById('editEvNote').value = ev.note || '';
+  document.getElementById('editEvMo').classList.add('open');
+  setTimeout(() => document.getElementById('editEvName').focus(), 100);
+}
+
+function saveEvEdit() {
+  const id = document.getElementById('editEvId').value;
+  const evs = getEvs();
+  const ev = evs.find(e => e.id === id);
+  if (!ev) return;
+  ev.name = document.getElementById('editEvName').value.trim() || ev.name;
+  ev.cat = document.getElementById('editEvCat').value;
+  ev.note = document.getElementById('editEvNote').value.trim();
+  setEvs(evs);
+  renderEvents();
+  renderBudget();
+  closeMo('editEvMo');
+}
+function openLibModal(type){document.getElementById('libType').value=type;document.getElementById('libMoTitle').textContent=type==='oneoff'?'Add One-off Activity':'Add Ongoing Activity';document.getElementById('libName').value='';document.getElementById('libCat').value='personal';document.getElementById('libMo').classList.add('open');setTimeout(()=>document.getElementById('libName').focus(),100);}
+function saveLibItem(){const name=document.getElementById('libName').value.trim(),cat=document.getElementById('libCat').value,type=document.getElementById('libType').value;if(!name)return;const item={id:'l'+Date.now(),name,cat};if(type==='oneoff')oo.push(item);else lib.push(item);sv();renderLib();renderActPage();closeMo('libMo');}
+function delOO(id,e){e.stopPropagation();oo=oo.filter(i=>i.id!==id);sv();renderLib();}
+function openSaveTpl(dayIdx){const evs=getEvs().filter(e=>e.day===dayIdx);if(!evs.length){alert('No events on that day to save as a template.');return;}document.getElementById('tplDayIdx').value=dayIdx;document.getElementById('tplName').value='';document.getElementById('tplIcon').value='';document.getElementById('saveTplMo').classList.add('open');setTimeout(()=>document.getElementById('tplName').focus(),100);}
+function saveTpl(){const name=document.getElementById('tplName').value.trim();if(!name)return;const icon=document.getElementById('tplIcon').value.trim()||'📋',dayIdx=parseInt(document.getElementById('tplDayIdx').value),evs=getEvs().filter(e=>e.day===dayIdx);tpls.push({id:'t'+Date.now(),name,icon,events:evs.map(e=>({name:e.name,cat:e.cat,slot:e.slot,slots:e.slots,note:e.note}))});sv();renderLib();closeMo('saveTplMo');}
+function delTpl(id){tpls=tpls.filter(t=>t.id!==id);sv();renderLib();}
+function openApplyTpl(id){const tpl=tpls.find(t=>t.id===id);if(!tpl)return;document.getElementById('applyTplTitle').textContent=`Apply "${tpl.name}"`;document.getElementById('applyTplId').value=id;applyDay=null;const picker=document.getElementById('dayPick');picker.innerHTML=DAYS.map((d,i)=>`<button class="dp-btn" onclick="pickDay(${i},this)">${d}</button>`).join('');document.getElementById('applyTplMo').classList.add('open');}
+function pickDay(idx,btn){applyDay=idx;document.querySelectorAll('.dp-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
+function applyTpl(){if(applyDay===null){alert('Please select a day.');return;}const tpl=tpls.find(t=>t.id===document.getElementById('applyTplId').value);if(!tpl)return;let evs=getEvs();tpl.events.forEach(te=>evs.push({id:'ev'+Date.now()+Math.random(),day:applyDay,slot:te.slot,slots:te.slots,name:te.name,cat:te.cat,note:te.note||''}));setEvs(evs);renderEvents();renderBudget();closeMo('applyTplMo');}
+function togTrips(){tpo=!tpo;document.getElementById('tripsP').classList.toggle('col',!tpo);document.getElementById('tpTog').textContent=tpo?'✈':'‹';sv();}
+function renderTrips() {
+  const list = document.getElementById('tripsList');
+  if (!list) return;
+  if (!trips.length) {
+    list.innerHTML = '<div class="tp-empty">No trips yet.<br>Add one with +<br><br><span style="font-size:10px">Drag a trip onto the grid</span></div>';
+    return;
+  }
+  const TRIP_CATS = {
+    holiday: { label:'Holiday', emoji:'✈', color:'#2d77ea' },
+    weekend: { label:'Weekend Away', emoji:'🏡', color:'#5dac5b' },
+    daytrip: { label:'Day Trip', emoji:'🚂', color:'#179e9a' },
+    event:   { label:'Concert / Event', emoji:'🎟', color:'#da2266' },
+    social:  { label:'Night Out', emoji:'🍻', color:'#fb7c23' },
+    other:   { label:'Other', emoji:'📌', color:'#8a7a5a' },
+  };
+  const STATUS = {
+    planning: { label:'Planning', color:'#496bb8', bg:'#e8ecf7' },
+    booked:   { label:'Booked ✓', color:'#2d6b2c', bg:'#e5f4e5' },
+    done:     { label:'Done', color:'#8a7a5a', bg:'#f0e4c2' },
+  };
+  list.innerHTML = '';
+  trips.forEach(t => {
+    const tc = TRIP_CATS[t.tripCat || 'holiday'];
+    const st = STATUS[t.status || 'planning'];
+    const card = document.createElement('div');
+    card.className = 'tc2';
+    card.draggable = true;
+    card.dataset.tid = t.id;
+    card.innerHTML = `
+      <button class="tc2-edit" onclick="openGoalModal('trip','${t.id}')">✎</button>
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
+        <span style="font-size:13px;line-height:1">${tc.emoji}</span>
+        <span style="font-size:10px;font-weight:600;color:${tc.color};text-transform:uppercase;letter-spacing:.4px">${tc.label}</span>
+      </div>
+      <div class="tc2-title">${t.title}</div>
+      ${t.date ? `<div class="tc2-dates">${t.date}</div>` : ''}
+      ${t.notes ? `<div style="font-size:10px;color:var(--text-faint);font-style:italic;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.notes}</div>` : ''}
+      <div class="tc2-foot">
+        <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:${st.bg};color:${st.color}">${st.label}</span>
+        <div class="tc2-acts">
+          <button class="tc2-btn cal" onclick="exportTripICS('${t.id}')">→ Cal</button>
+          <button class="tc2-btn" onclick="delTrip('${t.id}')">×</button>
+        </div>
+      </div>
+      <div style="font-size:9px;color:var(--text-faint);margin-top:5px">drag to grid</div>`;
+    card.addEventListener('dragstart', onTDrag);
+    list.appendChild(card);
+  });
+}
+function delTrip(id){trips=trips.filter(t=>t.id!==id);sv();renderTrips();renderGoals();}
+function exportICS(){const evs=getEvs(),intent=ints[wkKey()]||'';const adEvs=getAdEvs();if(!evs.length&&!intent&&!adEvs.length){alert('No events to export.');return;}const dates=wkDates(wko);const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Sasha Weekly Planner//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];if(intent){const m=dates[0],ds=`${m.getFullYear()}${p2(m.getMonth()+1)}${p2(m.getDate())}`;const n=new Date(m);n.setDate(m.getDate()+1);const ds2=`${n.getFullYear()}${p2(n.getMonth()+1)}${p2(n.getDate())}`;lines.push('BEGIN:VEVENT',`UID:intent-${wkKey()}@stw`,`DTSTART;VALUE=DATE:${ds}`,`DTEND;VALUE=DATE:${ds2}`,`SUMMARY:🎯 ${intent}`,'END:VEVENT');}
+// All-day events
+adEvs.forEach(ev=>{const date=dates[ev.day];const ds=`${date.getFullYear()}${p2(date.getMonth()+1)}${p2(date.getDate())}`;const nd=new Date(date);nd.setDate(date.getDate()+1);const ds2=`${nd.getFullYear()}${p2(nd.getMonth()+1)}${p2(nd.getDate())}`;lines.push('BEGIN:VEVENT',`UID:${ev.id}@stw`,`DTSTART;VALUE=DATE:${ds}`,`DTEND;VALUE=DATE:${ds2}`,`SUMMARY:${ev.name}`,`CATEGORIES:${CATS[ev.cat]?.label||ev.cat}`,'END:VEVENT');});
+evs.forEach(ev=>{const date=dates[ev.day],sm=SH*60+ev.slot*30,em=sm+ev.slots*30;const fmt=(d,m)=>`${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}T${p2(Math.floor(m/60))}${p2(m%60)}00`;lines.push('BEGIN:VEVENT',`UID:${ev.id}@stw`,`DTSTART;TZID=Europe/London:${fmt(date,sm)}`,`DTEND;TZID=Europe/London:${fmt(date,em)}`,`SUMMARY:${ev.name}`);if(ev.note)lines.push(`DESCRIPTION:${ev.note}`);lines.push(`CATEGORIES:${CATS[ev.cat]?.label||ev.cat}`,'END:VEVENT');});lines.push('END:VCALENDAR');dl(lines.join('\r\n'),'text/calendar',`sasha-week-${wkKey()}.ics`);}
+function exportTripICS(id){const t=trips.find(t=>t.id===id);if(!t)return;const today=new Date(),ds=`${today.getFullYear()}${p2(today.getMonth()+1)}${p2(today.getDate())}`;const n=new Date(today);n.setDate(today.getDate()+1);const ds2=`${n.getFullYear()}${p2(n.getMonth()+1)}${p2(n.getDate())}`;const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Sasha Weekly Planner//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',`UID:${t.id}-trip@stw`,`DTSTART;VALUE=DATE:${ds}`,`DTEND;VALUE=DATE:${ds2}`,`SUMMARY:✈ ${t.title}`];const desc=[t.date,t.notes].filter(Boolean).join(' | ');if(desc)lines.push(`DESCRIPTION:${desc.replace(/\n/g,'\\n')}`);lines.push('END:VEVENT','END:VCALENDAR');dl(lines.join('\r\n'),'text/calendar',`trip-${t.title.toLowerCase().replace(/\s+/g,'-').slice(0,30)}.ics`);}
+function dl(content,type,filename){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);}
+function closeMo(id){document.getElementById(id).classList.remove('open');}
+function toggleHdrMenu(){document.getElementById('hdrMenu').classList.toggle('open');}
+function closeHdrMenu(){document.getElementById('hdrMenu').classList.remove('open');}
+document.addEventListener('click',e=>{const wrap=document.getElementById('hdrMenuWrap');if(wrap&&!wrap.contains(e.target))closeHdrMenu();});
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const tab=document.querySelector(`.tab[onclick="showPage('${name}')"]`);
+  if(tab) tab.classList.add('active');
+  if(name==='activities') renderActPage();
+  if(name==='goals') renderWeekGoals();
+  if(name==='list') renderList();
+  if(name==='trips') renderTripBrains();
+}
+
+// ── ACTIVITIES PAGE ──
+function renderActPage(){
+  const el=document.getElementById('actPageList');
+  if(!el)return;
+  el.innerHTML='';
+  Object.entries(CATS).forEach(([catKey,cat])=>{
+    const items=lib.filter(i=>i.cat===catKey);
+    const sec=document.createElement('div');
+    sec.className='act-cat-section';
+    // header always visible, click to expand/collapse
+    const isOpen=actPageOpen[catKey]!==false; // default open
+    const hdr=document.createElement('div');
+    hdr.className='act-cat-hdr';
+    hdr.innerHTML=`<span class="act-cat-dot" style="background:${cat.color}"></span><span class="act-cat-name">${cat.label}</span><span class="act-cat-count">${items.length} item${items.length!==1?'s':''}</span><span class="act-cat-chevron${isOpen?' open':''}">▶</span>`;
+    hdr.onclick=()=>{actPageOpen[catKey]=!isOpen;renderActPage();};
+    sec.appendChild(hdr);
+    if(isOpen){
+      const body=document.createElement('div');
+      body.className='act-cat-body';
+      if(!items.length){
+        body.innerHTML=`<div class="act-empty">No items in this category yet.</div>`;
+      } else {
+        items.forEach(item=>{
+          const row=document.createElement('div');
+          row.className='act-item';
+          row.innerHTML=`<span class="act-item-dot" style="background:${cat.color}"></span><span class="act-item-name">${item.name}</span><span class="act-item-cat">${cat.label}</span><button class="act-item-del" onclick="deleteLibItem('${item.id}')" title="Remove activity">×</button>`;
+          body.appendChild(row);
+        });
+      }
+      // Add item inline at bottom of each category
+      const addRow=document.createElement('div');
+      addRow.style.cssText='display:flex;gap:6px;margin-top:4px;';
+      addRow.innerHTML=`<input type="text" placeholder="Add item to ${cat.label}..." style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:inherit;font-size:12px;background:var(--bg);color:var(--text);outline:none;" id="actAdd-${catKey}" onkeydown="if(event.key==='Enter')addActItem('${catKey}')"><button onclick="addActItem('${catKey}')" style="padding:7px 12px;border-radius:7px;border:none;background:var(--text);color:var(--bg);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">Add</button>`;
+      body.appendChild(addRow);
+      sec.appendChild(body);
+    }
+    el.appendChild(sec);
+  });
+}
+let actPageOpen={};
+function addActItem(cat){
+  const inp=document.getElementById('actAdd-'+cat);
+  if(!inp)return;
+  const name=inp.value.trim();
+  if(!name)return;
+  lib.push({id:'l'+Date.now(),name,cat});
+  sv();renderLib();renderActPage();
+  inp.value='';inp.focus();
+}
+function deleteLibItem(id){
+  lib=lib.filter(i=>i.id!==id);
+  sv();renderLib();renderActPage();
+}
+document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));});
+document.getElementById('intentInp').addEventListener('input',e=>{ints[wkKey()]=e.target.value;sv();});
+
+// ── VIEW SWITCHING ──
+let currentView = 'grid';
+function setView(v) { /* category view removed */ }
+function goToday(){wko=0;renderGrid();renderBudget();loadIntent();fetchWx();renderTallies();renderWeekGoals();}
+
+// ── TALLY SYSTEM ──
+// Target definitions are global — carry over every week
+// Counts are per-week — progress resets but targets remain
+function getTallies() { return wev['tallies'] || []; }
+function setTallies(t) { wev['tallies'] = t; sv(); }
+function getWeekCounts() { return wev['talc_' + wkKey()] || {}; }
+function setWeekCounts(c) { wev['talc_' + wkKey()] = c; sv(); }
+function getTallyCount(i) { return getWeekCounts()[i] || 0; }
+function setTallyCount(i, val) { const c = getWeekCounts(); c[i] = val; setWeekCounts(c); }
+
+let tallyTarget = 3;
+
+function openAddTally(editIdx) {
+  tallyTarget = 3;
+  const isEdit = editIdx !== undefined;
+  document.getElementById('tallyMoTitle').textContent = isEdit ? 'Edit Tally' : 'Add Tally';
+  document.getElementById('tallyEditIdx').value = isEdit ? editIdx : '';
+  if (isEdit) {
+    const t = getTallies()[editIdx];
+    document.getElementById('tallyLabel').value = t.label;
+    tallyTarget = t.target;
+    document.getElementById('tallyLinked').value = t.linked || '';  } else {
+    document.getElementById('tallyLabel').value = '';
+    document.getElementById('tallyLinked').value = '';
+  }
+  // Populate linked select with all lib items
+  const sel = document.getElementById('tallyLinked');
+  sel.innerHTML = '<option value="">— don\'t auto-count —</option>';
+  lib.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = item.name;
+    opt.textContent = item.name;
+    sel.appendChild(opt);
+  });
+  if (isEdit) sel.value = getTallies()[editIdx].linked || '';
+  document.getElementById('tallyTargetDisplay').textContent = tallyTarget;
+  document.getElementById('tallyMo').classList.add('open');
+  setTimeout(() => document.getElementById('tallyLabel').focus(), 100);
+}
+
+function tallyTargetAdj(d) {
+  tallyTarget = Math.max(1, Math.min(14, tallyTarget + d));
+  document.getElementById('tallyTargetDisplay').textContent = tallyTarget;
+}
+
+function saveTally() {
+  const label = document.getElementById('tallyLabel').value.trim();
+  if (!label) return;
+  const linked = document.getElementById('tallyLinked').value;
+  const editIdx = document.getElementById('tallyEditIdx').value;
+  const tallies = getTallies();
+  const item = { label, target: tallyTarget, linked };
+  if (editIdx !== '') {
+    tallies[parseInt(editIdx)] = item;
+  } else {
+    tallies.push(item);
+  }
+  setTallies(tallies);
+  renderTallies();
+  closeMo('tallyMo');
+}
+
+function renderTallies() {
+  const el = document.getElementById('tallyList');
+  if (!el) return;
+  const tallies = getTallies();
+  el.innerHTML = '';
+  if (!tallies.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text-faint);font-style:italic;padding:3px 4px;">No targets set. Add one with +</div>';
+    return;
+  }
+  tallies.forEach((t, i) => {
+    const count = getTallyCount(i);
+    const isDone = count >= t.target;
+    const div = document.createElement('div');
+    div.className = 'tally-item';
+    const pips = Array.from({ length: t.target }, (_, p) => {
+      const filled = p < count;
+      return `<div class="tally-pip ${filled ? 'filled' : ''} ${isDone ? 'done' : ''}" onclick="tallyPipClick(${i},${p})" title="${filled ? 'Click to unmark' : 'Click to mark'}"></div>`;
+    }).join('');
+    div.innerHTML = `
+      <div class="tally-row1">
+        <span class="tally-label">${t.label}</span>
+        <span class="tally-fraction ${isDone ? 'done' : ''}">${count}/${t.target}</span>
+      </div>
+      <div class="tally-pips">${pips}</div>
+      ${t.linked ? `<div style="font-size:9px;color:var(--text-faint);margin-top:4px;">auto: ${t.linked}</div>` : ''}
+      <div class="tally-actions">
+        <button class="tally-act-btn" onclick="openAddTally(${i})">Edit</button>
+        <button class="tally-act-btn" onclick="delTally(${i})">Remove</button>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+function tallyPipClick(tallyIdx, pipIdx) {
+  const count = getTallyCount(tallyIdx);
+  // clicking a filled pip unmarks back to that point, clicking empty marks up to it
+  const newCount = pipIdx < count ? pipIdx : pipIdx + 1;
+  setTallyCount(tallyIdx, newCount);
+  renderTallies();
+}
+
+function delTally(i) {
+  const tallies = getTallies();
+  tallies.splice(i, 1);
+  setTallies(tallies);
+  // Rebuild week counts with shifted indices
+  const c = getWeekCounts();
+  const newC = {};
+  Object.entries(c).forEach(([k, v]) => {
+    const ki = parseInt(k);
+    if (ki < i) newC[ki] = v;
+    else if (ki > i) newC[ki - 1] = v;
+    // ki === i is deleted
+  });
+  setWeekCounts(newC);
+  renderTallies();
+}
+
+// Called whenever an event is dropped — auto-increments matching tallies
+function autoIncrementTallies(evName) {
+  const tallies = getTallies();
+  let changed = false;
+  tallies.forEach((t, i) => {
+    if (t.linked && evName.toLowerCase().includes(t.linked.toLowerCase())) {
+      const count = getTallyCount(i);
+      if (count < t.target) {
+        setTallyCount(i, count + 1);
+        changed = true;
+      }
+    }
+  });
+  if (changed) renderTallies();
+}
+
+// ── GCAL LINK ──
+function openGcal(evId) {
+  const ev = getEvs().find(e => e.id === evId);
+  if (!ev) return;
+  const dates = wkDates(wko);
+  const date = dates[ev.day];
+  const pad = n => String(n).padStart(2, '0');
+  const ymd = `${date.getFullYear()}${pad(date.getMonth()+1)}${pad(date.getDate())}`;
+  const startMins = SH * 60 + ev.slot * 30;
+  const endMins = startMins + ev.slots * 30;
+  // No Z suffix = local time; seconds required (T190000 not T1900)
+  const startStr = `${ymd}T${pad(Math.floor(startMins/60))}${pad(startMins%60)}00`;
+  const endStr   = `${ymd}T${pad(Math.floor(endMins/60))}${pad(endMins%60)}00`;
+  const title   = encodeURIComponent(ev.name);
+  const details = encodeURIComponent(ev.note || '');
+  const tz = encodeURIComponent('Europe/London');
+  // Use eventedit endpoint with action=TEMPLATE, stz/etz for timezone
+  const url = `https://calendar.google.com/calendar/r/eventedit?action=TEMPLATE&text=${title}&dates=${startStr}/${endStr}&stz=${tz}&etz=${tz}&details=${details}`;
+  window.open(url, '_blank');
+}
+
+// ── WEEKLY GOALS (simple checklist, same data used in sidebar + goals page) ──
+function getWeekGoals() { return wev['wg_' + wkKey()] || []; }
+function setWeekGoals(g) { wev['wg_' + wkKey()] = g; sv(); }
+
+function renderWeekGoals() {
+  ['weekGoalsList', 'weekGoalsListGoalsPage'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const goals = getWeekGoals();
+    el.innerHTML = '';
+    if (!goals.length) {
+      el.innerHTML = '<div style="font-size:11px;color:var(--text-faint);font-style:italic;padding:2px 4px;">Nothing set yet.</div>';
+      return;
+    }
+    goals.forEach((g, i) => {
+      const row = document.createElement('div');
+      row.className = 'wg-item';
+      row.innerHTML = `<div class="wg-check ${g.done ? 'done' : ''}" onclick="toggleWeekGoal(${i})">${g.done ? '<span style="color:white;font-size:9px;line-height:1">✓</span>' : ''}</div><span class="wg-text ${g.done ? 'done' : ''}">${g.text}</span><button class="wg-del" onclick="delWeekGoal(${i})">×</button>`;
+      el.appendChild(row);
+    });
+  });
+}
+
+function addWeekGoal() {
+  const text = prompt('Goal for this week:');
+  if (!text || !text.trim()) return;
+  const goals = getWeekGoals();
+  goals.push({ text: text.trim(), done: false });
+  setWeekGoals(goals);
+  renderWeekGoals();
+}
+
+function toggleWeekGoal(i) {
+  const goals = getWeekGoals();
+  if (!goals[i]) return;
+  goals[i].done = !goals[i].done;
+  setWeekGoals(goals);
+  renderWeekGoals();
+}
+
+function delWeekGoal(i) {
+  const goals = getWeekGoals();
+  goals.splice(i, 1);
+  setWeekGoals(goals);
+  renderWeekGoals();
+}
+
+// ── EXPORT MODAL ──
+function openExportModal() {
+  const sel = document.getElementById('exportWeekSel');
+  sel.innerHTML = '';
+  // Offer current view week + 4 back + 4 forward, relative to wko
+  for (let delta = -4; delta <= 4; delta++) {
+    const offset = wko + delta;
+    const dates = wkDates(offset);
+    const label = wkLabel(dates);
+    const opt = document.createElement('option');
+    opt.value = offset;
+    opt.textContent = delta === 0 ? `This week — ${label}` : delta < 0 ? `${Math.abs(delta)}w ago — ${label}` : `In ${delta}w — ${label}`;
+    if (delta === 0) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  document.getElementById('exportMo').classList.add('open');
+}
+
+function doExport() {
+  const targetOffset = parseInt(document.getElementById('exportWeekSel').value);
+  const savedOffset = wko;
+  // Temporarily switch wko to target offset to export that week
+  wko = targetOffset;
+  exportICS();
+  wko = savedOffset;
+  closeMo('exportMo');
+}
+
+// ── ICS IMPORT ──
+function triggerImport() {
+  document.getElementById('icsImportInput').click();
+}
+
+function importICS(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const imported = parseICS(text);
+    if (!imported.length) { alert('No events found in this ICS file.'); return; }
+    const evs = getEvs();
+    let added = 0;
+    imported.forEach(ev => { if (ev) { evs.push(ev); added++; } });
+    setEvs(evs);
+    renderEvents();
+    renderBudget();
+    renderTallies();
+    alert(`Imported ${added} event${added !== 1 ? 's' : ''} into this week.`);
+  };
+  reader.readAsText(file);
+  // Reset so same file can be re-imported
+  event.target.value = '';
+}
+
+function parseICS(text) {
+  const events = [];
+  const blocks = text.split('BEGIN:VEVENT').slice(1);
+  const weekDates = wkDates(wko);
+  const weekStart = weekDates[0];
+  const weekEnd = new Date(weekDates[6]); weekEnd.setHours(23,59,59);
+
+  blocks.forEach(block => {
+    try {
+      const get = key => {
+        const m = block.match(new RegExp(key + '[^:]*:([^\\r\\n]+)'));
+        return m ? m[1].trim() : '';
+      };
+      const summary = get('SUMMARY');
+      if (!summary || summary.startsWith('🎯')) return; // skip intention events
+
+      // Parse DTSTART — handle both date-only and datetime
+      const dtstart = get('DTSTART');
+      if (!dtstart || dtstart.includes('VALUE=DATE')) return; // skip all-day
+
+      const parsedt = s => {
+        const clean = s.replace(/[^0-9T]/g,'');
+        const y = +clean.slice(0,4), mo = +clean.slice(4,6)-1, d = +clean.slice(6,8);
+        const h = clean.length > 8 ? +clean.slice(9,11) : 0;
+        const m = clean.length > 8 ? +clean.slice(11,13) : 0;
+        return new Date(y, mo, d, h, m);
+      };
+
+      const dtend = get('DTEND');
+      const start = parsedt(dtstart);
+      const end = dtend ? parsedt(dtend) : new Date(start.getTime() + 3600000);
+
+      // Only import if it falls within current week
+      if (start < weekStart || start > weekEnd) return;
+
+      // Find which day of the week
+      const dayIdx = weekDates.findIndex(d => d.toDateString() === start.toDateString());
+      if (dayIdx === -1) return;
+
+      // Convert to slots (each slot = 30 mins from SH)
+      const startMins = start.getHours() * 60 + start.getMinutes();
+      const endMins = end.getHours() * 60 + end.getMinutes();
+      const slot = Math.max(0, Math.round((startMins - SH * 60) / 30));
+      const slots = Math.max(1, Math.round((endMins - startMins) / 30));
+
+      // Try to guess category from summary
+      const catGuess = guessCat(summary);
+      const note = get('DESCRIPTION') || '';
+
+      events.push({ id: 'ev' + Date.now() + Math.random(), day: dayIdx, slot, slots, name: summary, cat: catGuess, note });
+    } catch(e) { /* skip malformed events */ }
+  });
+  return events;
+}
+
+function guessCat(name) {
+  const n = name.toLowerCase();
+  if (/gym|exercise|run|yoga|swim|fitness|sport|walk|hike/.test(n)) return 'health';
+  if (/work|meeting|standup|call|office|wfh|client|project/.test(n)) return 'work';
+  if (/lunch|dinner|breakfast|coffee|cafe|pub|eat|drink|restaurant/.test(n)) return 'food';
+  if (/flight|train|airport|taxi|hotel|travel|trip|pack/.test(n)) return 'travel';
+  if (/party|drinks|friend|social|date|cinema|concert|event/.test(n)) return 'social';
+  if (/guitar|music|read|write|film|tv|creative|art|learn/.test(n)) return 'creative';
+  if (/shop|errand|groceries|admin|bank|doctor|dentist/.test(n)) return 'admin';
+  return 'personal';
+}
+
+// ── GOALS PAGE ──
+const GOAL_AREAS = ['creative','work','health','personal','other'];
+
+function deleteGoal(id, type) {
+  if (type === 'trip') trips = trips.filter(t => t.id !== id);
+  else goals = goals.filter(g => g.id !== id);
+  sv(); renderGoals(); renderTrips();
+}
+
+function togGoal(id) {
+  const item = goals.find(i => i.id === id);
+  if (!item) return;
+  item.status = item.status === 'done' ? 'current' : 'done';
+  sv(); renderGoals();
+}
+
+let goalFilter = 'all';
+function setGoalFilter(f, btn) {
+  goalFilter = f;
+  document.querySelectorAll('.goal-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderGoals();
+}
+
+function getTimeChip(item) {
+  if (item.status === 'done') return { label: '✓ Done', cls: 'done-chip', urgency: 99 };
+  if (item.status === 'someday') return { label: '◌ Someday', cls: 'someday-chip', urgency: 50 };
+  if (!item.targetMonth) return { label: '', cls: '', urgency: 40 };
+  const now = new Date();
+  const [y, m] = item.targetMonth.split('-').map(Number);
+  const target = new Date(y, m - 1, 1);
+  const monthsDiff = (y - now.getFullYear()) * 12 + (m - 1 - now.getMonth());
+  if (monthsDiff < 0) return { label: '⚠ Overdue', cls: 'overdue', urgency: 0 };
+  if (monthsDiff === 0) return { label: '⚡ This month', cls: 'soon', urgency: 1 };
+  if (monthsDiff === 1) return { label: '→ Next month', cls: 'soon', urgency: 2 };
+  const d = target.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+  return { label: d, cls: 'future', urgency: 10 + monthsDiff };
+}
+
+function renderGoals() {
+  const areas = {
+    creative: document.getElementById('goals-creative'),
+    work: document.getElementById('goals-work'),
+    health: document.getElementById('goals-health'),
+    personal: document.getElementById('goals-personal'),
+    other: document.getElementById('goals-other'),
+  };
+  Object.values(areas).forEach(el => { if (el) el.innerHTML = ''; });
+
+  // Filter
+  let filtered = goals;
+  if (goalFilter === 'current') filtered = goals.filter(g => g.status === 'current' || g.status === 'planning');
+  else if (goalFilter === 'overdue') filtered = goals.filter(g => {
+    if (!g.targetMonth || g.status === 'done') return false;
+    const [y, m] = g.targetMonth.split('-').map(Number);
+    const now = new Date();
+    return (y - now.getFullYear()) * 12 + (m - 1 - now.getMonth()) < 0;
+  });
+  else if (goalFilter === 'someday') filtered = goals.filter(g => g.status === 'someday');
+  else if (goalFilter === 'done') filtered = goals.filter(g => g.status === 'done');
+
+  // Sort by urgency within each area
+  const sorted = [...filtered].sort((a, b) => getTimeChip(a).urgency - getTimeChip(b).urgency);
+
+  let hasOther = false;
+  sorted.forEach(item => {
+    const area = item.area || 'personal';
+    const el = areas[area] || areas.other;
+    if (area === 'other') hasOther = true;
+    if (!el) return;
+    const chip = getTimeChip(item);
+    const isDone = item.status === 'done';
+    const dotColor = {
+      current:'#496bb8', planning:'#fb7c23', done:'#5dac5b',
+      someday:'#bca98a', booked:'#5dac5b'
+    }[item.status] || '#bca98a';
+
+    const div = document.createElement('div');
+    div.className = 'gi';
+    div.style.cssText = `background:var(--bg);border-radius:8px;padding:9px 10px;border:1px solid var(--border-light);display:flex;gap:8px;align-items:flex-start;margin-bottom:5px;${isDone?'opacity:.6':''}`;
+    div.innerHTML = `
+      <div class="g-dot ${isDone?'done':''}" style="color:${dotColor};margin-top:3px;flex-shrink:0" onclick="togGoal('${item.id}')"></div>
+      <div class="g-cnt" style="flex:1;min-width:0">
+        <div class="g-ttl" style="${isDone?'text-decoration:line-through':''}; font-weight:500;font-size:13px">${item.title}</div>
+        ${chip.label ? `<div class="goal-time-chip ${chip.cls}">${chip.label}</div>` : ''}
+        ${item.notes ? `<div class="g-meta" style="font-style:italic;margin-top:3px">${item.notes}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:3px;align-items:flex-start;flex-shrink:0;padding-top:1px">
+        <button class="btn-ga" onclick="openGoalModal('goal','${item.id}')">Edit</button>
+        <button class="g-del" onclick="deleteGoal('${item.id}','goal')" style="font-size:13px">×</button>
+      </div>`;
+    el.appendChild(div);
+  });
+
+  // Empty states
+  Object.entries(areas).forEach(([key, el]) => {
+    if (!el) return;
+    if (!el.children.length) {
+      const msg = goalFilter === 'all' ? 'Nothing here yet.' : `No ${goalFilter} goals in this area.`;
+      el.innerHTML = `<div style="color:var(--text-faint);font-size:11px;padding:8px 4px;font-style:italic">${msg}</div>`;
+    }
+  });
+
+  const otherSec = document.getElementById('goals-other-sec');
+  if (otherSec) otherSec.style.display = hasOther && (goalFilter === 'all' || filtered.some(g => (g.area||'personal') === 'other')) ? '' : 'none';
+}
+
+function openGoalModal(type, editId) {
+  const isT = type === 'trip';
+  document.getElementById('goalType').value = type;
+  document.getElementById('goalEditId').value = editId || '';
+  document.getElementById('goalMoTitle').textContent = editId ? (isT ? 'Edit Trip' : 'Edit Goal') : (isT ? 'Add Trip' : 'Add Goal');
+  document.getElementById('goalDateLbl').textContent = isT ? 'Dates / Timeframe' : 'Notes (optional)';
+  document.getElementById('goalAreaFg').style.display = isT ? 'none' : '';
+  document.getElementById('goalTargetFg').style.display = isT ? 'none' : '';
+  document.getElementById('goalStatusFg').style.display = '';
+  document.getElementById('tripCatFg').style.display = isT ? '' : 'none';
+  // Update status options depending on type
+  const sel = document.getElementById('goalStatus');
+  if (isT) {
+    sel.innerHTML = '<option value="planning">Planning</option><option value="booked">Booked ✓</option><option value="done">Done</option>';
+  } else {
+    sel.innerHTML = '<option value="current">Current — working on it</option><option value="planning">Planning — not started</option><option value="someday">Someday — no rush</option><option value="done">Done ✓</option>';
+  }
+  if (editId) {
+    const item = (isT ? trips : goals).find(i => i.id === editId);
+    if (!item) return;
+    document.getElementById('goalTitle').value = item.title;
+    document.getElementById('goalStatus').value = item.status || 'current';
+    document.getElementById('goalNotes').value = item.notes || '';
+    document.getElementById('goalDate').value = item.date || '';
+    if (!isT) {
+      document.getElementById('goalArea').value = item.area || 'creative';
+      document.getElementById('goalTargetMonth').value = item.targetMonth || '';
+    }
+    if (isT) document.getElementById('tripCat').value = item.tripCat || 'holiday';
+  } else {
+    document.getElementById('goalTitle').value = '';
+    document.getElementById('goalDate').value = '';
+    document.getElementById('goalStatus').value = isT ? 'planning' : 'current';
+    document.getElementById('goalNotes').value = '';
+    if (!isT) { document.getElementById('goalArea').value = 'creative'; document.getElementById('goalTargetMonth').value = ''; }
+    if (isT) document.getElementById('tripCat').value = 'holiday';
+  }
+  document.getElementById('goalMo').classList.add('open');
+  setTimeout(() => document.getElementById('goalTitle').focus(), 100);
+}
+
+function saveGoal() {
+  const type = document.getElementById('goalType').value;
+  const editId = document.getElementById('goalEditId').value;
+  const title = document.getElementById('goalTitle').value.trim();
+  if (!title) return;
+  const isT = type === 'trip';
+  const item = {
+    id: editId || ('g' + Date.now()), title,
+    status: document.getElementById('goalStatus').value,
+    notes: document.getElementById('goalNotes').value.trim(),
+    date: document.getElementById('goalDate').value.trim(),
+    type,
+    area: isT ? null : document.getElementById('goalArea').value,
+    targetMonth: isT ? null : (document.getElementById('goalTargetMonth').value || null),
+    tripCat: isT ? document.getElementById('tripCat').value : null,
+  };
+  const list = isT ? trips : goals;
+  const idx = editId ? list.findIndex(i => i.id === editId) : -1;
+  if (idx >= 0) list[idx] = item; else list.push(item);
+  sv(); renderGoals(); renderTrips(); closeMo('goalMo');
+}
+let pinEntry = '';
+const STORED_PIN_KEY = 'stw-pin';
+
+function getStoredPin() { return localStorage.getItem(STORED_PIN_KEY) || ''; }
+
+function openSetPin() {
+  document.getElementById('pinInput1').value = '';
+  document.getElementById('pinInput2').value = '';
+  document.getElementById('pinSetError').textContent = '';
+  document.getElementById('setPinMo').classList.add('open');
+  setTimeout(() => document.getElementById('pinInput1').focus(), 100);
+}
+
+function savePin() {
+  const p1 = document.getElementById('pinInput1').value;
+  const p2 = document.getElementById('pinInput2').value;
+  if (p1 === '' && p2 === '') {
+    localStorage.removeItem(STORED_PIN_KEY);
+    closeMo('setPinMo');
+    alert('PIN removed.');
+    return;
+  }
+  if (!/^\d{4}$/.test(p1)) { document.getElementById('pinSetError').textContent = 'PIN must be exactly 4 digits.'; return; }
+  if (p1 !== p2) { document.getElementById('pinSetError').textContent = 'PINs do not match.'; return; }
+  localStorage.setItem(STORED_PIN_KEY, p1);
+  closeMo('setPinMo');
+  alert('PIN saved. It will lock the app on next load.');
+}
+
+function skipPin() { document.getElementById('lockScreen').style.display = 'none'; }
+
+function pinPress(val) {
+  if (val === 'back') { pinEntry = pinEntry.slice(0,-1); }
+  else if (pinEntry.length < 4) { pinEntry += val; }
+  updatePinDots();
+  if (pinEntry.length === 4) {
+    setTimeout(() => {
+      if (pinEntry === getStoredPin()) {
+        document.getElementById('lockScreen').style.display = 'none';
+        pinEntry = '';
+        updatePinDots();
+      } else {
+        document.getElementById('pinError').textContent = 'Incorrect PIN. Try again.';
+        pinEntry = '';
+        updatePinDots();
+        setTimeout(() => { document.getElementById('pinError').textContent = ''; }, 2000);
+      }
+    }, 150);
+  }
+}
+
+function updatePinDots() {
+  document.querySelectorAll('.pin-dot').forEach((d, i) => {
+    d.classList.toggle('filled', i < pinEntry.length);
+  });
+}
+
+function checkPinOnLoad() {
+  const pin = getStoredPin();
+  if (pin) document.getElementById('lockScreen').style.display = 'flex';
+  else document.getElementById('lockScreen').style.display = 'none';
+}
+
+// ── CATEGORY VIEW ──
+function slotToMins(slot) { return SH * 60 + slot * 30; }
+function minsToTime(m) { return `${p2(Math.floor(m/60))}:${p2(m%60)}`; }
+function renderCategory() {
+  const evs = getEvs();
+  const dates = wkDates(wko);
+  const el = document.getElementById('categoryInner');
+
+  let html = `<div class="cv-title">By Category</div>
+<p class="cv-sub">All your events grouped by what they are. Useful for checking how much time each area of your life is getting.</p>
+<div class="cv-grid">`;
+
+  Object.entries(CATS).forEach(([catKey, cat]) => {
+    const catEvs = evs.filter(e => e.cat === catKey).sort((a,b) => a.day !== b.day ? a.day - b.day : a.slot - b.slot);
+    const totalHrs = catEvs.reduce((s, e) => s + e.slots * 0.5, 0);
+
+    const evRows = catEvs.length ? catEvs.map(ev => {
+      const startTime = minsToTime(slotToMins(ev.slot));
+      const endTime = minsToTime(slotToMins(ev.slot) + ev.slots * 30);
+      return `<div class="cv-ev" style="background:${cat.l};color:${cat.t};">
+        <span class="cv-ev-day">${DAYS[ev.day]}</span>
+        <span class="cv-ev-name">${ev.name}</span>
+        <span class="cv-ev-time">${startTime}–${endTime}</span>
+      </div>`;
+    }).join('') : `<div class="cv-empty">Nothing this week.</div>`;
+
+    html += `<div class="cv-card">
+      <div class="cv-card-hdr">
+        <span class="cv-card-dot" style="background:${cat.color}"></span>
+        <span class="cv-card-title">${cat.label}</span>
+        ${totalHrs > 0 ? `<span class="cv-card-hrs">${totalHrs}h</span>` : ''}
+      </div>
+      <div class="cv-events">${evRows}</div>
+    </div>`;
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+if(!tpo){document.getElementById('tripsP').classList.add('col');document.getElementById('tpTog').textContent='‹';}
+// ── ONBOARDING TOUR ──
+const TOUR_KEY = 'stw-tour-done';
+const TOUR_STEPS = [
+  { target:()=>document.querySelector('.grid-wrap'), title:'Your week at a glance', body:'This is the planning grid. Drag any activity from the sidebar on the left onto a time slot to schedule it. Resize by dragging the bottom edge, and double-click any event to edit it.', position:'right' },
+  { target:()=>document.querySelector('.lib'), title:'Your activity library', body:'Everything you do lives here, organised by category. Click a category label to collapse it. Right-click any day header in the grid to save that day as a reusable template.', position:'right' },
+  { target:()=>document.querySelector('.intent-bar'), title:'Set your intention', body:'One sentence for the week — not a to-do, a frame. "Land the LEGO role." "Rest and recover." It exports to Google Calendar as an all-day event on Monday.', position:'below' },
+  { target:()=>document.querySelector('.tp-inner'), title:'Goals & targets', body:'Your week\'s goals (simple checkboxes) and targets (pip counters that auto-tick when you place matching activities on the grid) live here. Trips too — drag one onto the grid to block time.', position:'left' },
+  { target:()=>document.querySelector('.tab[onclick="showPage(\'goals\')"]'), title:'Your bigger picture', body:'The Goals tab is your life outside this week. Set a target month and goals sort themselves by urgency — overdue first, coming up soon, someday at the bottom.', position:'below' },
+  { target:()=>document.querySelector('.hdr-menu-wrap'), title:'You\'re all set.', body:'Export to ICS, import from other calendars, copy last week, and set a PIN lock — all in this menu. Restart this tour any time from here too. Happy planning.', position:'below-left', last:true }
+];
+let tourIdx = 0;
+function startTour() {
+  tourIdx = 0;
+  document.getElementById('tourOverlay').style.display = 'block';
+  showPage('planner'); setView('grid');
+  renderTourStep();
+}
+function endTour() {
+  document.getElementById('tourOverlay').style.display = 'none';
+  localStorage.setItem(TOUR_KEY, '1');
+  document.getElementById('tourHighlight').style.boxShadow = 'none';
+}
+function tourStep(dir) {
+  const step = TOUR_STEPS[tourIdx];
+  if (dir === 1 && step.last) { endTour(); return; }
+  tourIdx = Math.max(0, Math.min(TOUR_STEPS.length - 1, tourIdx + dir));
+  renderTourStep();
+}
+function renderTourStep() {
+  const step = TOUR_STEPS[tourIdx];
+  const el = step.target();
+  document.getElementById('tourStepLabel').textContent = `Step ${tourIdx + 1} of ${TOUR_STEPS.length}`;
+  document.getElementById('tourTitle').textContent = step.title;
+  document.getElementById('tourBody').textContent = step.body;
+  document.getElementById('tourBack').style.display = tourIdx === 0 ? 'none' : '';
+  document.getElementById('tourNext').textContent = step.last ? 'Done ✓' : 'Next →';
+  const dotsEl = document.getElementById('tourDots');
+  dotsEl.innerHTML = '';
+  TOUR_STEPS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.style.cssText = `width:6px;height:6px;border-radius:50%;background:${i===tourIdx?'var(--creative)':'var(--border)'};transition:background .2s;`;
+    dotsEl.appendChild(d);
+  });
+  if (el) {
+    el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    setTimeout(() => positionTour(el, step.position), 300);
+  }
+}
+function positionTour(el, pos) {
+  const r = el.getBoundingClientRect();
+  const pad = 6, gap = 16, cW = 330, cH = 230;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const hl = document.getElementById('tourHighlight');
+  hl.style.cssText = `position:fixed;border-radius:10px;pointer-events:none;z-index:901;transition:all .3s cubic-bezier(.4,0,.2,1);left:${r.left-pad}px;top:${r.top-pad}px;width:${r.width+pad*2}px;height:${r.height+pad*2}px;box-shadow:0 0 0 3px var(--creative),0 0 0 9999px rgba(42,34,24,.6);`;
+  let top, left;
+  if (pos==='right')      { left=r.right+gap;            top=r.top+r.height/2-cH/2; }
+  else if (pos==='left')  { left=r.left-cW-gap;          top=r.top+r.height/2-cH/2; }
+  else if (pos==='below') { left=r.left+r.width/2-cW/2;  top=r.bottom+gap; }
+  else                    { left=r.right-cW;              top=r.bottom+gap; }
+  left = Math.max(12, Math.min(vw-cW-12, left));
+  top  = Math.max(12, Math.min(vh-cH-12, top));
+  document.getElementById('tourCard').style.cssText = `position:fixed;z-index:902;pointer-events:all;transition:all .3s cubic-bezier(.4,0,.2,1);left:${left}px;top:${top}px;`;
+}
+function checkFirstVisit() {
+  if (!localStorage.getItem(TOUR_KEY)) setTimeout(startTour, 700);
+}
+
+// ── LIST PAGE ──
+const LIST_COLS = ['todo', 'priority', 'done'];
+
+function getLists() { return wev['lists'] || []; }
+function setLists(l) { wev['lists'] = l; sv(); }
+
+let listDragId = null;
+
+function renderList() {
+  const cards = getLists();
+  LIST_COLS.forEach(col => {
+    const body = document.getElementById('listBody-' + col);
+    const count = document.getElementById('listCount-' + col);
+    if (!body) return;
+    const colCards = cards.filter(c => c.col === col);
+    if (count) count.textContent = colCards.length;
+    body.innerHTML = '';
+    colCards.forEach(card => {
+      const cat = card.cat !== 'none' ? CATS[card.cat] : null;
+      const div = document.createElement('div');
+      div.className = 'lcard';
+      div.draggable = true;
+      div.dataset.id = card.id;
+      div.innerHTML = `
+        <button class="lcard-del" onclick="delListCard('${card.id}')">×</button>
+        ${cat ? `<div class="lcard-cat"><span class="lcard-cat-dot" style="background:${cat.color}"></span><span style="color:${cat.color}">${cat.label}</span></div>` : ''}
+        <div class="lcard-title">${card.title}</div>
+        ${card.body ? `<div class="lcard-body">${card.body}</div>` : ''}
+        <div class="lcard-actions">
+          <button class="lcard-edit" onclick="openListCardModal(null,'${card.id}')">Edit</button>
+          <button class="lcard-edit" onclick="dupListCard('${card.id}')">Dupe</button>
+          <button class="lcard-move" onclick="moveListCard('${card.id}',-1)">←</button>
+          <button class="lcard-move" onclick="moveListCard('${card.id}',1)">→</button>
+          <button class="lcard-cal" onclick="openListCalModal('${card.id}')">+ Cal</button>
+        </div>`;
+      // Drag events
+      div.addEventListener('dragstart', e => {
+        listDragId = card.id;
+        div.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      div.addEventListener('dragend', () => {
+        listDragId = null;
+        div.classList.remove('dragging');
+      });
+      body.appendChild(div);
+    });
+  });
+}
+
+function moveListCard(id, dir) {
+  const cards = getLists();
+  const card = cards.find(c => c.id === id);
+  if (!card) return;
+  const cols = LIST_COLS;
+  const idx = cols.indexOf(card.col);
+  const newIdx = Math.max(0, Math.min(cols.length - 1, idx + dir));
+  card.col = cols[newIdx];
+  setLists(cards);
+  renderList();
+}
+
+function listColDragOver(e, col) {
+  e.preventDefault();
+  document.getElementById('listBody-' + col).classList.add('drag-over');
+}
+
+function listColDragLeave(e) {
+  e.currentTarget.querySelector('.list-col-body').classList.remove('drag-over');
+}
+
+function listColDrop(e, col) {
+  e.preventDefault();
+  document.getElementById('listBody-' + col).classList.remove('drag-over');
+  if (!listDragId) return;
+  const cards = getLists();
+  const card = cards.find(c => c.id === listDragId);
+  if (card) { card.col = col; setLists(cards); renderList(); }
+}
+
+function openListCardModal(col, editId) {
+  const isEdit = !!editId;
+  document.getElementById('listCardMoTitle').textContent = isEdit ? 'Edit item' : 'Add item';
+  document.getElementById('listCardId').value = editId || '';
+  if (isEdit) {
+    const card = getLists().find(c => c.id === editId);
+    if (!card) return;
+    document.getElementById('listCardTitle').value = card.title;
+    document.getElementById('listCardBody').value = card.body || '';
+    document.getElementById('listCardCat').value = card.cat || 'none';
+    document.getElementById('listCardCol').value = card.col;
+  } else {
+    document.getElementById('listCardTitle').value = '';
+    document.getElementById('listCardBody').value = '';
+    document.getElementById('listCardCat').value = 'none';
+    document.getElementById('listCardCol').value = col || 'todo';
+  }
+  document.getElementById('listCardMo').classList.add('open');
+  setTimeout(() => document.getElementById('listCardTitle').focus(), 100);
+}
+
+function saveListCard() {
+  const title = document.getElementById('listCardTitle').value.trim();
+  if (!title) return;
+  const editId = document.getElementById('listCardId').value;
+  const cards = getLists();
+  const item = {
+    id: editId || ('lc' + Date.now()),
+    title,
+    body: document.getElementById('listCardBody').value.trim(),
+    cat: document.getElementById('listCardCat').value,
+    col: document.getElementById('listCardCol').value,
+  };
+  const idx = editId ? cards.findIndex(c => c.id === editId) : -1;
+  if (idx >= 0) cards[idx] = item; else cards.push(item);
+  setLists(cards);
+  renderList();
+  closeMo('listCardMo');
+}
+
+function delListCard(id) {
+  setLists(getLists().filter(c => c.id !== id));
+  renderList();
+}
+function dupListCard(id) {
+  const cards = getLists();
+  const card = cards.find(c => c.id === id);
+  if (!card) return;
+  cards.push({...card, id: 'lc' + Date.now()});
+  setLists(cards);
+  renderList();
+}
+
+function openListCalModal(id) {
+  const card = getLists().find(c => c.id === id);
+  if (!card) return;
+  document.getElementById('listCalCardId').value = id;
+  document.getElementById('listCalCardName').textContent = card.title;
+  // Populate time select
+  const timeSel = document.getElementById('listCalTime');
+  timeSel.innerHTML = '';
+  for (let s = 0; s < TOTAL; s++) {
+    const hour = SH + Math.floor(s / SPH), min = (s % SPH) * 30;
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = `${p2(hour)}:${p2(min)}`;
+    if (s === 16) opt.selected = true; // default 9am
+    timeSel.appendChild(opt);
+  }
+  document.getElementById('listCalMo').classList.add('open');
+}
+
+function addListCardToCal() {
+  const id = document.getElementById('listCalCardId').value;
+  const card = getLists().find(c => c.id === id);
+  if (!card) return;
+  const day = parseInt(document.getElementById('listCalDay').value);
+  const slot = parseInt(document.getElementById('listCalTime').value);
+  const slots = parseInt(document.getElementById('listCalDur').value);
+  const cat = card.cat !== 'none' ? card.cat : 'personal';
+  const evs = getEvs();
+  evs.push({ id: 'ev' + Date.now(), day, slot, slots, name: card.title, cat, note: card.body || '' });
+  setEvs(evs);
+  renderGrid();
+  closeMo('listCalMo');
+  // Switch to planner so they can see it land
+  showPage('planner');
+}
+
+// ── TRIPS PAGE ──
+const TRIP_BRAIN_COLS = ['dream','planning','booked','done'];
+const TRIP_BRAIN_EMOJIS = {holiday:'✈',weekend:'🏡',daytrip:'🚂',event:'🎟',social:'🍻',other:'📌'};
+
+function getTripBrains() { return wev['tripbrains'] || []; }
+function setTripBrains(t) { wev['tripbrains'] = t; sv(); }
+
+function renderTripBrains() {
+  const cards = getTripBrains();
+  TRIP_BRAIN_COLS.forEach(col => {
+    const body = document.getElementById('tripBody-' + col);
+    const count = document.getElementById('tripCount-' + col);
+    if (!body) return;
+    const colCards = cards.filter(c => c.status === col);
+    if (count) count.textContent = colCards.length;
+    body.innerHTML = '';
+    colCards.forEach(card => {
+      const emoji = TRIP_BRAIN_EMOJIS[card.type] || '📌';
+      const div = document.createElement('div');
+      div.className = 'tbc';
+      div.innerHTML = `
+        <span class="tbc-emoji">${emoji}</span>
+        <div class="tbc-title">${card.title}</div>
+        ${card.dates ? `<div class="tbc-dates">📅 ${card.dates}</div>` : ''}
+        ${card.notes ? `<div class="tbc-notes">${card.notes}</div>` : ''}
+        <div class="tbc-actions">
+          <button class="tbc-btn" onclick="openTripBrainModal('${card.id}')">Edit</button>
+          <button class="tbc-btn" onclick="dupTripBrain('${card.id}')">Dupe</button>
+          ${col !== 'dream' ? `<button class="tbc-btn" onclick="moveTripBrain('${card.id}',-1)">←</button>` : ''}
+          ${col !== 'done' ? `<button class="tbc-btn" onclick="moveTripBrain('${card.id}',1)">→</button>` : ''}
+          <button class="tbc-btn promote" onclick="promoteToPlanner('${card.id}')">+ Planner</button>
+          <button class="tbc-btn" onclick="delTripBrain('${card.id}')" style="color:var(--creative);border-color:var(--creative-border);">×</button>
+        </div>`;
+      body.appendChild(div);
+    });
+    if (!colCards.length) {
+      body.innerHTML = `<div style="font-size:11px;color:var(--text-faint);font-style:italic;padding:6px 4px;text-align:center;">Nothing here yet</div>`;
+    }
+  });
+}
+
+function openTripBrainModal(editId) {
+  const isEdit = !!editId;
+  document.getElementById('tripBrainMoTitle').textContent = isEdit ? 'Edit trip' : 'Add trip';
+  document.getElementById('tripBrainId').value = editId || '';
+  if (isEdit) {
+    const card = getTripBrains().find(c => c.id === editId);
+    if (!card) return;
+    document.getElementById('tripBrainTitle').value = card.title;
+    document.getElementById('tripBrainType').value = card.type || 'holiday';
+    document.getElementById('tripBrainStatus').value = card.status || 'dream';
+    document.getElementById('tripBrainDates').value = card.dates || '';
+    document.getElementById('tripBrainNotes').value = card.notes || '';
+  } else {
+    document.getElementById('tripBrainTitle').value = '';
+    document.getElementById('tripBrainType').value = 'holiday';
+    document.getElementById('tripBrainStatus').value = 'dream';
+    document.getElementById('tripBrainDates').value = '';
+    document.getElementById('tripBrainNotes').value = '';
+  }
+  document.getElementById('tripBrainMo').classList.add('open');
+  setTimeout(() => document.getElementById('tripBrainTitle').focus(), 100);
+}
+
+function saveTripBrain() {
+  const title = document.getElementById('tripBrainTitle').value.trim();
+  if (!title) return;
+  const editId = document.getElementById('tripBrainId').value;
+  const cards = getTripBrains();
+  const item = {
+    id: editId || ('tb' + Date.now()),
+    title,
+    type: document.getElementById('tripBrainType').value,
+    status: document.getElementById('tripBrainStatus').value,
+    dates: document.getElementById('tripBrainDates').value.trim(),
+    notes: document.getElementById('tripBrainNotes').value.trim(),
+  };
+  const idx = editId ? cards.findIndex(c => c.id === editId) : -1;
+  if (idx >= 0) cards[idx] = item; else cards.push(item);
+  setTripBrains(cards);
+  renderTripBrains();
+  closeMo('tripBrainMo');
+}
+
+function delTripBrain(id) {
+  setTripBrains(getTripBrains().filter(c => c.id !== id));
+  renderTripBrains();
+}
+
+function dupTripBrain(id) {
+  const cards = getTripBrains();
+  const card = cards.find(c => c.id === id);
+  if (!card) return;
+  cards.push({...card, id: 'tb' + Date.now()});
+  setTripBrains(cards);
+  renderTripBrains();
+}
+
+function moveTripBrain(id, dir) {
+  const cards = getTripBrains();
+  const card = cards.find(c => c.id === id);
+  if (!card) return;
+  const idx = TRIP_BRAIN_COLS.indexOf(card.status);
+  card.status = TRIP_BRAIN_COLS[Math.max(0, Math.min(TRIP_BRAIN_COLS.length - 1, idx + dir))];
+  setTripBrains(cards);
+  renderTripBrains();
+}
+
+function promoteToPlanner(id) {
+  const card = getTripBrains().find(c => c.id === id);
+  if (!card) return;
+  // Map brainstorm type to trip modal type
+  const tripTypeMap = {holiday:'holiday',weekend:'weekend',daytrip:'daytrip',event:'event',social:'social',other:'other'};
+  const statusMap = {dream:'planning',planning:'planning',booked:'booked',done:'done'};
+  trips.push({
+    id: 'trip' + Date.now(),
+    title: card.title,
+    type: 'trip',
+    tripCat: tripTypeMap[card.type] || 'other',
+    status: statusMap[card.status] || 'planning',
+    date: card.dates || '',
+    notes: card.notes || '',
+  });
+  sv();
+  renderTrips();
+  // Show confirmation
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✓ Added!';
+  setTimeout(() => { btn.textContent = orig; }, 1500);
+}
+
+checkPinOnLoad();
+// ── MOBILE LAYOUT ──
+const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+let mobDayIdx = 0;
+function getMobDayIdx() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dates = wkDates(wko);
+  const idx = dates.findIndex(d => d.getTime() === today.getTime());
+  return idx >= 0 ? idx : 0;
+}
+
+function renderMobDayStrip() {
+  const strip = document.getElementById('mobDayStrip');
+  if (!strip) return;
+  const dates = wkDates(wko);
+  const today = new Date(); today.setHours(0,0,0,0);
+  strip.innerHTML = '';
+  dates.forEach((d, i) => {
+    const isToday = d.getTime() === today.getTime();
+    const pill = document.createElement('div');
+    pill.className = 'mob-day-pill' + (i === mobDayIdx ? ' active' : '') + (isToday ? ' today' : '');
+    pill.innerHTML = `<div class="mpn">${DAYS[i]}</div><div class="mpd">${d.getDate()}</div>`;
+    pill.onclick = () => setMobDay(i);
+    strip.appendChild(pill);
+  });
+}
+
+function setMobDay(idx) {
+  mobDayIdx = idx;
+  document.querySelectorAll('.dh').forEach((el, i) => el.classList.toggle('mob-active', i === idx));
+  document.querySelectorAll('.wx-cell[data-wi]').forEach(el => el.classList.toggle('mob-active', parseInt(el.dataset.wi) === idx));
+  document.querySelectorAll('.ad-cell[data-adday]').forEach(el => el.classList.toggle('mob-active', parseInt(el.dataset.adday) === idx));
+  document.querySelectorAll('.slot[data-day]').forEach(el => el.classList.toggle('mob-active', parseInt(el.dataset.day) === idx));
+  renderMobDayStrip();
+  if (isMobile()) {
+    const gw = document.querySelector('.grid-wrap');
+    if (gw) {
+      // Measure actual rendered column width from the first dh element
+      const firstDh = document.querySelector('.dh');
+      const colW = firstDh ? firstDh.getBoundingClientRect().width : gw.clientWidth * 0.88;
+      gw.scrollLeft = colW * idx;
+    }
+  }
+}
+
+function applyMobileGrid() {
+  if (!isMobile()) return;
+  setMobDay(mobDayIdx);
+}
+
+// Swipe support on the grid
+let touchStartX = 0;
+function initSwipe() {
+  const gw = document.querySelector('.grid-wrap');
+  if (!gw || gw._swipeInit) return;
+  gw._swipeInit = true;
+  gw.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  gw.addEventListener('touchend', e => {
+    if (!isMobile()) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) < 50) return;
+    if (dx < 0) {
+      if (mobDayIdx < 6) setMobDay(mobDayIdx + 1);
+      else { chWk(1); mobDayIdx = 0; renderMobDayStrip(); applyMobileGrid(); }
+    } else {
+      if (mobDayIdx > 0) setMobDay(mobDayIdx - 1);
+      else { chWk(-1); mobDayIdx = 6; renderMobDayStrip(); applyMobileGrid(); }
+    }
+  }, { passive: true });
+}
+
+function mbnActive(id) {
+  document.querySelectorAll('.mob-bottom-btn').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();loadIntent();fetchWx();
+
+// Mobile init after render
+if (isMobile()) {
+  mobDayIdx = getMobDayIdx();
+  renderMobDayStrip();
+  applyMobileGrid();
+  initSwipe();
+}
+checkFirstVisit();
+// Start Supabase auth — loads remote data if logged in, shows login if not
+boot();
+window.addEventListener('resize', () => {
+  if (isMobile()) { renderMobDayStrip(); applyMobileGrid(); initSwipe(); }
+});
+
+function changeWeek(dir) { chWk(dir); if(isMobile()) { renderMobDayStrip(); applyMobileGrid(); } }
+
+// Mobile slot tap → quick-add sheet
+let mobTapSlot = null, mobTapDay = null;
+function openMobileAddSheet(day, slot) {
+  if (!isMobile()) return;
+  mobTapDay = day; mobTapSlot = slot;
+  const time = s2t(slot);
+  document.getElementById('mobileSheetTime').textContent = time;
+  const listEl = document.getElementById('mobileSheetList');
+  listEl.innerHTML = '';
+  const all = [...lib];
+  all.forEach(item => {
+    const cat = CATS[item.cat] || CATS.personal;
+    const row = document.createElement('div');
+    row.className = 'mob-sheet-item';
+    row.innerHTML = `<span class="mob-sheet-dot" style="background:${cat.color}"></span><span class="mob-sheet-name">${item.name}</span>`;
+    row.onclick = () => {
+      const evs = getEvs();
+      evs.push({ id: 'ev' + Date.now(), day: mobTapDay, slot: mobTapSlot, slots: 1, name: item.name, cat: item.cat, note: '' });
+      setEvs(evs);
+      renderEvents();
+      renderBudget();
+      autoIncrementTallies(item.name);
+      closeMobileSheet();
+    };
+    listEl.appendChild(row);
+  });
+  document.getElementById('mobileSheet').classList.add('open');
+  document.getElementById('mobileSheetOverlay').classList.add('open');
+}
+
+function closeMobileSheet() {
+  document.getElementById('mobileSheet').classList.remove('open');
+  document.getElementById('mobileSheetOverlay').classList.remove('open');
+}
+
+// Mobile event tap → action sheet
+let mobActiveEvId = null;
+function openMobileEvSheet(evId) {
+  if (!isMobile()) return;
+  const ev = getEvs().find(e => e.id === evId);
+  if (!ev) return;
+  mobActiveEvId = evId;
+  document.getElementById('mobileEvTitle').textContent = ev.name;
+  document.getElementById('mobileEvTime').textContent = `${s2t(ev.slot)} – ${s2t(ev.slot + ev.slots)}`;
+  document.getElementById('mobileEvSheet').classList.add('open');
+  document.getElementById('mobileEvSheetOverlay').classList.add('open');
+}
+
+function closeMobileEvSheet() {
+  document.getElementById('mobileEvSheet').classList.remove('open');
+  document.getElementById('mobileEvSheetOverlay').classList.remove('open');
+  mobActiveEvId = null;
+}
+
+function mobileEvEdit() { closeMobileEvSheet(); openEvEdit(mobActiveEvId); }
+function mobileEvGcal() { closeMobileEvSheet(); openGcal(mobActiveEvId); }
+function mobileEvDelete() {
+  if (!mobActiveEvId) return;
+  setEvs(getEvs().filter(e => e.id !== mobActiveEvId));
+  renderEvents(); renderBudget();
+  closeMobileEvSheet();
+}
+
+// FAB opens add sheet for current day at next empty slot
+function openMobileFab() {
+  if (!isMobile()) return;
+  // Find first empty slot near current time
+  const now = new Date();
+  const currentMins = now.getHours() * 60 + now.getMinutes();
+  const slot = Math.max(0, Math.round((currentMins - SH * 60) / 30));
+  openMobileAddSheet(mobDayIdx, Math.min(slot, TOTAL - 1));
+}
+
+// Mobile sidebar sheet (Goals/Targets/Trips)
+function toggleMobileSidebar() {
+  const sheet = document.getElementById('mobileSidebarSheet');
+  if (sheet.classList.contains('open')) closeMobileSidebar();
+  else openMobileSidebar();
+}
+
+function openMobileSidebar() {
+  // Sync content to mobile containers
+  syncMobileSidebar();
+  document.getElementById('mobileSidebarSheet').classList.add('open');
+  document.getElementById('mobileSidebarOverlay').classList.add('open');
+}
+
+function closeMobileSidebar() {
+  document.getElementById('mobileSidebarSheet').classList.remove('open');
+  document.getElementById('mobileSidebarOverlay').classList.remove('open');
+}
+
+function syncMobileSidebar() {
+  // Week goals
+  const wgm = document.getElementById('weekGoalsListMobile');
+  if (wgm) {
+    const goals = getWeekGoals();
+    wgm.innerHTML = '';
+    if (!goals.length) { wgm.innerHTML = '<div style="font-size:11px;color:var(--text-faint);font-style:italic">Nothing set yet.</div>'; }
+    goals.forEach((g, i) => {
+      const row = document.createElement('div');
+      row.className = 'wg-item';
+      row.innerHTML = `<div class="wg-check ${g.done?'done':''}" onclick="toggleWeekGoal(${i});syncMobileSidebar()">${g.done?'<span style="color:white;font-size:9px">✓</span>':''}</div><span class="wg-text ${g.done?'done':''}">${g.text}</span><button class="wg-del" onclick="delWeekGoal(${i});syncMobileSidebar()">×</button>`;
+      wgm.appendChild(row);
+    });
+  }
+  // Tallies — clone the desktop tally list
+  const tlm = document.getElementById('tallyListMobile');
+  const tlDesktop = document.getElementById('tallyList');
+  if (tlm && tlDesktop) tlm.innerHTML = tlDesktop.innerHTML;
+  // Trips — clone the desktop trips list
+  const trm = document.getElementById('tripsListMobile');
+  const trDesktop = document.getElementById('tripsList');
+  if (trm && trDesktop) trm.innerHTML = trDesktop.innerHTML;
+}
+
+</script>
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mob-bottom-bar">
+  <button class="mob-bottom-btn active" id="mbnPlanner" onclick="showPage('planner');mbnActive('mbnPlanner')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Planner
+  </button>
+  <button class="mob-bottom-btn" id="mbnList" onclick="showPage('list');mbnActive('mbnList')">
+    <svg viewBox="0 0 24 24"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>
+    Tasks
+  </button>
+  <button class="mob-bottom-btn" id="mbnSidebar" onclick="toggleMobileSidebar()">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="15" y2="17"/></svg>
+    This Week
+  </button>
+  <button class="mob-bottom-btn" id="mbnGoals" onclick="showPage('goals');mbnActive('mbnGoals')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/></svg>
+    Goals
+  </button>
+  <button class="mob-bottom-btn" id="mbnTrips" onclick="showPage('trips');mbnActive('mbnTrips')">
+    <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.81a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    Trips
+  </button>
+</nav>
+
+<!-- MOBILE FAB -->
+<button class="mob-add-fab" onclick="openMobileFab()" aria-label="Add activity">+</button>
+
+<!-- MOBILE SIDEBAR SHEET -->
+<div id="mobileSidebarSheet" class="mob-sheet">
+  <div class="mob-sheet-bar"></div>
+  <div class="mob-sheet-hdr">
+    <span class="mob-sheet-title">This Week</span>
+    <button class="mob-sheet-close" onclick="closeMobileSidebar()">×</button>
+  </div>
+  <div style="overflow-y:auto;padding:0 20px 32px;display:flex;flex-direction:column;gap:16px;">
+    <!-- Goals -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted)">Goals this week</span>
+        <button class="btn-at" onclick="addWeekGoal();renderWeekGoals()">+</button>
+      </div>
+      <div id="weekGoalsListMobile" style="display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+    <!-- Targets -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted)">Targets</span>
+        <button class="btn-at" onclick="openAddTally()">+</button>
+      </div>
+      <div id="tallyListMobile" style="display:flex;flex-direction:column;gap:5px;"></div>
+    </div>
+    <!-- Trips -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted)">Trips & Plans</span>
+        <button class="btn-at" onclick="openGoalModal('trip')">+</button>
+      </div>
+      <div id="tripsListMobile" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+  </div>
+</div>
+<div id="mobileSidebarOverlay" class="mob-sheet-overlay" onclick="closeMobileSidebar()"></div>
+
+<!-- ONBOARDING TOUR -->
+<div id="tourOverlay" style="display:none;position:fixed;inset:0;z-index:900;pointer-events:none;">
+  <div id="tourHighlight" style="position:fixed;border-radius:10px;pointer-events:none;z-index:901;"></div>
+  <div id="tourCard" style="position:fixed;z-index:902;pointer-events:all;">
+    <div style="background:var(--surface);border-radius:14px;padding:20px 22px;width:310px;box-shadow:0 8px 40px rgba(42,34,24,.22);border:1.5px solid var(--border);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span id="tourStepLabel" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-faint);"></span>
+        <button onclick="endTour()" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:13px;padding:0;font-family:inherit;">Skip tour</button>
+      </div>
+      <div id="tourTitle" style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--text);margin-bottom:8px;line-height:1.3;"></div>
+      <div id="tourBody" style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:18px;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div id="tourDots" style="display:flex;gap:5px;"></div>
+        <div style="display:flex;gap:7px;">
+          <button id="tourBack" onclick="tourStep(-1)" style="padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:transparent;font-family:inherit;font-size:13px;cursor:pointer;color:var(--text-muted);">Back</button>
+          <button id="tourNext" onclick="tourStep(1)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--creative);color:white;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
