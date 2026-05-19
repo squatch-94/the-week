@@ -6370,7 +6370,7 @@ function dlSaveToSheets(dayIdx){
     "Wanted To But Didn't (Other)":'',                            // 66
     'Voice Notes':'',                                              // 67
     'Daily Briefing':(()=>{                                        // 68
-      const dayEvs=getEvs().filter(e=>e.day===dayIdx&&e.cat!=='feelings').sort((a,b)=>a.slot-b.slot);
+      const dayEvs=getEvs().filter(e=>e.day===dayIdx).sort((a,b)=>a.slot-b.slot);
       return dayEvs.map(e=>{
         const h=SH+Math.floor(e.slot/SPH);
         const m=(e.slot%SPH)*30;
@@ -6378,8 +6378,8 @@ function dlSaveToSheets(dayIdx){
         return `${time} - ${e.name}`;
       }).join('\n');
     })(),
-    'AM Routine':(()=>{const done=getMorningRoutineItems(dayIdx).filter(r=>r.done).map(r=>r.text);const skip=getMorningRoutineItems(dayIdx).filter(r=>!r.done).map(r=>r.text);const parts=[];if(done.length)parts.push('Done: '+done.join(', '));if(skip.length)parts.push('Skipped: '+skip.join(', '));return parts.join(' | ');})(), // 69
-    'PM Routine':(()=>{const done=getRoutineItems(dayIdx).filter(r=>r.done).map(r=>r.text);const skip=getRoutineItems(dayIdx).filter(r=>!r.done).map(r=>r.text);const parts=[];if(done.length)parts.push('Done: '+done.join(', '));if(skip.length)parts.push('Skipped: '+skip.join(', '));return parts.join(' | ');})(), // 70
+    'AM Routine':(()=>{const done=getMorningRoutineItems(dayIdx).filter(r=>r.done).map(r=>r.text);return done.length?done.join(', '):'';})(), // 69
+    'PM Routine':(()=>{const done=getRoutineItems(dayIdx).filter(r=>r.done).map(r=>r.text);return done.length?done.join(', '):'';})(), // 70
   };
   const btn=document.getElementById(`dl-save-btn-${dayIdx}`);
   if(btn){btn.textContent='Saving…';btn.disabled=true;}
