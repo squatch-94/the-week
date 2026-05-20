@@ -884,7 +884,7 @@
     .rp-kb-col{min-width:unset;width:100%;}
 
     /* Budget, checklist etc — add padding for bottom nav */
-    #page-budget.active,#page-checklist.active,#page-bucketlist.active,#page-trips.active{
+    #page-budget.active,#page-checklist.active,#page-bucketlist.active,#page-trips.active,#page-itinerary.active{
       padding-bottom:calc(64px + env(safe-area-inset-bottom));
       overflow-y:auto;
       height:auto;
@@ -1004,6 +1004,115 @@
   .tbc-btn:hover{background:var(--bg-warm);color:var(--text);}
   .tbc-btn.promote{background:var(--header-bg);color:#fff;border-color:var(--header-bg);}
   .tbc-btn.promote:hover{opacity:.85;}
+  /* Plan → Itinerary "already linked" state */
+  .tbc-btn-linked{background:#e5f4e5;color:#2d6b2c;border-color:#bcd6bc;font-weight:600;}
+  .tbc-btn-linked:hover{background:#d5ebd5;color:#1f4d1e;}
+
+  /* ── ITINERARY ── */
+  .itin-pg{padding:24px 28px;min-height:calc(100vh - 52px);display:flex;flex-direction:column;}
+  .itin-pg-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-shrink:0;}
+  .itin-trip{border:1.5px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+  .itin-trip-hdr{display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--surface);cursor:pointer;user-select:none;}
+  .itin-trip-hdr:hover{background:var(--bg-warm);}
+  .itin-trip-chevron{font-size:11px;color:var(--text-muted);transition:transform .2s;flex-shrink:0;}
+  .itin-trip-chevron.open{transform:rotate(90deg);}
+  .itin-trip-name{font-weight:700;font-size:14px;color:var(--text);flex:1;}
+  .itin-trip-meta{font-size:11px;color:var(--text-muted);display:flex;gap:12px;align-items:center;}
+  .itin-trip-body{display:none;overflow-x:auto;border-top:1.5px solid var(--border);}
+  .itin-trip-body.open{display:block;}
+  .itin-tbl{border-collapse:collapse;width:auto;font-size:12px;table-layout:auto;}
+  .itin-tbl th{padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);background:var(--bg-warm);border-bottom:1.5px solid var(--border);white-space:nowrap;}
+  .itin-tbl td{padding:0;border-bottom:1px solid var(--border-light);vertical-align:middle;white-space:nowrap;}
+  .itin-tbl tr:last-child td{border-bottom:none;}
+  .itin-tbl tr:hover td{background:var(--bg-warm);}
+  .itin-cell{width:100%;border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--text);padding:6px 10px;outline:none;box-sizing:border-box;}
+  .itin-cell:focus{background:var(--surface);outline:2px solid var(--accent-soft);}
+  /* Per-column natural widths — column auto-sizes to fit the input */
+  .itin-cell.itin-date{width:120px;}
+  .itin-cell.itin-night{width:55px;text-align:center;}
+  .itin-cell.itin-name{width:130px;}
+  .itin-cell.itin-time{width:90px;}
+  .itin-cell.itin-from,.itin-cell.itin-to{width:120px;}
+  .itin-cell.itin-transit{width:120px;}
+  .itin-cell.itin-money{width:75px;text-align:right;}
+  .itin-cell.itin-code{width:90px;}
+  .itin-cell.itin-url{width:130px;color:var(--accent);cursor:text;}
+  /* Notes: truncate with ellipsis when blurred; expand on focus to reveal full text */
+  .itin-cell.itin-notes{width:180px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;cursor:text;}
+  .itin-cell.itin-notes:focus{width:380px;white-space:nowrap;}
+  /* Cancellation Policy: same click-to-expand pattern */
+  .itin-cell.itin-cancel{width:180px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;cursor:text;}
+  .itin-cell.itin-cancel:focus{width:340px;white-space:nowrap;}
+  .itin-sel{width:100%;border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--text);padding:6px 8px;outline:none;cursor:pointer;-webkit-appearance:none;box-sizing:border-box;}
+  .itin-sel.itin-type{width:140px;}
+  .itin-sel.itin-status{width:130px;}
+  .itin-sel.itin-pay{width:160px;}
+  .itin-sel:focus{background:var(--surface);}
+  /* Type-aware: cells irrelevant to the row type are dimmed and disabled */
+  .itin-cell.itin-disabled,
+  .itin-sel.itin-disabled{
+    background:repeating-linear-gradient(135deg,transparent 0 6px,var(--border-light) 6px 7px) !important;
+    color:var(--text-faint) !important;
+    opacity:.45;
+    pointer-events:none;
+    cursor:default;
+  }
+  .itin-cell.itin-disabled::placeholder{color:transparent;}
+  .itin-row-btn{background:none;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-muted);font-size:11px;padding:3px 6px;line-height:1;margin:0 1px;transition:all .1s;}
+  .itin-row-btn:hover{background:var(--bg-warm);color:var(--text);}
+  .itin-row-del:hover{color:var(--creative);border-color:var(--creative);}
+  .itin-row-actions{white-space:nowrap;padding:2px 4px;vertical-align:middle;}
+  .itin-row-add-btns{display:flex;gap:3px;margin-top:3px;}
+  .itin-add-btn{font-size:10px;padding:2px 6px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);font-family:inherit;cursor:pointer;white-space:nowrap;transition:all .1s;}
+  .itin-add-btn:hover{background:var(--header-bg);color:#fff;border-color:var(--header-bg);}
+  .itin-toolbar{display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--bg-warm);border-bottom:1px solid var(--border-light);flex-wrap:wrap;}
+  .itin-tb-sel{font-family:inherit;font-size:11px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);padding:3px 7px;cursor:pointer;}
+  .itin-tb-sel:focus{outline:none;border-color:var(--accent);}
+  .itin-tb-btn{font-family:inherit;font-size:11px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text-muted);padding:3px 8px;cursor:pointer;transition:all .1s;}
+  .itin-tb-btn:hover{background:var(--surface);color:var(--text);}
+  .itin-tb-sep{color:var(--border);font-size:14px;}
+  .itin-col-handle{display:none;}
+  /* Freeze first three columns (Date / Night # / Name) for horizontal scrolling */
+  .itin-tbl th:nth-child(1){min-width:120px;}
+  .itin-tbl th:nth-child(2){min-width:70px;}
+  .itin-tbl th:nth-child(3){min-width:130px;}
+  .itin-tbl th:nth-child(1),.itin-tbl td:nth-child(1),
+  .itin-tbl th:nth-child(2),.itin-tbl td:nth-child(2),
+  .itin-tbl th:nth-child(3),.itin-tbl td:nth-child(3){
+    position:sticky;background:var(--bg);
+  }
+  .itin-tbl th:nth-child(1),.itin-tbl td:nth-child(1){left:0;}
+  .itin-tbl th:nth-child(2),.itin-tbl td:nth-child(2){left:120px;}
+  .itin-tbl th:nth-child(3),.itin-tbl td:nth-child(3){left:190px;}
+  /* Subtle right edge on the last frozen column so users see the divide */
+  .itin-tbl th:nth-child(3),.itin-tbl td:nth-child(3){
+    box-shadow:inset -1px 0 0 0 var(--border), 4px 0 6px -3px rgba(0,0,0,.12);
+  }
+  /* th sits above td when row scrolls under header; frozen header bg matches the th palette */
+  .itin-tbl th:nth-child(1),.itin-tbl th:nth-child(2),.itin-tbl th:nth-child(3){
+    background:var(--bg-warm);z-index:3;
+  }
+  .itin-tbl td:nth-child(1),.itin-tbl td:nth-child(2),.itin-tbl td:nth-child(3){z-index:2;}
+  /* Column visibility popup */
+  .itin-col-popup{
+    background:var(--surface);border:1.5px solid var(--border);border-radius:10px;
+    box-shadow:0 8px 30px rgba(42,34,24,.18);min-width:220px;z-index:9999;
+    font-family:inherit;
+  }
+  .itin-col-popup label:hover:not([style*="cursor:default"]){background:var(--bg-warm);}
+  .itin-del-btn{background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:14px;padding:4px 8px;line-height:1;}
+  .itin-del-btn:hover{color:var(--creative);}
+  .itin-add-row{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--border-light);background:var(--bg-warm);}
+  .itin-add-row button{font-size:11px;padding:4px 10px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-muted);font-family:inherit;cursor:pointer;}
+  .itin-add-row button:hover{background:var(--surface);color:var(--text);}
+  .itin-status-tent{color:#b08020;}
+  .itin-status-book{color:#1a7a3a;}
+  .itin-status-conf{color:#1a5caa;}
+  .itin-status-done{color:var(--text-muted);}
+  .itin-status-canc{color:var(--creative);text-decoration:line-through;}
+  @media (max-width:900px){.itin-pg{padding:14px;}}
+  /* ── END ITINERARY ── */
+
   @media (max-width:900px){
     .trips-pg{padding:14px;height:auto;}
     .trips-cols{grid-template-columns:1fr;overflow:visible;}
@@ -2369,7 +2478,8 @@ body {
     <button class="tab" onclick="showPage('list')">Tasks</button>
     <button class="tab" onclick="showPage('checklist')">Checklist</button>
     <button class="tab" onclick="showPage('bucketlist')">Bucketlist</button>
-    <button class="tab" onclick="showPage('trips')">Trips</button>
+    <button class="tab" onclick="showPage('itinerary')">Itinerary</button>
+    <button class="tab" onclick="showPage('trips')">Plans</button>
     <button class="tab" onclick="showPage('budget')">Budget</button>
   </div>
   <div class="hdr-centre" id="hdrCentre">
@@ -2481,11 +2591,11 @@ body {
             <div id="todoTasksList" style="display:flex;flex-direction:column;gap:2px;padding:1px 0;"></div>
           </div>
         </div>
-        <!-- Trips view -->
+        <!-- Plans view (internal id 'trips' kept for Supabase compat) -->
         <div class="tp-view" id="tpView-trips">
           <div class="tp-hdr">
-            <h3>Trips &amp; Plans</h3>
-            <div style="display:flex;gap:4px;align-items:center;"><button onclick="showPage('trips')" class="tp-open-full">Open full</button><button class="btn-at" onclick="openGoalModal('trip')" title="Add trip">+</button></div>
+            <h3>Plans</h3>
+            <div style="display:flex;gap:4px;align-items:center;"><button onclick="showPage('trips')" class="tp-open-full">Open full</button><button class="btn-at" onclick="openGoalModal('trip')" title="Add plan">+</button></div>
           </div>
           <div class="tp-scroll" id="tripsList"></div>
         </div>
@@ -2655,7 +2765,7 @@ body {
         <button class="tp-icon-btn" id="tpIcon-priorities" onclick="tpSwitch('priorities')" title="Priorities"><span>✓</span><span class="tp-icon-lbl">Tasks</span></button>
         <button class="tp-icon-btn" id="tpIcon-checklist"  onclick="tpSwitch('checklist')"  title="Checklist"><span>✓</span><span class="tp-icon-lbl">Checklist</span></button>
         <button class="tp-icon-btn" id="tpIcon-buckets"    onclick="tpSwitch('buckets')"    title="Bucketlist"><span>✓</span><span class="tp-icon-lbl">Bucketlist</span></button>
-        <button class="tp-icon-btn" id="tpIcon-trips"      onclick="tpSwitch('trips')"      title="Trips &amp; Plans"><span>✈</span><span class="tp-icon-lbl">Trips &amp; Plans</span></button>
+        <button class="tp-icon-btn" id="tpIcon-trips"      onclick="tpSwitch('trips')"      title="Plans"><span>✈</span><span class="tp-icon-lbl">Plans</span></button>
         <div class="tp-sec-div"></div>
         <button class="tp-icon-btn" id="tpIcon-templates"  onclick="tpSwitch('templates')"  title="Templates"><span>➕</span><span class="tp-icon-lbl">Templates</span></button>
         <button class="tp-icon-btn" id="tpIcon-events"     onclick="tpSwitch('events')"     title="Events"><span>➕</span><span class="tp-icon-lbl">Events</span></button>
@@ -3561,15 +3671,15 @@ body {
   </div>
 </div>
 
-<!-- TRIPS PAGE -->
+<!-- PLANS PAGE (internal id 'page-trips' kept for routing/Supabase compat) -->
 <div class="page" id="page-trips">
   <div class="trips-pg">
     <div class="trips-pg-hdr">
       <div>
-        <h2 style="font-family:'SashasFont','DM Serif Display',serif;font-size:28px;margin:0 0 4px;color:var(--header-bg);">Trips</h2>
-        <p style="font-size:13px;color:var(--text-muted);margin:0;">Brainstorm, plan, and track your trips. Move one to the planner when you're ready to block time.</p>
+        <h2 style="font-family:'SashasFont','DM Serif Display',serif;font-size:28px;margin:0 0 4px;color:var(--header-bg);">Plans</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin:0;">Brainstorm, plan, and track your plans. Promote one to an Itinerary when you're ready to build it out, or to the Planner to block time.</p>
       </div>
-      <button class="btn-gadd" onclick="openTripBrainModal()" style="width:auto;padding:7px 14px;font-size:12px;font-weight:600;border-radius:8px;">+ Add trip</button>
+      <button class="btn-gadd" onclick="openTripBrainModal()" style="width:auto;padding:7px 14px;font-size:12px;font-weight:600;border-radius:8px;">+ Add plan</button>
     </div>
     <div class="trips-cols">
       <div class="trips-col" data-col="dream">
@@ -3601,6 +3711,20 @@ body {
         <div class="trips-col-body" id="tripBody-done"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ITINERARY PAGE -->
+<div class="page" id="page-itinerary">
+  <div class="itin-pg">
+    <div class="itin-pg-hdr">
+      <div>
+        <h2 style="font-family:'SashasFont','DM Serif Display',serif;font-size:28px;margin:0 0 4px;color:var(--header-bg);">Itinerary</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin:0;">Build detailed day-by-day plans for your trips.</p>
+      </div>
+      <button class="btn-gadd" onclick="openCreateItinTrip()" style="width:auto;padding:7px 16px;font-size:12px;font-weight:600;border-radius:8px;">+ Create Trip</button>
+    </div>
+    <div id="itinTripList"></div>
   </div>
 </div>
 
@@ -3910,9 +4034,9 @@ body {
 <!-- TRIP BRAINSTORM MODAL -->
 <div class="mo" id="tripBrainMo">
   <div class="md">
-    <h3 id="tripBrainMoTitle">Add trip</h3>
+    <h3 id="tripBrainMoTitle">Add plan</h3>
     <input type="hidden" id="tripBrainId">
-    <div class="fg"><label>Destination / Name</label><input type="text" id="tripBrainTitle" placeholder="e.g. Tokyo, Glastonbury 2027..."></div>
+    <div class="fg"><label>Destination / Name</label><input type="text" id="tripBrainTitle" placeholder="e.g. Tokyo, Glastonbury 2027..." onkeydown="if(event.key==='Enter')saveTripBrain()"></div>
     <div class="fg"><label>Type</label>
       <select id="tripBrainType">
         <option value="holiday">✈ Holiday</option>
@@ -3942,6 +4066,75 @@ body {
     </div>
   </div>
 </div>
+<!-- ITINERARY ROW EDIT MODAL -->
+<div class="mo" id="itinRowEditMo">
+  <div class="md" style="max-width:560px;max-height:85vh;overflow-y:auto;">
+    <h3 style="margin-bottom:14px;">Edit Row</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fg"><label>Date</label><input type="date" id="itinEd-date"></div>
+      <div class="fg"><label>Type</label><select id="itinEd-type" onchange="_itinApplyEditModalVisibility(this.value)">
+        <option value="location">📍 Location</option>
+        <option value="accommodation">🏨 Accommodation</option>
+        <option value="flight">✈️ Flight</option>
+        <option value="transit">🚆 Transit</option>
+        <option value="event">🎟 Event</option>
+        <option value="sightseeing">🗺 Sightseeing</option>
+        <option value="food">🍽 Food / Drink</option>
+        <option value="other">📌 Other</option>
+      </select></div>
+      <div class="fg" style="grid-column:1/-1;"><label>Name</label><input type="text" id="itinEd-name" placeholder="e.g. Hotel Costes, CDG Airport…"></div>
+      <div class="fg"><label>Travelling From</label><input type="text" id="itinEd-from" placeholder="From…"></div>
+      <div class="fg"><label>Travelling To</label><input type="text" id="itinEd-to" placeholder="To…"></div>
+      <div class="fg"><label>Night #</label><input type="number" min="1" id="itinEd-night" placeholder="—"></div>
+      <div class="fg"><label>Check-in Time</label><input type="time" id="itinEd-checkIn"></div>
+      <div class="fg"><label>Check-out Time</label><input type="time" id="itinEd-checkOut"></div>
+      <div class="fg"><label>Transit Time</label><input type="time" id="itinEd-transit"></div>
+      <div class="fg"><label>Arrival Time</label><input type="time" id="itinEd-arrival"></div>
+      <div class="fg"><label>Transit</label><input type="text" id="itinEd-transitType" placeholder="e.g. Eurostar, Cab…"></div>
+      <div class="fg"><label>Est £</label><input type="number" min="0" step="0.01" id="itinEd-est" placeholder="0.00"></div>
+      <div class="fg"><label>Act £</label><input type="number" min="0" step="0.01" id="itinEd-act" placeholder="0.00"></div>
+      <div class="fg"><label>Cost Code</label><input type="text" id="itinEd-code" list="costCodeList" placeholder="Code…"></div>
+      <div class="fg"><label>Payment Note</label><select id="itinEd-payment">
+        <option value="">—</option>
+        <option value="paid">✅ Paid</option>
+        <option value="pay_at_property">🏨 Pay at Property</option>
+        <option value="payment_plan">📅 Payment Plan</option>
+        <option value="pay_before_date">🗓 Pay Before Date</option>
+        <option value="not_paid">❌ Not Paid</option>
+      </select></div>
+      <div class="fg"><label>Status</label><select id="itinEd-status">
+        <option value="searching">🔍 Searching</option>
+        <option value="tentative">⬜ Tentative</option>
+        <option value="booked">🟡 Booked</option>
+        <option value="confirmed">🟢 Confirmed</option>
+        <option value="done">✅ Done</option>
+        <option value="cancelled">❌ Cancelled</option>
+      </select></div>
+      <div class="fg" style="grid-column:1/-1;"><label>Notes</label><textarea id="itinEd-notes" rows="2" placeholder="Notes…" style="resize:vertical;"></textarea></div>
+      <div class="fg" style="grid-column:1/-1;"><label>Cancellation Policy</label><textarea id="itinEd-cancel" rows="2" placeholder="e.g. Free cancellation until 48h before…" style="resize:vertical;"></textarea></div>
+      <div class="fg" style="grid-column:1/-1;"><label>URL</label><input type="url" id="itinEd-url" placeholder="https://…"></div>
+    </div>
+    <div class="md-btns" style="margin-top:16px;">
+      <button class="btn-cancel" onclick="closeMo('itinRowEditMo')">Cancel</button>
+      <button class="btn-save" onclick="saveItinRowEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITINERARY CREATE TRIP MODAL -->
+<div class="mo" id="itinCreateMo">
+  <div class="md" style="max-width:380px;">
+    <h3>New Trip</h3>
+    <div class="fg"><label>Trip name</label>
+      <input type="text" id="itinNewTripName" placeholder="e.g. Japan 2026, Paris Weekend..." onkeydown="if(event.key==='Enter')saveNewItinTrip()">
+    </div>
+    <div class="md-btns">
+      <button class="btn-cancel" onclick="closeMo('itinCreateMo')">Cancel</button>
+      <button class="btn-save" onclick="saveNewItinTrip()">Create</button>
+    </div>
+  </div>
+</div>
+
 <div class="mo" id="libMo">
   <div class="md">
     <h3 id="libMoTitle">Add Activity</h3>
@@ -3977,7 +4170,7 @@ body {
 <!-- GOAL / TRIP MODAL -->
 <div class="mo" id="goalMo">
   <div class="md">
-    <h3 id="goalMoTitle">Add Trip</h3>
+    <h3 id="goalMoTitle">Add Plan</h3>
     <input type="hidden" id="goalType"><input type="hidden" id="goalEditId">
     <div class="fg"><label>Title</label><input type="text" id="goalTitle" placeholder="e.g. Amsterdam for the weekend"></div>
     <div class="fg" id="goalAreaFg" style="display:none"><label>Area</label>
@@ -4112,7 +4305,7 @@ body {
     <div class="fg" style="flex-direction:row;gap:8px;flex-wrap:wrap;">
       <button onclick="const id=document.getElementById('editEvId').value;if(id)openGcal(id);" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">📅 Open in GCal</button>
       <button onclick="const id=document.getElementById('editEvId').value;const nm=document.getElementById('editEvName').value;if(nm){openListCardModal('todo',null,nm);closeMo('editEvMo');}" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">✓ Add to Tasks</button>
-      <button onclick="const id=document.getElementById('editEvId').value;if(id)addEvToTrip(id,event);closeMo('editEvMo');" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">✈ Add to Trips</button>
+      <button onclick="const id=document.getElementById('editEvId').value;if(id)addEvToTrip(id,event);closeMo('editEvMo');" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">✈ Add to Plans</button>
     </div>
     <div class="md-btns">
       <button class="btn-cancel" onclick="closeMo('editEvMo')">Cancel</button>
@@ -4668,7 +4861,7 @@ async function boot() {
   try {
     // Ensure dl/pm are visible by default (remove from hidden if present)
     const _hidden=getHiddenRows().filter(k=>k!=='dl'&&k!=='pm'&&k!=='dn');if(!_hidden.includes('cycle'))_hidden.push('cycle');if(!_hidden.includes('workout'))_hidden.push('workout');setHiddenRows(_hidden);
-    renderLib();renderGrid();renderBudget();renderPriorityTasks();renderMc();renderQc();renderAc();renderBuckets();renderList();renderTripBrains();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();applyDirectRows();updateViewButtons();renderIndices();renderMonthlyAverages();
+    renderLib();renderGrid();renderBudget();renderPriorityTasks();renderMc();renderQc();renderAc();renderBuckets();renderList();renderTripBrains();renderItinerary();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();applyDirectRows();updateViewButtons();renderIndices();renderMonthlyAverages();
     setTimeout(()=>dlAutoSync(-1),200);
   } catch(e) { console.error('First paint error:', e); }
 
@@ -4686,13 +4879,23 @@ async function boot() {
     const localDly  = (local.wev||{}).daily  || {};
     const mergedDly = Object.assign({}, localDly, remoteDly); // remote wins on conflicts
     if (remote.wev) remote.wev.daily = mergedDly;
+    // Merge tripbrains: if user added trips locally before Supabase finished loading,
+    // those trips were saved to localStorage but not Supabase (svSupaEnabled was false).
+    // Merge any local-only trip entries so they aren't wiped by applyState.
+    const remoteTrips = (remote.wev||{}).tripbrains || [];
+    const localTrips  = (local.wev||{}).tripbrains  || [];
+    if (localTrips.length > 0 && remote.wev) {
+      const remoteIds = new Set(remoteTrips.map(t => t.id));
+      const localOnly = localTrips.filter(t => !remoteIds.has(t.id));
+      if (localOnly.length) remote.wev.tripbrains = [...remoteTrips, ...localOnly];
+    }
     useData = remote; // Supabase is always the base
   }
 
   if (useData) {
     applyState(useData);
     try {
-      renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderList();renderTripBrains();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();updateViewButtons();
+      renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderList();renderTripBrains();renderItinerary();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();updateViewButtons();
       if(tpo){tpSwitch('priorities');}
       // Re-render whichever non-planner page is currently active, in case user navigated
       // before Supabase finished loading (they'd have seen empty data)
@@ -4718,7 +4921,7 @@ async function boot() {
   svSupaEnabled = true; // safe to write to Supabase now that real data is loaded
   // Hash-based routing: honour #relo, #budget, #trips etc on load
   const _hash = window.location.hash.slice(1);
-  const _pgList = ['planner','relo','budget','trips','daily','tracker','checklist','goals','activities','bucketlist','list','watchlist'];
+  const _pgList = ['planner','relo','budget','trips','itinerary','daily','tracker','checklist','goals','activities','bucketlist','list','watchlist'];
   if(_hash && _pgList.includes(_hash)) showPage(_hash);
   // Mobile init — runs after full render so layout is stable
   if (isMobile()) {
@@ -5580,7 +5783,7 @@ function renderTpBuckets(){
         _bCalBtn.className='tc2-hover-btn';_bCalBtn.textContent='→ Cal';
         _bCalBtn.onclick=()=>openCalFromChecklist(item.text,null,'');
         const _bTripBtn=document.createElement('button');
-        _bTripBtn.className='tc2-hover-btn';_bTripBtn.textContent='+ Trip';
+        _bTripBtn.className='tc2-hover-btn';_bTripBtn.textContent='+ Plan';
         _bTripBtn.onclick=()=>addBucketItemToTrip(item.text);
         _bHover.appendChild(_bCalBtn);_bHover.appendChild(_bTripBtn);
         div.appendChild(_bHover);
@@ -7359,7 +7562,7 @@ const is30=ev.slots===1;const timeStr=`${s2t(ev.slot)}–${s2t(ev.slot+ev.slots)
 const isNarrow=ev.slots===1;
 if(isNarrow)el.classList.add('compact-ev');
 if(_hideTimelabels||(isNarrow))el.classList.add('hide-time');
-el.innerHTML=`<button class="ev-del" onclick="delEv('${ev.id}',event)">×</button><button class="ev-dup" onclick="dupEv('${ev.id}',event)" title="Duplicate">⧉</button><div class="ev-actions"><button class="ev-act-btn" onclick="openGcal('${ev.id}');event.stopPropagation();" title="Open in Google Calendar">GCal</button><button class="ev-act-btn" onclick="addEvToTask('${ev.id}',event)" title="Add to Tasks">+</button><button class="ev-act-btn" onclick="addEvToTrip('${ev.id}',event)" title="Add to Trips">✈</button></div>${is30?`<div class="ev-t" style="font-size:10px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"> ${ev.name} <span style="opacity:.6;font-weight:400;">${timeStr}</span></div>`:`<div class="ev-t"> ${ev.name}</div><div class="ev-tm">${timeStr}</div>`}<div class="rh" style="background:${cat.color}20"></div>`;el.addEventListener('dragstart',onEvDrag);
+el.innerHTML=`<button class="ev-del" onclick="delEv('${ev.id}',event)">×</button><button class="ev-dup" onclick="dupEv('${ev.id}',event)" title="Duplicate">⧉</button><div class="ev-actions"><button class="ev-act-btn" onclick="openGcal('${ev.id}');event.stopPropagation();" title="Open in Google Calendar">GCal</button><button class="ev-act-btn" onclick="addEvToTask('${ev.id}',event)" title="Add to Tasks">+</button><button class="ev-act-btn" onclick="addEvToTrip('${ev.id}',event)" title="Add to Plans">✈</button></div>${is30?`<div class="ev-t" style="font-size:10px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"> ${ev.name} <span style="opacity:.6;font-weight:400;">${timeStr}</span></div>`:`<div class="ev-t"> ${ev.name}</div><div class="ev-tm">${timeStr}</div>`}<div class="rh" style="background:${cat.color}20"></div>`;el.addEventListener('dragstart',onEvDrag);
 el.addEventListener('dblclick', e => { e.stopPropagation(); if(ev.cat==='feelings') openFeelingEdit(ev.id); else openEvEdit(ev.id); });
   if(feelingsDimOthers && ev.cat !== 'feelings') { el.style.opacity = '0.2'; el.style.pointerEvents = 'none'; }
 el.addEventListener('click', e => { if(isMobile()){e.stopPropagation();openMobileEvSheet(ev.id);} });
@@ -7582,7 +7785,7 @@ function renderTrips() {
   const list = document.getElementById('tripsList');
   if (!list) return;
   if (!trips.length) {
-    list.innerHTML = '<div class="tp-empty">No trips yet.<br>Add one with +<br><br><span style="font-size:10px">Drag a trip onto the grid</span></div>';
+    list.innerHTML = '<div class="tp-empty">No plans yet.<br>Add one with +<br><br><span style="font-size:10px">Drag a plan onto the grid</span></div>';
     return;
   }
   const TRIP_CATS = {
@@ -7696,10 +7899,14 @@ function showPage(name){
   if(name==='watchlist') { wlMaybeLoad(); wlSetView(wlView||'board'); }
   if(name==='list') renderList();
   if(name==='trips') renderTripBrains();
+  if(name==='itinerary') renderItinerary();
   if(name==='planner'){
+    if(gridView!=='week') {
+      setGridView('week'); // setGridView calls renderGrid internally
+    } else {
+      renderGrid(); // already in week view — must explicitly re-render on navigation
+    }
     renderPriorityTasks();
-    // Always return to week view when coming back to planner
-    if(gridView!=='week') setGridView('week');
   }
   if(name==='relo') { if(!reloTasks.length) loadReloTasks(); else reloRender(); }
   if(name==='budget') {
@@ -9594,11 +9801,11 @@ function renderBuckets(){
         // Trip button
         const _blTripBtn=document.createElement('button');
         _blTripBtn.className='bl-item-cal'+(_blTripAdded?' bl-btn-done':'');
-        _blTripBtn.textContent=_blTripAdded?'✓ Trip':'→ Trip';
+        _blTripBtn.textContent=_blTripAdded?'✓ Plan':'→ Plan';
         _blTripBtn.onclick=()=>{
           blSendToTrip(item.text);
           markCalAdded('bl',_blTripKey);
-          _blTripBtn.classList.add('bl-btn-done'); _blTripBtn.textContent='✓ Trip';
+          _blTripBtn.classList.add('bl-btn-done'); _blTripBtn.textContent='✓ Plan';
           _blTripBtn.style.opacity='1';
         };
         // Cal button
@@ -9641,7 +9848,7 @@ function blSendToTrip(text){
   setTripBrains(cards);
   // Brief feedback via a toast-style alert alternative
   const toastEl=document.getElementById('blTripToast');
-  if(toastEl){toastEl.textContent='✓ Added to Trips';toastEl.style.opacity='1';setTimeout(()=>toastEl.style.opacity='0',1800);}
+  if(toastEl){toastEl.textContent='✓ Added to Plans';toastEl.style.opacity='1';setTimeout(()=>toastEl.style.opacity='0',1800);}
 }
 
 function addBucket(){
@@ -10474,7 +10681,7 @@ function openGoalModal(type, editId) {
   const isT = type === 'trip';
   document.getElementById('goalType').value = type;
   document.getElementById('goalEditId').value = editId || '';
-  document.getElementById('goalMoTitle').textContent = editId ? (isT ? 'Edit Trip' : 'Edit Goal') : (isT ? 'Add Trip' : 'Add Goal');
+  document.getElementById('goalMoTitle').textContent = editId ? (isT ? 'Edit Plan' : 'Edit Goal') : (isT ? 'Add Plan' : 'Add Goal');
   document.getElementById('goalDateLbl').textContent = isT ? 'Dates / Timeframe' : 'Notes (optional)';
   document.getElementById('goalAreaFg').style.display = isT ? 'none' : '';
   document.getElementById('goalTargetFg').style.display = isT ? 'none' : '';
@@ -10641,7 +10848,7 @@ const TOUR_STEPS = [
   { target:()=>document.querySelector('.grid-wrap'), title:'Your week at a glance', body:'This is the planning grid. Drag any activity from the sidebar on the left onto a time slot to schedule it. Resize by dragging the bottom edge, and double-click any event to edit it.', position:'right' },
   { target:()=>document.querySelector('.lib'), title:'Your activity library', body:'Everything you do lives here, organised by category. Click a category label to collapse it. Right-click any day header in the grid to save that day as a reusable template.', position:'right' },
   { target:()=>document.querySelector('.budget-bar'), title:'Your time budget', body:'This bar shows how your week\'s time is split across categories. Set targets on the Goals tab.', position:'below' },
-  { target:()=>document.querySelector('.tp-inner'), title:'Goals & targets', body:'Your week\'s goals (simple checkboxes) and targets (pip counters that auto-tick when you place matching activities on the grid) live here. Trips too — drag one onto the grid to block time.', position:'left' },
+  { target:()=>document.querySelector('.tp-inner'), title:'Goals & targets', body:'Your week\'s goals (simple checkboxes) and targets (pip counters that auto-tick when you place matching activities on the grid) live here. Plans too — drag one onto the grid to block time.', position:'left' },
   { target:()=>document.querySelector('.tab[onclick="showPage(\'goals\')"]'), title:'Your bigger picture', body:'The Goals tab is your life outside this week. Set a target month and goals sort themselves by urgency — overdue first, coming up soon, someday at the bottom.', position:'below' },
   { target:()=>document.querySelector('.hdr-menu-wrap'), title:'You\'re all set.', body:'Export to ICS, import from other calendars, copy last week, and set a PIN lock — all in this menu. Restart this tour any time from here too. Happy planning.', position:'below-left', last:true }
 ];
@@ -10749,8 +10956,8 @@ function renderList() {
       _lcCalBtn.onclick=e=>{e.stopPropagation();openListCalModal(card.id);markCalAdded('lcard',_lcCalKey);_lcCalBtn.className='lcard-cal lcard-btn-done';_lcCalBtn.textContent='✓ Cal';};
       const _lcTripBtn=document.createElement('button');
       _lcTripBtn.className='lcard-cal'+(_lcTripAdded?' lcard-btn-done':'');
-      _lcTripBtn.textContent=_lcTripAdded?'✓ Trip':'+ Trip';
-      _lcTripBtn.onclick=e=>{e.stopPropagation();const cards2=getTripBrains();cards2.push({id:'tb'+Date.now(),title:card.title,type:'other',status:'dream',dates:'',notes:''});setTripBrains(cards2);markCalAdded('lcard',_lcTripKey);_lcTripBtn.className='lcard-cal lcard-btn-done';_lcTripBtn.textContent='✓ Trip';};
+      _lcTripBtn.textContent=_lcTripAdded?'✓ Plan':'+ Plan';
+      _lcTripBtn.onclick=e=>{e.stopPropagation();const cards2=getTripBrains();cards2.push({id:'tb'+Date.now(),title:card.title,type:'other',status:'dream',dates:'',notes:''});setTripBrains(cards2);markCalAdded('lcard',_lcTripKey);_lcTripBtn.className='lcard-cal lcard-btn-done';_lcTripBtn.textContent='✓ Plan';};
       _lcActions.insertBefore(_lcCalBtn, _lcActions.firstChild);
       _lcActions.insertBefore(_lcTripBtn, _lcActions.firstChild);
       if(div.querySelector('#pd_'+card.id))div.querySelector('#pd_'+card.id).addEventListener('click',((id)=>()=>markPriorityDone(id))(card.id));
@@ -10920,6 +11127,570 @@ function addListCardToCal() {
 const TRIP_BRAIN_COLS = ['dream','planning','booked','done'];
 const TRIP_BRAIN_EMOJIS = {holiday:'✈',weekend:'🏡',daytrip:'🚂',dayout:'🌳',attraction:'🏛️',bucketplace:'📍',event:'🎟',social:'🍻',other:'📌'};
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ITINERARY PAGE
+// Data shape: wev.itinTrips = [ { id, name, open, rows: [{ id, date, type,
+//   startLoc, endLoc, nightNum, time, transitType, estCost, actCost,
+//   costCode, status, notes, url }] } ]
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Global HTML escape (wlEsc lives inside the WatchList IIFE so define a standalone version)
+function esc_(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function getItins() { return wev.itinTrips || []; }
+function setItins(t) { wev.itinTrips = t; sv(); }
+
+const ITIN_TYPES = [
+  {val:'location',      label:'📍 Location'},
+  {val:'accommodation', label:'🏨 Accommodation'},
+  {val:'flight',        label:'✈️ Flight'},
+  {val:'transit',       label:'🚆 Transit'},
+  {val:'event',         label:'🎟 Event'},
+  {val:'sightseeing',   label:'🗺 Sightseeing'},
+  {val:'food',          label:'🍽 Food / Drink'},
+  {val:'other',         label:'📌 Other'},
+];
+const ITIN_STATUSES = [
+  {val:'searching',  label:'🔍 Searching'},
+  {val:'tentative',  label:'⬜ Tentative'},
+  {val:'booked',     label:'🟡 Booked'},
+  {val:'confirmed',  label:'🟢 Confirmed'},
+  {val:'done',       label:'✅ Done'},
+  {val:'cancelled',  label:'❌ Cancelled'},
+];
+const ITIN_PAYMENT = [
+  {val:'',                label:'—'},
+  {val:'paid',            label:'✅ Paid'},
+  {val:'pay_at_property', label:'🏨 Pay at Property'},
+  {val:'payment_plan',    label:'📅 Payment Plan'},
+  {val:'pay_before_date', label:'🗓 Pay Before Date'},
+  {val:'not_paid',        label:'❌ Not Paid'},
+];
+
+// Per-type field visibility. Listed fields are INACTIVE for that type.
+// (Date, Name, Type, Status, Notes, Est £, Act £, Code, URL are active for every type.)
+const ITIN_TYPE_FIELDS = {
+  location:      ['nightNum','checkInTime','checkOutTime','travelFrom','travelTo','transit','transitTime','arrivalTime','paymentNote','cancellationPolicy'],
+  accommodation: ['travelFrom','travelTo','transit','transitTime','arrivalTime'],
+  flight:        ['nightNum','checkInTime','checkOutTime'],
+  transit:       ['nightNum','checkInTime','checkOutTime'],
+  event:         ['nightNum','travelFrom','travelTo','transit','transitTime','arrivalTime','cancellationPolicy'],
+  sightseeing:   ['nightNum','checkOutTime','travelFrom','travelTo','transit','transitTime','arrivalTime','cancellationPolicy'],
+  food:          ['nightNum','checkOutTime','travelFrom','travelTo','transit','transitTime','arrivalTime','cancellationPolicy'],
+  other:         [],
+};
+function _itinFieldActive(type,field){
+  const off=ITIN_TYPE_FIELDS[type||'other']||[];
+  return !off.includes(field);
+}
+
+// ── COLUMN VISIBILITY + FREEZE ──────────────────────────────────────────────
+// 19 data columns + 1 action column. First three (Date / Night # / Name) are
+// locked-visible and freeze to the left edge while the rest scrolls.
+const ITIN_COL_DEFS=[
+  {key:'date',               label:'Date',                idx:1,  locked:true },
+  {key:'nightNum',           label:'Night #',             idx:2,  locked:true },
+  {key:'name',               label:'Name',                idx:3,  locked:true },
+  {key:'type',               label:'Type',                idx:4,  locked:false},
+  {key:'checkInTime',        label:'Check-in',            idx:5,  locked:false},
+  {key:'checkOutTime',       label:'Check-out',           idx:6,  locked:false},
+  {key:'travelFrom',         label:'Travelling From',     idx:7,  locked:false},
+  {key:'travelTo',           label:'Travelling To',       idx:8,  locked:false},
+  {key:'transit',            label:'Transit',             idx:9,  locked:false},
+  {key:'transitTime',        label:'Transit Time',        idx:10, locked:false},
+  {key:'arrivalTime',        label:'Arrival Time',        idx:11, locked:false},
+  {key:'status',             label:'Status',              idx:12, locked:false},
+  {key:'notes',              label:'Notes',               idx:13, locked:false},
+  {key:'paymentNote',        label:'Payment Note',        idx:14, locked:false},
+  {key:'cancellationPolicy', label:'Cancellation Policy', idx:15, locked:false},
+  {key:'estCost',            label:'Est £',               idx:16, locked:false},
+  {key:'actCost',            label:'Act £',               idx:17, locked:false},
+  {key:'costCode',           label:'Code',                idx:18, locked:false},
+  {key:'url',                label:'URL',                 idx:19, locked:false},
+];
+function getItinColPrefs(){
+  const p=(wev&&wev.itinColPrefs)||{};
+  // Default: all columns visible. Locked columns are forced true regardless.
+  const out={};
+  ITIN_COL_DEFS.forEach(c=>{out[c.key]=c.locked?true:(p[c.key]!==false);});
+  return out;
+}
+function setItinColPref(key,val){
+  if(!wev.itinColPrefs) wev.itinColPrefs={};
+  // Locked columns can't be hidden
+  const def=ITIN_COL_DEFS.find(c=>c.key===key);
+  if(def&&def.locked) val=true;
+  wev.itinColPrefs[key]=!!val;
+  sv();
+  _applyItinColPrefs();
+}
+function setAllItinCols(val){
+  if(!wev.itinColPrefs) wev.itinColPrefs={};
+  ITIN_COL_DEFS.forEach(c=>{ if(!c.locked) wev.itinColPrefs[c.key]=!!val; });
+  sv();
+  _applyItinColPrefs();
+  // Refresh the dropdown checkboxes if open
+  document.querySelectorAll('.itin-col-popup input[type="checkbox"]').forEach(cb=>{
+    const k=cb.dataset.colkey; if(!k) return;
+    const d=ITIN_COL_DEFS.find(c=>c.key===k);
+    if(d&&d.locked) return;
+    cb.checked=!!val;
+  });
+}
+function _applyItinColPrefs(){
+  const p=getItinColPrefs();
+  const hidden=ITIN_COL_DEFS.filter(c=>!p[c.key]);
+  const rules=hidden.map(c=>
+    `.itin-tbl th:nth-child(${c.idx}),.itin-tbl td:nth-child(${c.idx}){display:none;}`
+  ).join('\n');
+  let s=document.getElementById('itinColHideStyles');
+  if(!s){ s=document.createElement('style'); s.id='itinColHideStyles'; document.head.appendChild(s); }
+  s.textContent=rules;
+}
+function toggleItinColPopup(tripId,btnEl){
+  const id='itinColPop-'+tripId;
+  const existing=document.getElementById(id);
+  if(existing){ existing.remove(); return; }
+  // Close any other open popups
+  document.querySelectorAll('.itin-col-popup').forEach(el=>el.remove());
+  const p=getItinColPrefs();
+  const items=ITIN_COL_DEFS.map(c=>{
+    const dis=c.locked?' disabled':'';
+    const lockedNote=c.locked?'<span style="margin-left:auto;font-size:9px;color:var(--text-faint);font-weight:600;">PINNED</span>':'';
+    return `<label style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:${c.locked?'default':'pointer'};font-size:12px;${c.locked?'opacity:.7':''}">
+      <input type="checkbox" data-colkey="${c.key}"${p[c.key]?' checked':''}${dis} onchange="setItinColPref('${c.key}',this.checked)" style="cursor:${c.locked?'default':'pointer'};">
+      <span>${c.label}</span>${lockedNote}
+    </label>`;
+  }).join('');
+  const pop=document.createElement('div');
+  pop.id=id; pop.className='itin-col-popup';
+  pop.innerHTML=`
+    <div style="display:flex;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border-light);background:var(--bg-warm);">
+      <button class="itin-tb-btn" onclick="setAllItinCols(true)" style="flex:1;">Select all</button>
+      <button class="itin-tb-btn" onclick="setAllItinCols(false)" style="flex:1;">Deselect all</button>
+    </div>
+    <div style="max-height:340px;overflow-y:auto;padding:4px 0;">${items}</div>`;
+  document.body.appendChild(pop);
+  // Position under the button
+  const r=btnEl.getBoundingClientRect();
+  pop.style.cssText+=`;position:fixed;top:${r.bottom+4}px;left:${r.left}px;`;
+  // Click-outside to close
+  setTimeout(()=>{
+    const off=ev=>{ if(!pop.contains(ev.target)&&ev.target!==btnEl){ pop.remove(); document.removeEventListener('mousedown',off); } };
+    document.addEventListener('mousedown',off);
+  },10);
+}
+
+// Per-trip filter/sort state (in-memory)
+const _itinFS = {};
+function getItinFS(tid){
+  if(!_itinFS[tid]) _itinFS[tid]={ft:'',fs:'',sf:'',sd:1};
+  return _itinFS[tid];
+}
+function setItinFS(tid,k,v){ getItinFS(tid)[k]=v; renderItinerary(); }
+
+function _itinBlankRow(){
+  return {
+    id:'row'+Date.now()+Math.floor(Math.random()*9999),
+    date:'',type:'other',name:'',travelFrom:'',travelTo:'',
+    nightNum:'',checkInTime:'',transitTime:'',arrivalTime:'',checkOutTime:'',
+    transit:'',estCost:'',actCost:'',costCode:'',paymentNote:'',
+    status:'tentative',notes:'',cancellationPolicy:'',url:''
+  };
+}
+
+function openCreateItinTrip(){
+  document.getElementById('itinNewTripName').value='';
+  document.getElementById('itinCreateMo').classList.add('open');
+  setTimeout(()=>document.getElementById('itinNewTripName').focus(),100);
+}
+function saveNewItinTrip(){
+  const name=document.getElementById('itinNewTripName').value.trim();
+  if(!name){
+    const inp=document.getElementById('itinNewTripName');
+    inp.style.borderColor='var(--creative)';
+    setTimeout(()=>{inp.style.borderColor='';},1500);
+    inp.focus(); return;
+  }
+  const trips=getItins();
+  trips.push({id:'itin'+Date.now(),name,open:true,rows:[]});
+  setItins(trips); closeMo('itinCreateMo'); renderItinerary();
+}
+function deleteItinTrip(tripId){
+  if(!confirm('Delete this trip and all its rows?')) return;
+  setItins(getItins().filter(t=>t.id!==tripId)); renderItinerary(); _syncItinRowsToBudget();
+}
+function toggleItinTrip(tripId){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId);
+  if(t){t.open=!t.open; setItins(trips); renderItinerary();}
+}
+function addItinRow(tripId){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId);
+  if(!t) return;
+  t.rows.push(_itinBlankRow()); setItins(trips); renderItinerary();
+  setTimeout(()=>{
+    const tbl=document.getElementById('itinTbl-'+tripId);
+    if(tbl){const lr=tbl.querySelector('tbody tr:last-child');if(lr){const inp=lr.querySelector('.itin-cell');if(inp)inp.focus();}}
+  },60);
+}
+function duplicateItinRow(tripId,rowId){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId);
+  if(!t) return;
+  const src=t.rows.find(r=>r.id===rowId); if(!src) return;
+  const idx=t.rows.indexOf(src);
+  const copy=Object.assign({},src,{id:'row'+Date.now()+Math.floor(Math.random()*9999)});
+  t.rows.splice(idx+1,0,copy); setItins(trips); renderItinerary(); _syncItinRowsToBudget();
+}
+function deleteItinRow(tripId,rowId){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId);
+  if(!t) return;
+  t.rows=t.rows.filter(r=>r.id!==rowId); setItins(trips); renderItinerary(); _syncItinRowsToBudget();
+}
+function updateItinCell(tripId,rowId,field,value){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
+  const r=t.rows.find(r=>r.id===rowId); if(!r) return;
+  r[field]=value; setItins(trips); _itinUpdateSummary(tripId,t);
+  // Only re-sync to budget when budget-relevant fields change
+  if(field==='estCost'||field==='actCost'||field==='costCode'||field==='date'||field==='name'||field==='type'){
+    _syncItinRowsToBudget();
+  }
+}
+function _itinUpdateSummary(tripId,trip){
+  const sumEl=document.getElementById('itinSum-'+tripId); if(!sumEl) return;
+  const rows=(trip||(getItins().find(t=>t.id===tripId)||{})).rows||[];
+  const est=rows.reduce((s,r)=>s+(parseFloat(r.estCost)||0),0);
+  const act=rows.reduce((s,r)=>s+(parseFloat(r.actCost)||0),0);
+  sumEl.textContent=rows.length+' row'+(rows.length!==1?'s':'')+
+    (est?' · Committed £'+est.toFixed(2):'')+
+    (act?' · Paid £'+act.toFixed(2):'');
+}
+
+// ── ITINERARY → BUDGET SYNC ─────────────────────────────────────────────────
+// Each itinerary row with an Est or Act cost is mirrored as a budgetTx so it
+// appears in the Budget Dashboard, Expenses table, and cost-code budget bars.
+// Category is always 'Trip'; cost_code is the row's free-text Cost Code.
+// Stable id 'itin-{rowId}' keeps the link idempotent. Source='itinerary' so the
+// Expenses table treats it as read-only (edit happens back in the itinerary).
+function _syncItinRowsToBudget(){
+  if(typeof budgetTxs==='undefined') return;
+  // Defensive: if in-memory budgetTxs is empty (e.g. sync ran from the
+  // Itinerary page before the Budget page hydrated budgetTxs from Supabase),
+  // pull whatever is in localStorage first so manual expenses survive.
+  if(budgetTxs.length===0){
+    try{
+      const cached=JSON.parse(localStorage.getItem('budgetTxs')||'[]');
+      if(Array.isArray(cached) && cached.length>0) budgetTxs=cached;
+    }catch(e){}
+  }
+  const trips=getItins();
+  const desired={};
+  trips.forEach(trip=>{
+    (trip.rows||[]).forEach(row=>{
+      const est=parseFloat(row.estCost)||0;
+      const act=parseFloat(row.actCost)||0;
+      if(est<=0 && act<=0) return;
+      const isAct=act>0;
+      const typeLbl=(ITIN_TYPES.find(ty=>ty.val===row.type)||{}).label||row.type||'';
+      const desc=[trip.name,row.name||typeLbl].filter(Boolean).join(' — ');
+      const id='itin-'+row.id;
+      desired[id]={
+        id, date:row.date||'',
+        description:desc||'Itinerary item',
+        category:'Trip',
+        amount: isAct ? act : est,
+        currency:'GBP',
+        cost_code:(row.costCode||'').trim()||null,
+        status: isAct ? 'actualised' : 'predicted',
+        source:'itinerary'
+      };
+    });
+  });
+  // Remove stale itin-* txs (no longer in desired set)
+  budgetTxs=budgetTxs.filter(t=>!(typeof t.id==='string' && t.id.indexOf('itin-')===0) || desired[t.id]);
+  // Upsert desired
+  Object.keys(desired).forEach(id=>{
+    const i=budgetTxs.findIndex(t=>t.id===id);
+    if(i>=0) Object.assign(budgetTxs[i],desired[id]);
+    else budgetTxs.push(desired[id]);
+  });
+  try{localStorage.setItem('budgetTxs',JSON.stringify(budgetTxs));}catch(e){}
+  // Re-render any open budget views
+  if(typeof renderBudgetDashboard==='function') renderBudgetDashboard();
+  if(typeof renderCostCodeBudgets==='function') renderCostCodeBudgets();
+}
+
+// ── AUTO-WIDTH COLUMNS ───────────────────────────────────────────────────────
+// Resizing is intentionally disabled — columns auto-size to fit each input via CSS.
+function _itinInitResize(tripId){ /* no-op: columns are sized by CSS */ }
+
+// ── EXPORT CSV ───────────────────────────────────────────────────────────────
+function exportItinCsv(tripId){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
+  const hdrs=['Date','Night #','Name','Type','Check-in','Check-out',
+    'Travelling From','Travelling To','Transit','Transit Time','Arrival Time','Status','Notes',
+    'Payment Note','Cancellation Policy','Est £','Act £','Code','URL'];
+  const q=v=>`"${(v||'').toString().replace(/"/g,'""')}"`;
+  const body=t.rows.map(r=>[r.date,r.nightNum,r.name,r.type,r.checkInTime,r.checkOutTime,
+    r.travelFrom,r.travelTo,r.transit,r.transitTime,r.arrivalTime,r.status,r.notes,
+    r.paymentNote,r.cancellationPolicy,r.estCost,r.actCost,r.costCode,r.url].map(q).join(','));
+  const csv=[hdrs.map(q).join(','),...body].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=(t.name||'itinerary').replace(/[^a-z0-9]/gi,'_')+'.csv';
+  a.click();
+}
+
+// ── ADD TO CAL ───────────────────────────────────────────────────────────────
+function itinAddToCal(tripId,rowId,btnEl){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
+  const row=t.rows.find(r=>r.id===rowId); if(!row) return;
+  if(!row.date){alert('Set a date on this row first.'); return;}
+  const rd=new Date(row.date); rd.setHours(0,0,0,0);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const mondayOf=d=>{const m=new Date(d);m.setDate(d.getDate()-((d.getDay()+6)%7));return m;};
+  const mToday=mondayOf(today), mRow=mondayOf(rd);
+  const targetWko=Math.round((mRow-mToday)/604800000);
+  const dayIdx=(rd.getDay()+6)%7;
+  const typeLabel=(ITIN_TYPES.find(ty=>ty.val===row.type)||{}).label||row.type;
+  const title=[row.name||typeLabel,
+    (row.travelFrom&&row.travelTo)?`${row.travelFrom} → ${row.travelTo}`:(row.travelFrom||row.travelTo)]
+    .filter(Boolean).join(' — ');
+  const timeStr=row.checkInTime||row.transitTime||'';
+  const SH_=typeof SH!=='undefined'?SH:6, SPH_=typeof SPH!=='undefined'?SPH:2;
+  let slot=Math.max(0,(8-SH_)*SPH_);
+  if(timeStr){const[h,m]=timeStr.split(':').map(Number);slot=Math.max(0,Math.round((h-SH_)*SPH_+(m>=30?1:0)));}
+  const savedWko=wko; wko=targetWko;
+  const evs=getEvs();
+  evs.push({id:'ev'+Date.now(),day:dayIdx,slot,slots:2,name:title,cat:'social',note:row.notes||''});
+  setEvs(evs); wko=savedWko;
+  if(btnEl){const orig=btnEl.textContent;btnEl.textContent='✓ Added';btnEl.style.color='var(--header-bg)';setTimeout(()=>{btnEl.textContent=orig;btnEl.style.color='';},2000);}
+}
+
+// ── ADD TO TRIPS ─────────────────────────────────────────────────────────────
+function itinAddToTrips(tripId,rowId,btnEl){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
+  const row=t.rows.find(r=>r.id===rowId); if(!row) return;
+  const typeLabel=(ITIN_TYPES.find(ty=>ty.val===row.type)||{}).label||'';
+  const title=row.name||(typeLabel+(row.travelTo?' — '+row.travelTo:''))||t.name;
+  const cards=getTripBrains();
+  cards.push({id:'tb'+Date.now(),title,type:'holiday',status:'planning',
+    dates:row.date||'',
+    notes:[(row.travelFrom&&row.travelTo)?`${row.travelFrom} → ${row.travelTo}`:'',row.notes].filter(Boolean).join(' | ')});
+  setTripBrains(cards);
+  if(btnEl){const orig=btnEl.textContent;btnEl.textContent='✓ Added';btnEl.style.color='var(--header-bg)';setTimeout(()=>{btnEl.textContent=orig;btnEl.style.color='';},2000);}
+}
+
+// ── ADD TO TASKS ─────────────────────────────────────────────────────────────
+function itinAddToTasks(tripId,rowId,btnEl){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
+  const row=t.rows.find(r=>r.id===rowId); if(!row) return;
+  const typeLabel=(ITIN_TYPES.find(ty=>ty.val===row.type)||{}).label||'';
+  const title=row.name||(typeLabel+(row.travelTo?' — '+row.travelTo:''))||'Itinerary item';
+  const lists=getLists();
+  lists.push({id:'lc'+Date.now(),col:'priority',title,body:row.notes||'',cat:'none'});
+  setLists(lists);
+  if(typeof renderPriorityTasks==='function') renderPriorityTasks();
+  if(btnEl){const orig=btnEl.textContent;btnEl.textContent='✓ Added';btnEl.style.color='var(--header-bg)';setTimeout(()=>{btnEl.textContent=orig;btnEl.style.color='';},2000);}
+}
+
+// ── ROW EDIT MODAL ───────────────────────────────────────────────────────────
+let _itinEditTripId=null,_itinEditRowId=null;
+function openItinRowEdit(tripId,rowId){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
+  const r=t.rows.find(r=>r.id===rowId); if(!r) return;
+  _itinEditTripId=tripId; _itinEditRowId=rowId;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+  set('itinEd-date',r.date); set('itinEd-type',r.type||'other');
+  set('itinEd-name',r.name); set('itinEd-from',r.travelFrom); set('itinEd-to',r.travelTo);
+  set('itinEd-night',r.nightNum); set('itinEd-checkIn',r.checkInTime);
+  set('itinEd-transit',r.transitTime); set('itinEd-arrival',r.arrivalTime);
+  set('itinEd-checkOut',r.checkOutTime);
+  set('itinEd-transitType',r.transit); set('itinEd-est',r.estCost);
+  set('itinEd-act',r.actCost); set('itinEd-code',r.costCode);
+  set('itinEd-payment',r.paymentNote); set('itinEd-status',r.status||'tentative');
+  set('itinEd-notes',r.notes); set('itinEd-cancel',r.cancellationPolicy); set('itinEd-url',r.url);
+  _itinApplyEditModalVisibility(r.type||'other');
+  document.getElementById('itinRowEditMo').classList.add('open');
+}
+function _itinApplyEditModalVisibility(type){
+  const map={
+    'itinEd-night':'nightNum',
+    'itinEd-checkIn':'checkInTime',
+    'itinEd-checkOut':'checkOutTime',
+    'itinEd-transit':'transitTime',
+    'itinEd-arrival':'arrivalTime',
+    'itinEd-from':'travelFrom',
+    'itinEd-to':'travelTo',
+    'itinEd-transitType':'transit',
+    'itinEd-payment':'paymentNote',
+    'itinEd-cancel':'cancellationPolicy',
+  };
+  for(const elId in map){
+    const el=document.getElementById(elId);
+    if(!el) continue;
+    const fg=el.closest('.fg');
+    if(fg) fg.style.display=_itinFieldActive(type,map[elId])?'':'none';
+  }
+}
+function saveItinRowEdit(){
+  const trips=getItins(), t=trips.find(t=>t.id===_itinEditTripId); if(!t) return;
+  const r=t.rows.find(r=>r.id===_itinEditRowId); if(!r) return;
+  const get=id=>{const el=document.getElementById(id);return el?el.value:'';};
+  r.date=get('itinEd-date'); r.type=get('itinEd-type'); r.name=get('itinEd-name');
+  r.travelFrom=get('itinEd-from'); r.travelTo=get('itinEd-to'); r.nightNum=get('itinEd-night');
+  r.checkInTime=get('itinEd-checkIn'); r.transitTime=get('itinEd-transit');
+  r.arrivalTime=get('itinEd-arrival');
+  r.checkOutTime=get('itinEd-checkOut'); r.transit=get('itinEd-transitType');
+  r.estCost=get('itinEd-est'); r.actCost=get('itinEd-act'); r.costCode=get('itinEd-code');
+  r.paymentNote=get('itinEd-payment'); r.status=get('itinEd-status');
+  r.notes=get('itinEd-notes'); r.cancellationPolicy=get('itinEd-cancel'); r.url=get('itinEd-url');
+  setItins(trips); closeMo('itinRowEditMo'); renderItinerary(); _syncItinRowsToBudget();
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function renderItinerary(){
+  const el=document.getElementById('itinTripList'); if(!el) return;
+  const trips=getItins();
+  if(!trips.length){
+    el.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--text-muted);font-size:13px;">No itineraries yet — click <strong>+ Create Trip</strong> on this page, or hit <strong>+ Itin</strong> on a Plan card.</div>`;
+    return;
+  }
+
+  el.innerHTML=trips.map(trip=>{
+    const fs=getItinFS(trip.id);
+    const est=trip.rows.reduce((s,r)=>s+(parseFloat(r.estCost)||0),0);
+    const act=trip.rows.reduce((s,r)=>s+(parseFloat(r.actCost)||0),0);
+    const summary=trip.rows.length+' row'+(trip.rows.length!==1?'s':'')+
+      (est?' · Committed £'+est.toFixed(2):'')+
+      (act?' · Paid £'+act.toFixed(2):'');
+
+    const typeOpts=s=>ITIN_TYPES.map(t=>`<option value="${t.val}"${s===t.val?' selected':''}>${t.label}</option>`).join('');
+    const statOpts=s=>ITIN_STATUSES.map(t=>`<option value="${t.val}"${s===t.val?' selected':''}>${t.label}</option>`).join('');
+    const payOpts=s=>ITIN_PAYMENT.map(t=>`<option value="${t.val}"${s===t.val?' selected':''}>${t.label}</option>`).join('');
+
+    // Filter
+    let rows=trip.rows.filter(r=>{
+      if(fs.ft && r.type!==fs.ft) return false;
+      if(fs.fs && r.status!==fs.fs) return false;
+      return true;
+    });
+    // Sort
+    if(fs.sf){
+      const dir=fs.sd||1;
+      rows=[...rows].sort((a,b)=>{
+        const av=a[fs.sf]||'', bv=b[fs.sf]||'';
+        if(fs.sf==='estCost'||fs.sf==='actCost'){return (parseFloat(av)||0)-(parseFloat(bv)||0)*dir;}
+        return av<bv?-dir:av>bv?dir:0;
+      });
+    }
+
+    // Filter/sort toolbar
+    const typeFilterOpts=['<option value="">All Types</option>',...ITIN_TYPES.map(t=>`<option value="${t.val}"${fs.ft===t.val?' selected':''}>${t.label}</option>`)].join('');
+    const statFilterOpts=['<option value="">All Statuses</option>',...ITIN_STATUSES.map(t=>`<option value="${t.val}"${fs.fs===t.val?' selected':''}>${t.label}</option>`)].join('');
+    const sortOpts=[
+      {val:'',label:'No sort'},{val:'date',label:'Date'},{val:'type',label:'Type'},
+      {val:'name',label:'Name'},{val:'status',label:'Status'},{val:'estCost',label:'Est £'},
+    ].map(o=>`<option value="${o.val}"${fs.sf===o.val?' selected':''}>${o.label}</option>`).join('');
+    const hasFilter=fs.ft||fs.fs||fs.sf;
+    const toolbar=`<div class="itin-toolbar">
+      <select class="itin-tb-sel" onchange="setItinFS('${trip.id}','ft',this.value)" title="Filter by type">${typeFilterOpts}</select>
+      <select class="itin-tb-sel" onchange="setItinFS('${trip.id}','fs',this.value)" title="Filter by status">${statFilterOpts}</select>
+      <span class="itin-tb-sep">|</span>
+      <span style="font-size:11px;color:var(--text-muted);">Sort:</span>
+      <select class="itin-tb-sel" onchange="setItinFS('${trip.id}','sf',this.value)" title="Sort by">${sortOpts}</select>
+      <button class="itin-tb-btn" onclick="setItinFS('${trip.id}','sd',${fs.sd===1?-1:1})" title="Toggle direction">${fs.sd===1?'↑':'↓'}</button>
+      ${hasFilter?`<button class="itin-tb-btn" onclick="_itinClearFS('${trip.id}')" title="Clear filters">✕ Clear</button>`:''}
+      <span class="itin-tb-sep">|</span>
+      <button class="itin-tb-btn" onclick="exportItinCsv('${trip.id}')" title="Export CSV">⬇ CSV</button>
+      <button class="itin-tb-btn" onclick="toggleItinColPopup('${trip.id}',this)" title="Show / hide columns">👁 Columns</button>
+    </div>`;
+
+    const rowsHtml=rows.map(row=>{
+      // Per-type field activity → adds .itin-disabled + disabled attribute when field is off for this row's type
+      const fa = f => _itinFieldActive(row.type,f);
+      const cls = f => fa(f) ? '' : ' itin-disabled';
+      const dis = f => fa(f) ? '' : ' disabled';
+      return `
+      <tr id="itinRow-${row.id}">
+        <td><input class="itin-cell itin-date" type="date" value="${esc_(row.date)}" onchange="updateItinCell('${trip.id}','${row.id}','date',this.value)"></td>
+        <td><input class="itin-cell itin-night${cls('nightNum')}"${dis('nightNum')} type="number" min="1" placeholder="—" value="${esc_(row.nightNum)}" oninput="updateItinCell('${trip.id}','${row.id}','nightNum',this.value)"></td>
+        <td><input class="itin-cell itin-name" placeholder="Name…" value="${esc_(row.name)}" oninput="updateItinCell('${trip.id}','${row.id}','name',this.value)"></td>
+        <td><select class="itin-sel itin-type" onchange="updateItinCell('${trip.id}','${row.id}','type',this.value)">${typeOpts(row.type)}</select></td>
+        <td><input class="itin-cell itin-time${cls('checkInTime')}"${dis('checkInTime')} type="time" value="${esc_(row.checkInTime)}" onchange="updateItinCell('${trip.id}','${row.id}','checkInTime',this.value)"></td>
+        <td><input class="itin-cell itin-time${cls('checkOutTime')}"${dis('checkOutTime')} type="time" value="${esc_(row.checkOutTime)}" onchange="updateItinCell('${trip.id}','${row.id}','checkOutTime',this.value)"></td>
+        <td><input class="itin-cell itin-from${cls('travelFrom')}"${dis('travelFrom')} placeholder="From…" value="${esc_(row.travelFrom)}" oninput="updateItinCell('${trip.id}','${row.id}','travelFrom',this.value)"></td>
+        <td><input class="itin-cell itin-to${cls('travelTo')}"${dis('travelTo')} placeholder="To…" value="${esc_(row.travelTo)}" oninput="updateItinCell('${trip.id}','${row.id}','travelTo',this.value)"></td>
+        <td><input class="itin-cell itin-transit${cls('transit')}"${dis('transit')} placeholder="e.g. Eurostar" value="${esc_(row.transit)}" oninput="updateItinCell('${trip.id}','${row.id}','transit',this.value)"></td>
+        <td><input class="itin-cell itin-time${cls('transitTime')}"${dis('transitTime')} type="time" value="${esc_(row.transitTime)}" onchange="updateItinCell('${trip.id}','${row.id}','transitTime',this.value)"></td>
+        <td><input class="itin-cell itin-time${cls('arrivalTime')}"${dis('arrivalTime')} type="time" value="${esc_(row.arrivalTime)}" onchange="updateItinCell('${trip.id}','${row.id}','arrivalTime',this.value)"></td>
+        <td><select class="itin-sel itin-status" onchange="updateItinCell('${trip.id}','${row.id}','status',this.value)">${statOpts(row.status)}</select></td>
+        <td><input class="itin-cell itin-notes" placeholder="Notes…" value="${esc_(row.notes)}" title="${esc_(row.notes)}" oninput="updateItinCell('${trip.id}','${row.id}','notes',this.value);this.title=this.value;"></td>
+        <td><select class="itin-sel itin-pay${cls('paymentNote')}"${dis('paymentNote')} onchange="updateItinCell('${trip.id}','${row.id}','paymentNote',this.value)">${payOpts(row.paymentNote)}</select></td>
+        <td><input class="itin-cell itin-cancel${cls('cancellationPolicy')}"${dis('cancellationPolicy')} placeholder="Cancellation policy…" value="${esc_(row.cancellationPolicy)}" title="${esc_(row.cancellationPolicy)}" oninput="updateItinCell('${trip.id}','${row.id}','cancellationPolicy',this.value);this.title=this.value;"></td>
+        <td><input class="itin-cell itin-money" type="number" min="0" step="0.01" placeholder="0.00" value="${esc_(row.estCost)}" oninput="updateItinCell('${trip.id}','${row.id}','estCost',this.value)"></td>
+        <td><input class="itin-cell itin-money" type="number" min="0" step="0.01" placeholder="0.00" value="${esc_(row.actCost)}" oninput="updateItinCell('${trip.id}','${row.id}','actCost',this.value)"></td>
+        <td><input class="itin-cell itin-code" placeholder="Code…" list="costCodeList" value="${esc_(row.costCode)}" oninput="updateItinCell('${trip.id}','${row.id}','costCode',this.value)"></td>
+        <td style="white-space:nowrap;padding:0 4px;">
+          <input class="itin-cell itin-url" placeholder="https://…" value="${esc_(row.url)}" oninput="updateItinCell('${trip.id}','${row.id}','url',this.value)">
+          ${row.url?`<a href="${esc_(row.url)}" target="_blank" style="font-size:10px;color:var(--accent);">↗</a>`:''}
+        </td>
+        <td class="itin-row-actions">
+          <button class="itin-row-btn" onclick="openItinRowEdit('${trip.id}','${row.id}')" title="Edit">✎</button>
+          <button class="itin-row-btn" onclick="duplicateItinRow('${trip.id}','${row.id}')" title="Duplicate">⎘</button>
+          <button class="itin-row-btn itin-row-del" onclick="deleteItinRow('${trip.id}','${row.id}')" title="Delete">×</button>
+          <div class="itin-row-add-btns">
+            <button class="itin-add-btn" onclick="itinAddToCal('${trip.id}','${row.id}',this)" title="Add to Calendar">📅 Cal</button>
+            <button class="itin-add-btn" onclick="itinAddToTrips('${trip.id}','${row.id}',this)" title="Add to Plans">✈ Plans</button>
+            <button class="itin-add-btn" onclick="itinAddToTasks('${trip.id}','${row.id}',this)" title="Add to Tasks">☑ Tasks</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const emptyMsg=rows.length===0?`<tr><td colspan="20" style="text-align:center;padding:14px;color:var(--text-faint);font-size:12px;font-style:italic;">${trip.rows.length?'No rows match the current filter.':'No rows yet — click + Add row below.'}</td></tr>`:'';
+
+    return `
+    <div class="itin-trip" id="itinTrip-${trip.id}">
+      <div class="itin-trip-hdr" onclick="toggleItinTrip('${trip.id}')">
+        <span class="itin-trip-chevron${trip.open?' open':''}">▶</span>
+        <span class="itin-trip-name">${esc_(trip.name)}</span>
+        <span class="itin-trip-meta" id="itinSum-${trip.id}">${summary}</span>
+        <button onclick="event.stopPropagation();deleteItinTrip('${trip.id}')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:13px;padding:2px 6px;" title="Delete trip">🗑</button>
+      </div>
+      <div class="itin-trip-body${trip.open?' open':''}">
+        ${toolbar}
+        <table class="itin-tbl" id="itinTbl-${trip.id}">
+          <thead><tr>
+            <th>Date</th><th>Night #</th><th>Name</th><th>Type</th>
+            <th>Check-in</th><th>Check-out</th>
+            <th>Travelling From</th><th>Travelling To</th>
+            <th>Transit</th><th>Transit Time</th><th>Arrival Time</th>
+            <th>Status</th><th>Notes</th>
+            <th>Payment Note</th><th>Cancellation Policy</th>
+            <th>Est £</th><th>Act £</th><th>Code</th><th>URL</th><th></th>
+          </tr></thead>
+          <tbody>${rowsHtml}${emptyMsg}</tbody>
+        </table>
+        <div class="itin-add-row">
+          <button onclick="addItinRow('${trip.id}')">+ Add row</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Init resize handles after render
+  setTimeout(()=>getItins().forEach(t=>{ if(t.open) _itinInitResize(t.id); }),50);
+  // Apply column visibility prefs (default: all visible)
+  _applyItinColPrefs();
+  // Keep budget in sync (cheap; reconciles even if no mutation hook ran)
+  if(typeof _syncItinRowsToBudget==='function') _syncItinRowsToBudget();
+}
+
+function _itinClearFS(tripId){
+  _itinFS[tripId]={ft:'',fs:'',sf:'',sd:1}; renderItinerary();
+}
+
 function getTripBrains() { return wev['tripbrains'] || []; }
 function setTripBrains(t) { wev['tripbrains'] = t; sv(); }
 
@@ -10938,6 +11709,11 @@ function renderTripBrains() {
       div.className = 'tbc';
       div.draggable = true;
       div.dataset.tbid = card.id;
+      // Itinerary linkage state — show "→ Itinerary" if this plan already owns one.
+      const _itinLinked = card.itinTripId && (getItins().some(t => t.id === card.itinTripId));
+      const _itinLabel  = _itinLinked ? '→ Itinerary' : '+ Itinerary';
+      const _itinCls    = _itinLinked ? 'tbc-btn tbc-btn-linked' : 'tbc-btn promote';
+      const _itinTitle  = _itinLinked ? 'Open this plan\'s itinerary' : 'Create an Itinerary entry for this plan';
       div.innerHTML = `
         <span class="tbc-emoji">${emoji}</span>
         <div class="tbc-body">
@@ -10947,6 +11723,7 @@ function renderTripBrains() {
         <div class="tbc-actions">
           <button class="tbc-btn" onclick="openTripBrainModal('${card.id}')">Edit</button>
           <button class="tbc-btn" onclick="dupTripBrain('${card.id}')">Dupe</button>
+          <button class="${_itinCls}" onclick="planToItinerary('${card.id}')" title="${_itinTitle}">${_itinLabel}</button>
           <button class="tbc-btn promote" onclick="promoteToPlanner('${card.id}')">+ Planner</button>
           <button class="tbc-btn" onclick="delTripBrain('${card.id}')" style="color:var(--creative);border-color:var(--creative-border);">×</button>
         </div>`;
@@ -10983,7 +11760,7 @@ function renderTripBrains() {
 
 function openTripBrainModal(editId) {
   const isEdit = !!editId;
-  document.getElementById('tripBrainMoTitle').textContent = isEdit ? 'Edit trip' : 'Add trip';
+  document.getElementById('tripBrainMoTitle').textContent = isEdit ? 'Edit plan' : 'Add plan';
   document.getElementById('tripBrainId').value = editId || '';
   if (isEdit) {
     const card = getTripBrains().find(c => c.id === editId);
@@ -11006,7 +11783,14 @@ function openTripBrainModal(editId) {
 
 function saveTripBrain() {
   const title = document.getElementById('tripBrainTitle').value.trim();
-  if (!title) return;
+  if (!title) {
+    const inp = document.getElementById('tripBrainTitle');
+    inp.style.borderColor = 'var(--creative)';
+    inp.placeholder = 'Please enter a name...';
+    inp.focus();
+    setTimeout(() => { inp.style.borderColor = ''; }, 1500);
+    return;
+  }
   const editId = document.getElementById('tripBrainId').value;
   const cards = getTripBrains();
   const item = {
@@ -11046,6 +11830,57 @@ function moveTripBrain(id, dir) {
   card.status = TRIP_BRAIN_COLS[Math.max(0, Math.min(TRIP_BRAIN_COLS.length - 1, idx + dir))];
   setTripBrains(cards);
   renderTripBrains();
+}
+
+// ── Plan → Itinerary linking ─────────────────────────────────────────────────
+// Creates (or jumps to) an Itinerary trip for the given Plan card. The link is
+// stored as card.itinTripId so the kanban can show "→ Itinerary" on revisits
+// and avoid duplicate spawns. Stale links (itinerary trip since deleted) fall
+// through and create a fresh one. Internal data keys (trips, tripbrains,
+// itinTrips) are unchanged so Supabase sync is unaffected.
+function planToItinerary(planId) {
+  const cards = getTripBrains();
+  const card = cards.find(c => c.id === planId);
+  if (!card) return;
+  const itins = getItins();
+  // Already linked? Just open the existing itinerary trip.
+  if (card.itinTripId) {
+    const existing = itins.find(t => t.id === card.itinTripId);
+    if (existing) {
+      existing.open = true;
+      setItins(itins);
+      showPage('itinerary');
+      setTimeout(() => {
+        const el = document.getElementById('itinTrip-' + existing.id);
+        if (el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth', block:'start'});
+      }, 120);
+      return;
+    }
+    // Stale link — fall through and create a fresh itinerary trip.
+  }
+  // Avoid silent name collisions: if another itinerary already shares this
+  // title (probably created directly from the Itinerary page), offer to
+  // link this Plan to it instead of duplicating.
+  const sameName = itins.find(t => (t.name||'').trim().toLowerCase() === (card.title||'').trim().toLowerCase());
+  let itinTripId;
+  if (sameName && confirm(`An itinerary called "${sameName.name}" already exists. Link this plan to it instead of creating a new one?`)) {
+    itinTripId = sameName.id;
+    sameName.open = true;
+    if (!sameName.planId) sameName.planId = card.id;
+  } else {
+    itinTripId = 'itin' + Date.now();
+    itins.push({id: itinTripId, name: card.title, open: true, rows: [], planId: card.id});
+  }
+  setItins(itins);
+  // Persist link on the plan so re-renders show "→ Itinerary"
+  card.itinTripId = itinTripId;
+  setTripBrains(cards);
+  renderTripBrains();
+  showPage('itinerary');
+  setTimeout(() => {
+    const el = document.getElementById('itinTrip-' + itinTripId);
+    if (el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 120);
 }
 
 function promoteToPlanner(id) {
@@ -11306,7 +12141,7 @@ function closeMobPanelSheet() {
 
 const TP_LABELS = {
   priorities:'Tasks', checklist:'Checklist', buckets:'Bucketlist',
-  trips:'Trips & Plans', templates:'Templates', events:'Events',
+  trips:'Plans', templates:'Templates', events:'Events',
   targets:'Targets', daily:'The Daily', shopping:'Shopping',
   tracker:'Tracker', addexpense:'Expense', catfilter:'Filter'
 };
@@ -12750,6 +13585,8 @@ async function loadBudgetTransactions() {
   } catch(e) {
     budgetTxs = JSON.parse(localStorage.getItem('budgetTxs') || '[]');
   }
+  // Re-derive itinerary-sourced txs after manual ones load from Supabase
+  if(typeof _syncItinRowsToBudget==='function') _syncItinRowsToBudget();
   renderBudgetDashboard();
   renderCostCodeBudgets();
   populateCatSelects();
@@ -12929,12 +13766,12 @@ function clearExpFilters() {
 }
 
 function _buildExpRows() {
-  // Budget transactions
+  // Budget transactions (manual + itinerary-derived). source preserved when present.
   const rows = budgetTxs.map(t => ({
     id: t.id, date: t.date || '', description: t.description || '',
     category: t.category || 'Other', cost_code: t.cost_code || '',
     status: txStatus(t), amount: Number(t.amount) || 0,
-    source: 'budget', _raw: t
+    source: t.source || 'budget', _raw: t
   }));
   // Relo tasks with costs
   reloTasks.forEach(t => {
@@ -13023,19 +13860,24 @@ function renderExpTable() {
 
   tbody.innerHTML = rows.map(r => {
     const isRelo = r.source === 'relo';
+    const isItin = r.source === 'itinerary';
     const isPred = r.status === 'predicted';
     const statusBadge = isRelo
       ? '<span style="font-size:9px;font-weight:700;text-transform:uppercase;background:rgba(93,97,168,.12);color:#5d61a8;padding:1px 6px;border-radius:4px;">Relo</span>'
-      : isPred
-        ? '<span style="font-size:9px;font-weight:700;text-transform:uppercase;background:rgba(251,124,35,.1);color:#fb7c23;padding:1px 6px;border-radius:4px;">Predicted</span>'
-        : '<span style="font-size:9px;font-weight:700;text-transform:uppercase;background:rgba(93,172,91,.1);color:#16a34a;padding:1px 6px;border-radius:4px;">Actualised</span>';
+      : isItin
+        ? `<span style="font-size:9px;font-weight:700;text-transform:uppercase;background:rgba(141,14,63,.12);color:var(--header-bg);padding:1px 6px;border-radius:4px;">Trip \u00b7 ${isPred?'Committed':'Paid'}</span>`
+        : isPred
+          ? '<span style="font-size:9px;font-weight:700;text-transform:uppercase;background:rgba(251,124,35,.1);color:#fb7c23;padding:1px 6px;border-radius:4px;">Predicted</span>'
+          : '<span style="font-size:9px;font-weight:700;text-transform:uppercase;background:rgba(93,172,91,.1);color:#16a34a;padding:1px 6px;border-radius:4px;">Actualised</span>';
     const actions = isRelo
       ? `<td style="padding:7px 8px;text-align:right;"><a onclick="showPage('relo')" style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);cursor:pointer;color:var(--text-muted);">View</a></td>`
-      : `<td style="padding:7px 8px;text-align:right;white-space:nowrap;">
-          ${isPred ? `<button onclick="promoteExpense('${r.id}')" title="Mark actualised" style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid #5dac5b;background:rgba(93,172,91,.1);cursor:pointer;color:#16a34a;margin-right:2px;">\u2713</button>` : ''}
-          <button onclick="openExpenseEdit('${r.id}')" style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text-muted);margin-right:2px;">\u270e</button>
-          <button onclick="deleteExpense('${r.id}')" style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text-muted);">\u00d7</button>
-        </td>`;
+      : isItin
+        ? `<td style="padding:7px 8px;text-align:right;"><a onclick="showPage('itinerary')" title="Edit on the Itinerary page" style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);cursor:pointer;color:var(--text-muted);">View</a></td>`
+        : `<td style="padding:7px 8px;text-align:right;white-space:nowrap;">
+            ${isPred ? `<button onclick="promoteExpense('${r.id}')" title="Mark actualised" style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid #5dac5b;background:rgba(93,172,91,.1);cursor:pointer;color:#16a34a;margin-right:2px;">\u2713</button>` : ''}
+            <button onclick="openExpenseEdit('${r.id}')" style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text-muted);margin-right:2px;">\u270e</button>
+            <button onclick="deleteExpense('${r.id}')" style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text-muted);">\u00d7</button>
+          </td>`;
     return `<tr style="border-bottom:1px solid var(--border-light);">
       <td style="padding:7px 8px;font-size:11px;color:var(--text-faint);white-space:nowrap;">${r.date}</td>
       <td style="padding:7px 8px;font-size:12px;color:var(--text);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.description}">${r.description}</td>
@@ -13149,7 +13991,7 @@ function renderBudgetDashboard() {
     <!-- Trips -->
     <div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted)">Trips & Plans</span>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted)">Plans</span>
         <button class="btn-at" onclick="openGoalModal('trip')">+</button>
       </div>
       <div id="tripsListMobile" style="display:flex;flex-direction:column;gap:6px;"></div>
@@ -13247,7 +14089,7 @@ function renderBudgetDashboard() {
       <button class="mps-item" onclick="mobGoPage('list','mbnList')"><span class="mps-icon">✓</span><span class="mps-name">Tasks</span></button>
       <button class="mps-item" onclick="mobGoPage('checklist')"><span class="mps-icon">✓</span><span class="mps-name">Checklist</span></button>
       <button class="mps-item" onclick="mobGoPage('bucketlist')"><span class="mps-icon">✓</span><span class="mps-name">Bucketlist</span></button>
-      <button class="mps-item" onclick="mobGoPage('trips')"><span class="mps-icon">✈</span><span class="mps-name">Trips & Plans</span></button>
+      <button class="mps-item" onclick="mobGoPage('trips')"><span class="mps-icon">✈</span><span class="mps-name">Plans</span></button>
       <button class="mps-item" onclick="mobGoPage('tracker')"><span class="mps-icon">⏱</span><span class="mps-name">Tracker</span></button>
       <button class="mps-item" onclick="mobGoPage('relo')"><span class="mps-icon">📍</span><span class="mps-name">Relocation</span></button>
       <button class="mps-item" onclick="mobGoPage('budget')"><span class="mps-icon">£</span><span class="mps-name">Budget</span></button>
@@ -13281,7 +14123,7 @@ function addEvToTrip(evId, e) {
   const ev = getEvs().find(x => x.id === evId);
   if (!ev) return;
   // Pre-fill trip brain modal with the event name
-  document.getElementById('tripBrainMoTitle').textContent = 'Add to Trips';
+  document.getElementById('tripBrainMoTitle').textContent = 'Add to Plans';
   document.getElementById('tripBrainId').value = '';
   document.getElementById('tripBrainTitle').value = ev.name;
   document.getElementById('tripBrainType').value = 'other';
@@ -13436,7 +14278,7 @@ function runSearch(q) {
   // ── Trips ──
   const tripMatches = (getTripBrains()||[]).filter(t => t.title.toLowerCase().includes(term) || (t.notes||'').toLowerCase().includes(term));
   if (tripMatches.length) {
-    sections.push(`<div class="sr-section">Trips & Plans</div>`);
+    sections.push(`<div class="sr-section">Plans</div>`);
     tripMatches.slice(0,4).forEach(t => {
       const emoji = (typeof TRIP_BRAIN_EMOJIS !== 'undefined' ? TRIP_BRAIN_EMOJIS[t.type] : null) || '📌';
       sections.push(`<div class="sr-item" onclick="closeSearch();showPage('trips');setTimeout(()=>openTripBrainModal('${t.id}'),300)">
