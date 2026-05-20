@@ -1012,52 +1012,55 @@
   .itin-pg{padding:24px 28px;min-height:calc(100vh - 52px);display:flex;flex-direction:column;}
   .itin-pg-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-shrink:0;}
   .itin-trip{border:1.5px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;}
-  .itin-trip-hdr{display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--surface);cursor:pointer;user-select:none;}
+  .itin-trip-hdr{display:flex;align-items:center;gap:8px;padding:11px 16px;background:var(--surface);cursor:pointer;user-select:none;}
   .itin-trip-hdr:hover{background:var(--bg-warm);}
   .itin-trip-chevron{font-size:11px;color:var(--text-muted);transition:transform .2s;flex-shrink:0;}
   .itin-trip-chevron.open{transform:rotate(90deg);}
   .itin-trip-name{font-weight:700;font-size:14px;color:var(--text);flex:1;}
+  .itin-trip-dates{font-size:11px;color:var(--text-muted);font-weight:500;white-space:nowrap;}
   .itin-trip-meta{font-size:11px;color:var(--text-muted);display:flex;gap:12px;align-items:center;}
   .itin-trip-body{display:none;overflow-x:auto;border-top:1.5px solid var(--border);}
   .itin-trip-body.open{display:block;}
+  /* View toggle (Date / Category) */
+  .itin-view-toggle{display:flex;gap:0;padding:7px 14px;background:var(--bg-warm);border-bottom:1px solid var(--border-light);align-items:center;}
+  .itin-view-btn{font-family:inherit;font-size:11px;font-weight:600;border:1.5px solid var(--border);background:var(--bg);color:var(--text-muted);padding:3px 12px;cursor:pointer;transition:all .1s;line-height:1.4;}
+  .itin-view-btn:first-child{border-radius:6px 0 0 6px;border-right-width:0;}
+  .itin-view-btn:last-child{border-radius:0 6px 6px 0;}
+  .itin-view-btn.active{background:var(--header-bg);color:#fff;border-color:var(--header-bg);}
+  /* Table */
   .itin-tbl{border-collapse:collapse;width:auto;font-size:12px;table-layout:auto;}
   .itin-tbl th{padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);background:var(--bg-warm);border-bottom:1.5px solid var(--border);white-space:nowrap;}
   .itin-tbl td{padding:0;border-bottom:1px solid var(--border-light);vertical-align:middle;white-space:nowrap;}
   .itin-tbl tr:last-child td{border-bottom:none;}
-  .itin-tbl tr:hover td{background:var(--bg-warm);}
+  .itin-tbl tr:not(.itin-day-row):not(.itin-cat-row):hover td{background:var(--bg-warm);}
+  /* Day / Category separator rows */
+  .itin-day-row td,.itin-cat-row td{
+    padding:6px 14px;font-size:11px;font-weight:700;letter-spacing:.3px;
+    background:var(--surface);color:var(--header-bg);
+    border-top:2px solid var(--border);border-bottom:1px solid var(--border-light);
+  }
+  .itin-day-row td{text-transform:uppercase;}
+  .itin-cat-row td{font-size:12px;}
+  /* Inputs / selects */
   .itin-cell{width:100%;border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--text);padding:6px 10px;outline:none;box-sizing:border-box;}
   .itin-cell:focus{background:var(--surface);outline:2px solid var(--accent-soft);}
-  /* Per-column natural widths — column auto-sizes to fit the input */
-  .itin-cell.itin-date{width:120px;}
-  .itin-cell.itin-night{width:55px;text-align:center;}
-  .itin-cell.itin-name{width:130px;}
-  .itin-cell.itin-time{width:90px;}
-  .itin-cell.itin-from,.itin-cell.itin-to{width:120px;}
-  .itin-cell.itin-transit{width:120px;}
+  .itin-cell.itin-date{width:110px;}
+  .itin-cell.itin-name{width:150px;}
+  .itin-cell.itin-loc{width:130px;}
+  .itin-cell.itin-time{width:88px;}
   .itin-cell.itin-money{width:75px;text-align:right;}
   .itin-cell.itin-code{width:90px;}
   .itin-cell.itin-url{width:130px;color:var(--accent);cursor:text;}
-  /* Notes: truncate with ellipsis when blurred; expand on focus to reveal full text */
   .itin-cell.itin-notes{width:180px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;cursor:text;}
-  .itin-cell.itin-notes:focus{width:380px;white-space:nowrap;}
-  /* Cancellation Policy: same click-to-expand pattern */
-  .itin-cell.itin-cancel{width:180px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;cursor:text;}
-  .itin-cell.itin-cancel:focus{width:340px;white-space:nowrap;}
+  .itin-cell.itin-notes:focus{width:360px;white-space:nowrap;}
+  .itin-cell.itin-cancel{width:160px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;cursor:text;}
+  .itin-cell.itin-cancel:focus{width:320px;white-space:nowrap;}
   .itin-sel{width:100%;border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--text);padding:6px 8px;outline:none;cursor:pointer;-webkit-appearance:none;box-sizing:border-box;}
-  .itin-sel.itin-type{width:140px;}
+  .itin-sel.itin-cat-sel{width:140px;}
+  .itin-sel.itin-type-sel{width:120px;}
   .itin-sel.itin-status{width:130px;}
-  .itin-sel.itin-pay{width:160px;}
+  .itin-sel.itin-paid-sel{width:140px;}
   .itin-sel:focus{background:var(--surface);}
-  /* Type-aware: cells irrelevant to the row type are dimmed and disabled */
-  .itin-cell.itin-disabled,
-  .itin-sel.itin-disabled{
-    background:repeating-linear-gradient(135deg,transparent 0 6px,var(--border-light) 6px 7px) !important;
-    color:var(--text-faint) !important;
-    opacity:.45;
-    pointer-events:none;
-    cursor:default;
-  }
-  .itin-cell.itin-disabled::placeholder{color:transparent;}
   .itin-row-btn{background:none;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text-muted);font-size:11px;padding:3px 6px;line-height:1;margin:0 1px;transition:all .1s;}
   .itin-row-btn:hover{background:var(--bg-warm);color:var(--text);}
   .itin-row-del:hover{color:var(--creative);border-color:var(--creative);}
@@ -1071,28 +1074,27 @@
   .itin-tb-btn{font-family:inherit;font-size:11px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text-muted);padding:3px 8px;cursor:pointer;transition:all .1s;}
   .itin-tb-btn:hover{background:var(--surface);color:var(--text);}
   .itin-tb-sep{color:var(--border);font-size:14px;}
-  .itin-col-handle{display:none;}
-  /* Freeze first three columns (Date / Night # / Name) for horizontal scrolling */
-  .itin-tbl th:nth-child(1){min-width:120px;}
-  .itin-tbl th:nth-child(2){min-width:70px;}
-  .itin-tbl th:nth-child(3){min-width:130px;}
+  /* Freeze first three columns (Date / Item / Category) for horizontal scrolling */
+  .itin-tbl th:nth-child(1){min-width:110px;}
+  .itin-tbl th:nth-child(2){min-width:150px;}
+  .itin-tbl th:nth-child(3){min-width:140px;}
   .itin-tbl th:nth-child(1),.itin-tbl td:nth-child(1),
   .itin-tbl th:nth-child(2),.itin-tbl td:nth-child(2),
   .itin-tbl th:nth-child(3),.itin-tbl td:nth-child(3){
     position:sticky;background:var(--bg);
   }
   .itin-tbl th:nth-child(1),.itin-tbl td:nth-child(1){left:0;}
-  .itin-tbl th:nth-child(2),.itin-tbl td:nth-child(2){left:120px;}
-  .itin-tbl th:nth-child(3),.itin-tbl td:nth-child(3){left:190px;}
-  /* Subtle right edge on the last frozen column so users see the divide */
+  .itin-tbl th:nth-child(2),.itin-tbl td:nth-child(2){left:110px;}
+  .itin-tbl th:nth-child(3),.itin-tbl td:nth-child(3){left:260px;}
   .itin-tbl th:nth-child(3),.itin-tbl td:nth-child(3){
     box-shadow:inset -1px 0 0 0 var(--border), 4px 0 6px -3px rgba(0,0,0,.12);
   }
-  /* th sits above td when row scrolls under header; frozen header bg matches the th palette */
   .itin-tbl th:nth-child(1),.itin-tbl th:nth-child(2),.itin-tbl th:nth-child(3){
     background:var(--bg-warm);z-index:3;
   }
   .itin-tbl td:nth-child(1),.itin-tbl td:nth-child(2),.itin-tbl td:nth-child(3){z-index:2;}
+  /* Day/cat separator rows should not be sticky */
+  .itin-day-row td,.itin-cat-row td{position:static!important;left:auto!important;z-index:0!important;box-shadow:none!important;}
   /* Column visibility popup */
   .itin-col-popup{
     background:var(--surface);border:1.5px solid var(--border);border-radius:10px;
@@ -1105,11 +1107,22 @@
   .itin-add-row{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--border-light);background:var(--bg-warm);}
   .itin-add-row button{font-size:11px;padding:4px 10px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-muted);font-family:inherit;cursor:pointer;}
   .itin-add-row button:hover{background:var(--surface);color:var(--text);}
+  /* Trip-level notes box */
+  .itin-notes-box{padding:10px 14px;border-top:1px solid var(--border-light);background:var(--bg);}
+  .itin-notes-box label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);display:block;margin-bottom:4px;}
+  .itin-notes-box textarea{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-family:inherit;font-size:12px;color:var(--text);padding:6px 10px;resize:vertical;outline:none;min-height:52px;}
+  .itin-notes-box textarea:focus{border-color:var(--accent);background:var(--bg);}
   .itin-status-tent{color:#b08020;}
   .itin-status-book{color:#1a7a3a;}
   .itin-status-conf{color:#1a5caa;}
   .itin-status-done{color:var(--text-muted);}
   .itin-status-canc{color:var(--creative);text-decoration:line-through;}
+  /* Header action buttons (edit, add reservation, delete) */
+  .itin-hdr-btn{background:none;border:1.5px solid var(--border);border-radius:6px;cursor:pointer;color:var(--text-muted);font-size:11px;padding:3px 9px;line-height:1.4;font-family:inherit;transition:all .1s;white-space:nowrap;flex-shrink:0;}
+  .itin-hdr-btn:hover{background:var(--surface);color:var(--text);}
+  .itin-hdr-btn.add-res{background:var(--header-bg);color:#fff;border-color:var(--header-bg);}
+  .itin-hdr-btn.add-res:hover{opacity:.85;}
+  .itin-hdr-btn.del-trip:hover{color:var(--creative);border-color:var(--creative);}
   @media (max-width:900px){.itin-pg{padding:14px;}}
   /* ── END ITINERARY ── */
 
@@ -4069,39 +4082,24 @@ body {
 <!-- ITINERARY ROW EDIT MODAL -->
 <div class="mo" id="itinRowEditMo">
   <div class="md" style="max-width:560px;max-height:85vh;overflow-y:auto;">
-    <h3 style="margin-bottom:14px;">Edit Row</h3>
+    <h3 style="margin-bottom:14px;">Edit Reservation</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="fg"><label>Date</label><input type="date" id="itinEd-date"></div>
-      <div class="fg"><label>Type</label><select id="itinEd-type" onchange="_itinApplyEditModalVisibility(this.value)">
-        <option value="location">📍 Location</option>
+      <div class="fg"><label>Category</label><select id="itinEd-category" onchange="_itinModalCatChange(this.value)">
         <option value="accommodation">🏨 Accommodation</option>
         <option value="flight">✈️ Flight</option>
         <option value="transit">🚆 Transit</option>
         <option value="event">🎟 Event</option>
         <option value="sightseeing">🗺 Sightseeing</option>
         <option value="food">🍽 Food / Drink</option>
+        <option value="location">📍 Location</option>
         <option value="other">📌 Other</option>
       </select></div>
-      <div class="fg" style="grid-column:1/-1;"><label>Name</label><input type="text" id="itinEd-name" placeholder="e.g. Hotel Costes, CDG Airport…"></div>
-      <div class="fg"><label>Travelling From</label><input type="text" id="itinEd-from" placeholder="From…"></div>
-      <div class="fg"><label>Travelling To</label><input type="text" id="itinEd-to" placeholder="To…"></div>
-      <div class="fg"><label>Night #</label><input type="number" min="1" id="itinEd-night" placeholder="—"></div>
-      <div class="fg"><label>Check-in Time</label><input type="time" id="itinEd-checkIn"></div>
-      <div class="fg"><label>Check-out Time</label><input type="time" id="itinEd-checkOut"></div>
-      <div class="fg"><label>Transit Time</label><input type="time" id="itinEd-transit"></div>
-      <div class="fg"><label>Arrival Time</label><input type="time" id="itinEd-arrival"></div>
-      <div class="fg"><label>Transit</label><input type="text" id="itinEd-transitType" placeholder="e.g. Eurostar, Cab…"></div>
-      <div class="fg"><label>Est £</label><input type="number" min="0" step="0.01" id="itinEd-est" placeholder="0.00"></div>
-      <div class="fg"><label>Act £</label><input type="number" min="0" step="0.01" id="itinEd-act" placeholder="0.00"></div>
-      <div class="fg"><label>Cost Code</label><input type="text" id="itinEd-code" list="costCodeList" placeholder="Code…"></div>
-      <div class="fg"><label>Payment Note</label><select id="itinEd-payment">
-        <option value="">—</option>
-        <option value="paid">✅ Paid</option>
-        <option value="pay_at_property">🏨 Pay at Property</option>
-        <option value="payment_plan">📅 Payment Plan</option>
-        <option value="pay_before_date">🗓 Pay Before Date</option>
-        <option value="not_paid">❌ Not Paid</option>
-      </select></div>
+      <div class="fg" style="grid-column:1/-1;"><label>Item / Name</label><input type="text" id="itinEd-name" placeholder="e.g. Hotel Costes, Eurostar to Paris…"></div>
+      <div class="fg"><label>Type</label><select id="itinEd-type"></select></div>
+      <div class="fg"><label>Location</label><input type="text" id="itinEd-location" placeholder="e.g. Paris, CDG Terminal 2…"></div>
+      <div class="fg"><label>Start Time</label><input type="time" id="itinEd-startTime"></div>
+      <div class="fg"><label>End Time</label><input type="time" id="itinEd-endTime"></div>
       <div class="fg"><label>Status</label><select id="itinEd-status">
         <option value="searching">🔍 Searching</option>
         <option value="tentative">⬜ Tentative</option>
@@ -4110,9 +4108,20 @@ body {
         <option value="done">✅ Done</option>
         <option value="cancelled">❌ Cancelled</option>
       </select></div>
+      <div class="fg"><label>Paid?</label><select id="itinEd-paid">
+        <option value="">—</option>
+        <option value="yes">✅ Paid</option>
+        <option value="partial">⚡ Partially Paid</option>
+        <option value="no">❌ Not Paid</option>
+        <option value="property">🏨 Pay at Property</option>
+        <option value="plan">📅 Payment Plan</option>
+      </select></div>
+      <div class="fg"><label>Est £</label><input type="number" min="0" step="0.01" id="itinEd-est" placeholder="0.00"></div>
+      <div class="fg"><label>Act £</label><input type="number" min="0" step="0.01" id="itinEd-act" placeholder="0.00"></div>
+      <div class="fg"><label>Cost Code</label><input type="text" id="itinEd-code" list="costCodeList" placeholder="Code…"></div>
       <div class="fg" style="grid-column:1/-1;"><label>Notes</label><textarea id="itinEd-notes" rows="2" placeholder="Notes…" style="resize:vertical;"></textarea></div>
       <div class="fg" style="grid-column:1/-1;"><label>Cancellation Policy</label><textarea id="itinEd-cancel" rows="2" placeholder="e.g. Free cancellation until 48h before…" style="resize:vertical;"></textarea></div>
-      <div class="fg" style="grid-column:1/-1;"><label>URL</label><input type="url" id="itinEd-url" placeholder="https://…"></div>
+      <div class="fg" style="grid-column:1/-1;"><label>URL / Booking Link</label><input type="url" id="itinEd-url" placeholder="https://…"></div>
     </div>
     <div class="md-btns" style="margin-top:16px;">
       <button class="btn-cancel" onclick="closeMo('itinRowEditMo')">Cancel</button>
@@ -4123,14 +4132,51 @@ body {
 
 <!-- ITINERARY CREATE TRIP MODAL -->
 <div class="mo" id="itinCreateMo">
-  <div class="md" style="max-width:380px;">
+  <div class="md" style="max-width:420px;">
     <h3>New Trip</h3>
     <div class="fg"><label>Trip name</label>
-      <input type="text" id="itinNewTripName" placeholder="e.g. Japan 2026, Paris Weekend..." onkeydown="if(event.key==='Enter')saveNewItinTrip()">
+      <input type="text" id="itinNewTripName" placeholder="e.g. Japan 2026, Paris Weekend...">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fg"><label>Start Date</label><input type="date" id="itinNewTripStart"></div>
+      <div class="fg"><label>End Date</label><input type="date" id="itinNewTripEnd"></div>
     </div>
     <div class="md-btns">
       <button class="btn-cancel" onclick="closeMo('itinCreateMo')">Cancel</button>
       <button class="btn-save" onclick="saveNewItinTrip()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITINERARY EDIT TRIP MODAL -->
+<div class="mo" id="itinEditTripMo">
+  <div class="md" style="max-width:420px;">
+    <h3>Edit Trip</h3>
+    <input type="hidden" id="itinEditTripId">
+    <div class="fg"><label>Trip name</label>
+      <input type="text" id="itinEditTripName" placeholder="e.g. Japan 2026, Paris Weekend...">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fg"><label>Start Date</label><input type="date" id="itinEditTripStart"></div>
+      <div class="fg"><label>End Date</label><input type="date" id="itinEditTripEnd"></div>
+    </div>
+    <div class="md-btns">
+      <button class="btn-cancel" onclick="closeMo('itinEditTripMo')">Cancel</button>
+      <button class="btn-save" onclick="saveEditItinTrip()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITINERARY ADD RESERVATION MODAL -->
+<div class="mo" id="itinAddResMo">
+  <div class="md" style="max-width:340px;">
+    <h3>Add Reservation</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 14px;">Choose a date — a new row will be added under that day.</p>
+    <input type="hidden" id="itinAddResTripId">
+    <div class="fg"><label>Date</label><input type="date" id="itinAddResDate"></div>
+    <div class="md-btns">
+      <button class="btn-cancel" onclick="closeMo('itinAddResMo')">Cancel</button>
+      <button class="btn-save" onclick="confirmAddItinReservation()">Add</button>
     </div>
   </div>
 </div>
@@ -4561,18 +4607,23 @@ async function svFlush() {
   } catch(e) {}
 }
 
-// Use sendBeacon as a last resort on page hide (synchronous-ish)
+// Flush to Supabase on page hide using fetch keepalive (sendBeacon cannot set
+// custom headers so it always fails against Supabase REST — use fetch instead).
 function svBeacon() {
-  if (!svPending) return;
+  if (!svPending || !svSupaEnabled) return;
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
   const body = JSON.stringify({id:SUPA_ROW,data,updated_at:new Date().toISOString()});
-  // sendBeacon to Supabase REST endpoint
-  if(navigator.sendBeacon) {
-    navigator.sendBeacon(
-      `${SUPA_URL}/rest/v1/planner_data?on_conflict=id`,
-      new Blob([body], {type:'application/json'})
-    );
-  }
+  try {
+    // keepalive:true tells the browser to keep this request alive even after
+    // the page has been discarded — the modern correct alternative to sendBeacon
+    // when custom headers are required.
+    fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {
+      method: 'POST',
+      headers: {...H, Prefer: 'resolution=merge-duplicates,return=minimal'},
+      body,
+      keepalive: true
+    });
+  } catch(e) {}
 }
 
 window.addEventListener('beforeunload', () => { svBeacon(); svFlush(); });
@@ -4888,6 +4939,25 @@ async function boot() {
       const remoteIds = new Set(remoteTrips.map(t => t.id));
       const localOnly = localTrips.filter(t => !remoteIds.has(t.id));
       if (localOnly.length) remote.wev.tripbrains = [...remoteTrips, ...localOnly];
+    }
+    // Merge itinTrips: same pattern — protect locally-added itinerary trips
+    // and locally-added rows within existing trips from being silently wiped.
+    const remoteItin = (remote.wev||{}).itinTrips || [];
+    const localItin  = (local.wev||{}).itinTrips  || [];
+    if (localItin.length > 0 && remote.wev) {
+      const remoteItinIds = new Set(remoteItin.map(t => t.id));
+      // Merge trips that exist only locally
+      const localOnlyTrips = localItin.filter(t => !remoteItinIds.has(t.id));
+      // For trips that exist in both, merge any rows that are local-only
+      const mergedItin = remoteItin.map(rt => {
+        const lt = localItin.find(t => t.id === rt.id);
+        if (!lt) return rt;
+        const remoteRowIds = new Set((rt.rows||[]).map(r => r.id));
+        const localOnlyRows = (lt.rows||[]).filter(r => !remoteRowIds.has(r.id));
+        if (!localOnlyRows.length) return rt;
+        return {...rt, rows: [...(rt.rows||[]), ...localOnlyRows]};
+      });
+      remote.wev.itinTrips = [...mergedItin, ...localOnlyTrips];
     }
     useData = remote; // Supabase is always the base
   }
@@ -11130,9 +11200,10 @@ const TRIP_BRAIN_EMOJIS = {holiday:'✈',weekend:'🏡',daytrip:'🚂',dayout:'�
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ITINERARY PAGE
-// Data shape: wev.itinTrips = [ { id, name, open, rows: [{ id, date, type,
-//   startLoc, endLoc, nightNum, time, transitType, estCost, actCost,
-//   costCode, status, notes, url }] } ]
+// Data shape: wev.itinTrips = [ { id, name, startDate, endDate, open, view,
+//   notes, rows: [{ id, date, name, category, type, location, startTime,
+//   endTime, status, paid, notes, cancellationPolicy, estCost, actCost,
+//   costCode, url }] } ]
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Global HTML escape (wlEsc lives inside the WatchList IIFE so define a standalone version)
@@ -11141,15 +11212,57 @@ function esc_(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 function getItins() { return wev.itinTrips || []; }
 function setItins(t) { wev.itinTrips = t; sv(); }
 
-const ITIN_TYPES = [
-  {val:'location',      label:'📍 Location'},
-  {val:'accommodation', label:'🏨 Accommodation'},
-  {val:'flight',        label:'✈️ Flight'},
-  {val:'transit',       label:'🚆 Transit'},
-  {val:'event',         label:'🎟 Event'},
-  {val:'sightseeing',   label:'🗺 Sightseeing'},
-  {val:'food',          label:'🍽 Food / Drink'},
-  {val:'other',         label:'📌 Other'},
+// Category → Type dependency
+const ITIN_CATEGORIES = [
+  {val:'accommodation', label:'🏨 Accommodation', types:[
+    {val:'hotel',   label:'Hotel'},
+    {val:'airbnb',  label:'Airbnb'},
+    {val:'private', label:'Private Accomm'},
+    {val:'hostel',  label:'Hostel'},
+    {val:'other',   label:'Other'},
+  ]},
+  {val:'flight', label:'✈️ Flight', types:[
+    {val:'flight',     label:'Flight'},
+    {val:'charter',    label:'Charter'},
+  ]},
+  {val:'transit', label:'🚆 Transit', types:[
+    {val:'train',  label:'Train'},
+    {val:'bus',    label:'Bus'},
+    {val:'ferry',  label:'Ferry'},
+    {val:'cruise', label:'Cruise'},
+    {val:'car',    label:'Car Booking'},
+    {val:'taxi',   label:'Taxi / Transfer'},
+    {val:'other',  label:'Other'},
+  ]},
+  {val:'event', label:'🎟 Event', types:[
+    {val:'concert',  label:'Concert'},
+    {val:'show',     label:'Show / Theatre'},
+    {val:'sport',    label:'Sport'},
+    {val:'festival', label:'Festival'},
+    {val:'other',    label:'Other'},
+  ]},
+  {val:'sightseeing', label:'🗺 Sightseeing', types:[
+    {val:'attraction', label:'Attraction'},
+    {val:'tour',       label:'Tour'},
+    {val:'museum',     label:'Museum'},
+    {val:'nature',     label:'Nature / Walk'},
+    {val:'other',      label:'Other'},
+  ]},
+  {val:'food', label:'🍽 Food / Drink', types:[
+    {val:'restaurant', label:'Restaurant'},
+    {val:'cafe',       label:'Café'},
+    {val:'bar',        label:'Bar / Pub'},
+    {val:'market',     label:'Market / Street Food'},
+    {val:'other',      label:'Other'},
+  ]},
+  {val:'location', label:'📍 Location', types:[
+    {val:'location', label:'Location'},
+    {val:'area',     label:'Area / District'},
+    {val:'other',    label:'Other'},
+  ]},
+  {val:'other', label:'📌 Other', types:[
+    {val:'other', label:'Other'},
+  ]},
 ];
 const ITIN_STATUSES = [
   {val:'searching',  label:'🔍 Searching'},
@@ -11159,55 +11272,58 @@ const ITIN_STATUSES = [
   {val:'done',       label:'✅ Done'},
   {val:'cancelled',  label:'❌ Cancelled'},
 ];
-const ITIN_PAYMENT = [
-  {val:'',                label:'—'},
-  {val:'paid',            label:'✅ Paid'},
-  {val:'pay_at_property', label:'🏨 Pay at Property'},
-  {val:'payment_plan',    label:'📅 Payment Plan'},
-  {val:'pay_before_date', label:'🗓 Pay Before Date'},
-  {val:'not_paid',        label:'❌ Not Paid'},
+const ITIN_PAID = [
+  {val:'',         label:'—'},
+  {val:'yes',      label:'✅ Paid'},
+  {val:'partial',  label:'⚡ Partially Paid'},
+  {val:'no',       label:'❌ Not Paid'},
+  {val:'property', label:'🏨 Pay at Property'},
+  {val:'plan',     label:'📅 Payment Plan'},
 ];
 
-// Per-type field visibility. Listed fields are INACTIVE for that type.
-// (Date, Name, Type, Status, Notes, Est £, Act £, Code, URL are active for every type.)
-const ITIN_TYPE_FIELDS = {
-  location:      ['nightNum','checkInTime','checkOutTime','travelFrom','travelTo','transit','transitTime','arrivalTime','paymentNote','cancellationPolicy'],
-  accommodation: ['travelFrom','travelTo','transit','transitTime','arrivalTime'],
-  flight:        ['nightNum','checkInTime','checkOutTime'],
-  transit:       ['nightNum','checkInTime','checkOutTime'],
-  event:         ['nightNum','travelFrom','travelTo','transit','transitTime','arrivalTime','cancellationPolicy'],
-  sightseeing:   ['nightNum','checkOutTime','travelFrom','travelTo','transit','transitTime','arrivalTime','cancellationPolicy'],
-  food:          ['nightNum','checkOutTime','travelFrom','travelTo','transit','transitTime','arrivalTime','cancellationPolicy'],
-  other:         [],
-};
-function _itinFieldActive(type,field){
-  const off=ITIN_TYPE_FIELDS[type||'other']||[];
-  return !off.includes(field);
+// Helper: get cat label from a row
+function _itinCatLabel(row){
+  const cat=ITIN_CATEGORIES.find(c=>c.val===(row.category||'other'));
+  return cat ? cat.label : (row.category||'Other');
+}
+// Helper: get type label from a row
+function _itinTypeLabel(row){
+  const cat=ITIN_CATEGORIES.find(c=>c.val===(row.category||'other'));
+  if(!cat) return row.type||'';
+  const typ=cat.types.find(t=>t.val===row.type);
+  return typ ? typ.label : (row.type||'');
+}
+// Helper: build <option> list for type dropdown given a category value
+function _itinTypeOpts(catVal, selVal){
+  const cat=ITIN_CATEGORIES.find(c=>c.val===catVal)||ITIN_CATEGORIES[ITIN_CATEGORIES.length-1];
+  return cat.types.map(t=>`<option value="${t.val}"${t.val===selVal?' selected':''}>${t.label}</option>`).join('');
+}
+// Update type dropdown in row-edit modal when category changes
+function _itinModalCatChange(catVal){
+  const sel=document.getElementById('itinEd-type');
+  if(!sel) return;
+  sel.innerHTML=_itinTypeOpts(catVal,'');
 }
 
 // ── COLUMN VISIBILITY + FREEZE ──────────────────────────────────────────────
-// 19 data columns + 1 action column. First three (Date / Night # / Name) are
+// 15 data columns + 1 action column. First three (Date / Item / Category) are
 // locked-visible and freeze to the left edge while the rest scrolls.
 const ITIN_COL_DEFS=[
-  {key:'date',               label:'Date',                idx:1,  locked:true },
-  {key:'nightNum',           label:'Night #',             idx:2,  locked:true },
-  {key:'name',               label:'Name',                idx:3,  locked:true },
-  {key:'type',               label:'Type',                idx:4,  locked:false},
-  {key:'checkInTime',        label:'Check-in',            idx:5,  locked:false},
-  {key:'checkOutTime',       label:'Check-out',           idx:6,  locked:false},
-  {key:'travelFrom',         label:'Travelling From',     idx:7,  locked:false},
-  {key:'travelTo',           label:'Travelling To',       idx:8,  locked:false},
-  {key:'transit',            label:'Transit',             idx:9,  locked:false},
-  {key:'transitTime',        label:'Transit Time',        idx:10, locked:false},
-  {key:'arrivalTime',        label:'Arrival Time',        idx:11, locked:false},
-  {key:'status',             label:'Status',              idx:12, locked:false},
-  {key:'notes',              label:'Notes',               idx:13, locked:false},
-  {key:'paymentNote',        label:'Payment Note',        idx:14, locked:false},
-  {key:'cancellationPolicy', label:'Cancellation Policy', idx:15, locked:false},
-  {key:'estCost',            label:'Est £',               idx:16, locked:false},
-  {key:'actCost',            label:'Act £',               idx:17, locked:false},
-  {key:'costCode',           label:'Code',                idx:18, locked:false},
-  {key:'url',                label:'URL',                 idx:19, locked:false},
+  {key:'date',               label:'Date',            idx:1,  locked:true },
+  {key:'name',               label:'Item',            idx:2,  locked:true },
+  {key:'category',           label:'Category',        idx:3,  locked:true },
+  {key:'type',               label:'Type',            idx:4,  locked:false},
+  {key:'location',           label:'Location',        idx:5,  locked:false},
+  {key:'startTime',          label:'Start Time',      idx:6,  locked:false},
+  {key:'endTime',            label:'End Time',        idx:7,  locked:false},
+  {key:'status',             label:'Status',          idx:8,  locked:false},
+  {key:'paid',               label:'Paid?',           idx:9,  locked:false},
+  {key:'notes',              label:'Notes',           idx:10, locked:false},
+  {key:'cancellationPolicy', label:'Cancel Policy',   idx:11, locked:false},
+  {key:'estCost',            label:'Est £',           idx:12, locked:false},
+  {key:'actCost',            label:'Act £',           idx:13, locked:false},
+  {key:'costCode',           label:'Code',            idx:14, locked:false},
+  {key:'url',                label:'URL',             idx:15, locked:false},
 ];
 function getItinColPrefs(){
   const p=(wev&&wev.itinColPrefs)||{};
@@ -11290,18 +11406,31 @@ function getItinFS(tid){
 }
 function setItinFS(tid,k,v){ getItinFS(tid)[k]=v; renderItinerary(); }
 
-function _itinBlankRow(){
+function _itinBlankRow(date){
   return {
     id:'row'+Date.now()+Math.floor(Math.random()*9999),
-    date:'',type:'other',name:'',travelFrom:'',travelTo:'',
-    nightNum:'',checkInTime:'',transitTime:'',arrivalTime:'',checkOutTime:'',
-    transit:'',estCost:'',actCost:'',costCode:'',paymentNote:'',
-    status:'tentative',notes:'',cancellationPolicy:'',url:''
+    date:date||'',
+    name:'',
+    category:'other',
+    type:'other',
+    location:'',
+    startTime:'',
+    endTime:'',
+    status:'tentative',
+    paid:'',
+    notes:'',
+    cancellationPolicy:'',
+    estCost:'',
+    actCost:'',
+    costCode:'',
+    url:''
   };
 }
 
 function openCreateItinTrip(){
   document.getElementById('itinNewTripName').value='';
+  document.getElementById('itinNewTripStart').value='';
+  document.getElementById('itinNewTripEnd').value='';
   document.getElementById('itinCreateMo').classList.add('open');
   setTimeout(()=>document.getElementById('itinNewTripName').focus(),100);
 }
@@ -11313,9 +11442,35 @@ function saveNewItinTrip(){
     setTimeout(()=>{inp.style.borderColor='';},1500);
     inp.focus(); return;
   }
+  const startDate=document.getElementById('itinNewTripStart').value||'';
+  const endDate=document.getElementById('itinNewTripEnd').value||'';
   const trips=getItins();
-  trips.push({id:'itin'+Date.now(),name,open:true,rows:[]});
+  trips.push({id:'itin'+Date.now(),name,startDate,endDate,open:true,view:'date',notes:'',rows:[]});
   setItins(trips); closeMo('itinCreateMo'); renderItinerary();
+}
+function openEditItinTrip(tripId){
+  const trip=getItins().find(t=>t.id===tripId); if(!trip) return;
+  document.getElementById('itinEditTripId').value=tripId;
+  document.getElementById('itinEditTripName').value=trip.name||'';
+  document.getElementById('itinEditTripStart').value=trip.startDate||'';
+  document.getElementById('itinEditTripEnd').value=trip.endDate||'';
+  document.getElementById('itinEditTripMo').classList.add('open');
+  setTimeout(()=>document.getElementById('itinEditTripName').focus(),100);
+}
+function saveEditItinTrip(){
+  const tripId=document.getElementById('itinEditTripId').value;
+  const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
+  const name=document.getElementById('itinEditTripName').value.trim();
+  if(!name){
+    const inp=document.getElementById('itinEditTripName');
+    inp.style.borderColor='var(--creative)';
+    setTimeout(()=>{inp.style.borderColor='';},1500);
+    inp.focus(); return;
+  }
+  t.name=name;
+  t.startDate=document.getElementById('itinEditTripStart').value||'';
+  t.endDate=document.getElementById('itinEditTripEnd').value||'';
+  setItins(trips); closeMo('itinEditTripMo'); renderItinerary();
 }
 function deleteItinTrip(tripId){
   if(!confirm('Delete this trip and all its rows?')) return;
@@ -11325,13 +11480,39 @@ function toggleItinTrip(tripId){
   const trips=getItins(), t=trips.find(t=>t.id===tripId);
   if(t){t.open=!t.open; setItins(trips); renderItinerary();}
 }
-function addItinRow(tripId){
+function setItinView(tripId, view){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId);
+  if(t){t.view=view; setItins(trips); renderItinerary();}
+}
+function openItinAddRes(tripId){
+  const trip=getItins().find(t=>t.id===tripId); if(!trip) return;
+  document.getElementById('itinAddResTripId').value=tripId;
+  // Pre-fill with trip start date if available
+  document.getElementById('itinAddResDate').value=trip.startDate||'';
+  document.getElementById('itinAddResMo').classList.add('open');
+  setTimeout(()=>document.getElementById('itinAddResDate').focus(),100);
+}
+function confirmAddItinReservation(){
+  const tripId=document.getElementById('itinAddResTripId').value;
+  const date=document.getElementById('itinAddResDate').value;
+  const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
+  const row=_itinBlankRow(date);
+  t.rows.push(row);
+  setItins(trips); closeMo('itinAddResMo'); renderItinerary();
+  // Focus new row after render
+  setTimeout(()=>{
+    const el=document.getElementById('itinRow-'+row.id);
+    if(el){const inp=el.querySelector('.itin-cell');if(inp)inp.focus();}
+  },80);
+}
+function addItinRow(tripId, date){
   const trips=getItins(), t=trips.find(t=>t.id===tripId);
   if(!t) return;
-  t.rows.push(_itinBlankRow()); setItins(trips); renderItinerary();
+  const row=_itinBlankRow(date||'');
+  t.rows.push(row); setItins(trips); renderItinerary();
   setTimeout(()=>{
-    const tbl=document.getElementById('itinTbl-'+tripId);
-    if(tbl){const lr=tbl.querySelector('tbody tr:last-child');if(lr){const inp=lr.querySelector('.itin-cell');if(inp)inp.focus();}}
+    const el=document.getElementById('itinRow-'+row.id);
+    if(el){const inp=el.querySelector('.itin-cell');if(inp)inp.focus();}
   },60);
 }
 function duplicateItinRow(tripId,rowId){
@@ -11350,9 +11531,17 @@ function deleteItinRow(tripId,rowId){
 function updateItinCell(tripId,rowId,field,value){
   const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
   const r=t.rows.find(r=>r.id===rowId); if(!r) return;
+  // If category changes, reset type to first valid option for that category
+  if(field==='category'){
+    const cat=ITIN_CATEGORIES.find(c=>c.val===value);
+    if(cat && cat.types.length) r.type=cat.types[0].val;
+    // Update type dropdown in the table cell
+    const tsel=document.querySelector(`#itinRow-${rowId} .itin-type-sel`);
+    if(tsel) tsel.innerHTML=_itinTypeOpts(value, r.type);
+  }
   r[field]=value; setItins(trips); _itinUpdateSummary(tripId,t);
   // Only re-sync to budget when budget-relevant fields change
-  if(field==='estCost'||field==='actCost'||field==='costCode'||field==='date'||field==='name'||field==='type'){
+  if(field==='estCost'||field==='actCost'||field==='costCode'||field==='date'||field==='name'||field==='category'){
     _syncItinRowsToBudget();
   }
 }
@@ -11391,7 +11580,7 @@ function _syncItinRowsToBudget(){
       const act=parseFloat(row.actCost)||0;
       if(est<=0 && act<=0) return;
       const isAct=act>0;
-      const typeLbl=(ITIN_TYPES.find(ty=>ty.val===row.type)||{}).label||row.type||'';
+      const typeLbl=_itinCatLabel(row)||row.category||'';
       const desc=[trip.name,row.name||typeLbl].filter(Boolean).join(' — ');
       const id='itin-'+row.id;
       desired[id]={
@@ -11427,13 +11616,12 @@ function _itinInitResize(tripId){ /* no-op: columns are sized by CSS */ }
 // ── EXPORT CSV ───────────────────────────────────────────────────────────────
 function exportItinCsv(tripId){
   const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
-  const hdrs=['Date','Night #','Name','Type','Check-in','Check-out',
-    'Travelling From','Travelling To','Transit','Transit Time','Arrival Time','Status','Notes',
-    'Payment Note','Cancellation Policy','Est £','Act £','Code','URL'];
+  const hdrs=['Date','Item','Category','Type','Location','Start Time','End Time',
+    'Status','Paid?','Notes','Cancellation Policy','Est £','Act £','Code','URL'];
   const q=v=>`"${(v||'').toString().replace(/"/g,'""')}"`;
-  const body=t.rows.map(r=>[r.date,r.nightNum,r.name,r.type,r.checkInTime,r.checkOutTime,
-    r.travelFrom,r.travelTo,r.transit,r.transitTime,r.arrivalTime,r.status,r.notes,
-    r.paymentNote,r.cancellationPolicy,r.estCost,r.actCost,r.costCode,r.url].map(q).join(','));
+  const body=t.rows.map(r=>[r.date,r.name,_itinCatLabel(r),_itinTypeLabel(r),
+    r.location,r.startTime,r.endTime,r.status,r.paid,r.notes,
+    r.cancellationPolicy,r.estCost,r.actCost,r.costCode,r.url].map(q).join(','));
   const csv=[hdrs.map(q).join(','),...body].join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
@@ -11452,11 +11640,9 @@ function itinAddToCal(tripId,rowId,btnEl){
   const mToday=mondayOf(today), mRow=mondayOf(rd);
   const targetWko=Math.round((mRow-mToday)/604800000);
   const dayIdx=(rd.getDay()+6)%7;
-  const typeLabel=(ITIN_TYPES.find(ty=>ty.val===row.type)||{}).label||row.type;
-  const title=[row.name||typeLabel,
-    (row.travelFrom&&row.travelTo)?`${row.travelFrom} → ${row.travelTo}`:(row.travelFrom||row.travelTo)]
-    .filter(Boolean).join(' — ');
-  const timeStr=row.checkInTime||row.transitTime||'';
+  const catLabel=_itinCatLabel(row);
+  const title=[row.name||catLabel,row.location].filter(Boolean).join(' — ');
+  const timeStr=row.startTime||'';
   const SH_=typeof SH!=='undefined'?SH:6, SPH_=typeof SPH!=='undefined'?SPH:2;
   let slot=Math.max(0,(8-SH_)*SPH_);
   if(timeStr){const[h,m]=timeStr.split(':').map(Number);slot=Math.max(0,Math.round((h-SH_)*SPH_+(m>=30?1:0)));}
@@ -11471,12 +11657,11 @@ function itinAddToCal(tripId,rowId,btnEl){
 function itinAddToTrips(tripId,rowId,btnEl){
   const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
   const row=t.rows.find(r=>r.id===rowId); if(!row) return;
-  const typeLabel=(ITIN_TYPES.find(ty=>ty.val===row.type)||{}).label||'';
-  const title=row.name||(typeLabel+(row.travelTo?' — '+row.travelTo:''))||t.name;
+  const catLabel=_itinCatLabel(row);
+  const title=row.name||(catLabel+(row.location?' — '+row.location:''))||t.name;
   const cards=getTripBrains();
   cards.push({id:'tb'+Date.now(),title,type:'holiday',status:'planning',
-    dates:row.date||'',
-    notes:[(row.travelFrom&&row.travelTo)?`${row.travelFrom} → ${row.travelTo}`:'',row.notes].filter(Boolean).join(' | ')});
+    dates:row.date||'',notes:row.notes||''});
   setTripBrains(cards);
   if(btnEl){const orig=btnEl.textContent;btnEl.textContent='✓ Added';btnEl.style.color='var(--header-bg)';setTimeout(()=>{btnEl.textContent=orig;btnEl.style.color='';},2000);}
 }
@@ -11485,8 +11670,8 @@ function itinAddToTrips(tripId,rowId,btnEl){
 function itinAddToTasks(tripId,rowId,btnEl){
   const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
   const row=t.rows.find(r=>r.id===rowId); if(!row) return;
-  const typeLabel=(ITIN_TYPES.find(ty=>ty.val===row.type)||{}).label||'';
-  const title=row.name||(typeLabel+(row.travelTo?' — '+row.travelTo:''))||'Itinerary item';
+  const catLabel=_itinCatLabel(row);
+  const title=row.name||(catLabel+(row.location?' — '+row.location:''))||'Itinerary item';
   const lists=getLists();
   lists.push({id:'lc'+Date.now(),col:'priority',title,body:row.notes||'',cat:'none'});
   setLists(lists);
@@ -11501,51 +11686,71 @@ function openItinRowEdit(tripId,rowId){
   const r=t.rows.find(r=>r.id===rowId); if(!r) return;
   _itinEditTripId=tripId; _itinEditRowId=rowId;
   const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
-  set('itinEd-date',r.date); set('itinEd-type',r.type||'other');
-  set('itinEd-name',r.name); set('itinEd-from',r.travelFrom); set('itinEd-to',r.travelTo);
-  set('itinEd-night',r.nightNum); set('itinEd-checkIn',r.checkInTime);
-  set('itinEd-transit',r.transitTime); set('itinEd-arrival',r.arrivalTime);
-  set('itinEd-checkOut',r.checkOutTime);
-  set('itinEd-transitType',r.transit); set('itinEd-est',r.estCost);
-  set('itinEd-act',r.actCost); set('itinEd-code',r.costCode);
-  set('itinEd-payment',r.paymentNote); set('itinEd-status',r.status||'tentative');
-  set('itinEd-notes',r.notes); set('itinEd-cancel',r.cancellationPolicy); set('itinEd-url',r.url);
-  _itinApplyEditModalVisibility(r.type||'other');
+  set('itinEd-date',r.date);
+  set('itinEd-category',r.category||'other');
+  // Populate type options for this category then set value
+  const typeSel=document.getElementById('itinEd-type');
+  if(typeSel) typeSel.innerHTML=_itinTypeOpts(r.category||'other', r.type||'');
+  set('itinEd-name',r.name);
+  set('itinEd-location',r.location);
+  set('itinEd-startTime',r.startTime);
+  set('itinEd-endTime',r.endTime);
+  set('itinEd-status',r.status||'tentative');
+  set('itinEd-paid',r.paid||'');
+  set('itinEd-est',r.estCost);
+  set('itinEd-act',r.actCost);
+  set('itinEd-code',r.costCode);
+  set('itinEd-notes',r.notes);
+  set('itinEd-cancel',r.cancellationPolicy);
+  set('itinEd-url',r.url);
   document.getElementById('itinRowEditMo').classList.add('open');
-}
-function _itinApplyEditModalVisibility(type){
-  const map={
-    'itinEd-night':'nightNum',
-    'itinEd-checkIn':'checkInTime',
-    'itinEd-checkOut':'checkOutTime',
-    'itinEd-transit':'transitTime',
-    'itinEd-arrival':'arrivalTime',
-    'itinEd-from':'travelFrom',
-    'itinEd-to':'travelTo',
-    'itinEd-transitType':'transit',
-    'itinEd-payment':'paymentNote',
-    'itinEd-cancel':'cancellationPolicy',
-  };
-  for(const elId in map){
-    const el=document.getElementById(elId);
-    if(!el) continue;
-    const fg=el.closest('.fg');
-    if(fg) fg.style.display=_itinFieldActive(type,map[elId])?'':'none';
-  }
 }
 function saveItinRowEdit(){
   const trips=getItins(), t=trips.find(t=>t.id===_itinEditTripId); if(!t) return;
   const r=t.rows.find(r=>r.id===_itinEditRowId); if(!r) return;
   const get=id=>{const el=document.getElementById(id);return el?el.value:'';};
-  r.date=get('itinEd-date'); r.type=get('itinEd-type'); r.name=get('itinEd-name');
-  r.travelFrom=get('itinEd-from'); r.travelTo=get('itinEd-to'); r.nightNum=get('itinEd-night');
-  r.checkInTime=get('itinEd-checkIn'); r.transitTime=get('itinEd-transit');
-  r.arrivalTime=get('itinEd-arrival');
-  r.checkOutTime=get('itinEd-checkOut'); r.transit=get('itinEd-transitType');
-  r.estCost=get('itinEd-est'); r.actCost=get('itinEd-act'); r.costCode=get('itinEd-code');
-  r.paymentNote=get('itinEd-payment'); r.status=get('itinEd-status');
-  r.notes=get('itinEd-notes'); r.cancellationPolicy=get('itinEd-cancel'); r.url=get('itinEd-url');
+  r.date=get('itinEd-date');
+  r.category=get('itinEd-category');
+  r.type=get('itinEd-type');
+  r.name=get('itinEd-name');
+  r.location=get('itinEd-location');
+  r.startTime=get('itinEd-startTime');
+  r.endTime=get('itinEd-endTime');
+  r.status=get('itinEd-status');
+  r.paid=get('itinEd-paid');
+  r.estCost=get('itinEd-est');
+  r.actCost=get('itinEd-act');
+  r.costCode=get('itinEd-code');
+  r.notes=get('itinEd-notes');
+  r.cancellationPolicy=get('itinEd-cancel');
+  r.url=get('itinEd-url');
   setItins(trips); closeMo('itinRowEditMo'); renderItinerary(); _syncItinRowsToBudget();
+}
+
+// ── RENDER HELPERS ───────────────────────────────────────────────────────────
+function _itinDateRange(trip){
+  if(!trip.startDate||!trip.endDate) return null;
+  const dates=[];
+  const d=new Date(trip.startDate+'T00:00:00');
+  const end=new Date(trip.endDate+'T00:00:00');
+  if(isNaN(d)||isNaN(end)||d>end) return null;
+  while(d<=end){ dates.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  return dates;
+}
+function _itinFmtDate(dateStr,startDateStr){
+  const d=new Date(dateStr+'T00:00:00');
+  if(isNaN(d)) return dateStr;
+  const dayStr=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  if(!startDateStr) return dayStr;
+  const start=new Date(startDateStr+'T00:00:00');
+  const dayNum=Math.round((d-start)/86400000)+1;
+  return `Day ${dayNum} — ${dayStr}`;
+}
+function _itinFmtTripDates(trip){
+  if(!trip.startDate&&!trip.endDate) return '';
+  const fmt=s=>{if(!s)return'';const d=new Date(s+'T00:00:00');return isNaN(d)?s:d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});};
+  if(trip.startDate&&trip.endDate) return fmt(trip.startDate)+' – '+fmt(trip.endDate);
+  return fmt(trip.startDate||trip.endDate);
 }
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
@@ -11553,90 +11758,62 @@ function renderItinerary(){
   const el=document.getElementById('itinTripList'); if(!el) return;
   const trips=getItins();
   if(!trips.length){
-    el.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--text-muted);font-size:13px;">No itineraries yet — click <strong>+ Create Trip</strong> on this page, or hit <strong>+ Itin</strong> on a Plan card.</div>`;
+    el.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--text-muted);font-size:13px;">No itineraries yet — click <strong>+ Create Trip</strong> to get started.</div>`;
     return;
   }
 
   el.innerHTML=trips.map(trip=>{
     const fs=getItinFS(trip.id);
+    const view=trip.view||'date';
     const est=trip.rows.reduce((s,r)=>s+(parseFloat(r.estCost)||0),0);
     const act=trip.rows.reduce((s,r)=>s+(parseFloat(r.actCost)||0),0);
-    const summary=trip.rows.length+' row'+(trip.rows.length!==1?'s':'')+
-      (est?' · Committed £'+est.toFixed(2):'')+
+    const summary=trip.rows.length+' item'+(trip.rows.length!==1?'s':'')+
+      (est?' · Est £'+est.toFixed(2):'')+
       (act?' · Paid £'+act.toFixed(2):'');
 
-    const typeOpts=s=>ITIN_TYPES.map(t=>`<option value="${t.val}"${s===t.val?' selected':''}>${t.label}</option>`).join('');
+    const catOpts=s=>ITIN_CATEGORIES.map(c=>`<option value="${c.val}"${s===c.val?' selected':''}>${c.label}</option>`).join('');
     const statOpts=s=>ITIN_STATUSES.map(t=>`<option value="${t.val}"${s===t.val?' selected':''}>${t.label}</option>`).join('');
-    const payOpts=s=>ITIN_PAYMENT.map(t=>`<option value="${t.val}"${s===t.val?' selected':''}>${t.label}</option>`).join('');
+    const paidOpts=s=>ITIN_PAID.map(t=>`<option value="${t.val}"${s===t.val?' selected':''}>${t.label}</option>`).join('');
 
     // Filter
     let rows=trip.rows.filter(r=>{
-      if(fs.ft && r.type!==fs.ft) return false;
+      if(fs.ft && r.category!==fs.ft) return false;
       if(fs.fs && r.status!==fs.fs) return false;
       return true;
     });
-    // Sort
+    // Sort (within day groups we still sort by startTime by default)
     if(fs.sf){
       const dir=fs.sd||1;
       rows=[...rows].sort((a,b)=>{
         const av=a[fs.sf]||'', bv=b[fs.sf]||'';
-        if(fs.sf==='estCost'||fs.sf==='actCost'){return (parseFloat(av)||0)-(parseFloat(bv)||0)*dir;}
+        if(fs.sf==='estCost'||fs.sf==='actCost') return ((parseFloat(av)||0)-(parseFloat(bv)||0))*dir;
         return av<bv?-dir:av>bv?dir:0;
       });
     }
 
-    // Filter/sort toolbar
-    const typeFilterOpts=['<option value="">All Types</option>',...ITIN_TYPES.map(t=>`<option value="${t.val}"${fs.ft===t.val?' selected':''}>${t.label}</option>`)].join('');
-    const statFilterOpts=['<option value="">All Statuses</option>',...ITIN_STATUSES.map(t=>`<option value="${t.val}"${fs.fs===t.val?' selected':''}>${t.label}</option>`)].join('');
-    const sortOpts=[
-      {val:'',label:'No sort'},{val:'date',label:'Date'},{val:'type',label:'Type'},
-      {val:'name',label:'Name'},{val:'status',label:'Status'},{val:'estCost',label:'Est £'},
-    ].map(o=>`<option value="${o.val}"${fs.sf===o.val?' selected':''}>${o.label}</option>`).join('');
-    const hasFilter=fs.ft||fs.fs||fs.sf;
-    const toolbar=`<div class="itin-toolbar">
-      <select class="itin-tb-sel" onchange="setItinFS('${trip.id}','ft',this.value)" title="Filter by type">${typeFilterOpts}</select>
-      <select class="itin-tb-sel" onchange="setItinFS('${trip.id}','fs',this.value)" title="Filter by status">${statFilterOpts}</select>
-      <span class="itin-tb-sep">|</span>
-      <span style="font-size:11px;color:var(--text-muted);">Sort:</span>
-      <select class="itin-tb-sel" onchange="setItinFS('${trip.id}','sf',this.value)" title="Sort by">${sortOpts}</select>
-      <button class="itin-tb-btn" onclick="setItinFS('${trip.id}','sd',${fs.sd===1?-1:1})" title="Toggle direction">${fs.sd===1?'↑':'↓'}</button>
-      ${hasFilter?`<button class="itin-tb-btn" onclick="_itinClearFS('${trip.id}')" title="Clear filters">✕ Clear</button>`:''}
-      <span class="itin-tb-sep">|</span>
-      <button class="itin-tb-btn" onclick="exportItinCsv('${trip.id}')" title="Export CSV">⬇ CSV</button>
-      <button class="itin-tb-btn" onclick="toggleItinColPopup('${trip.id}',this)" title="Show / hide columns">👁 Columns</button>
-    </div>`;
-
-    const rowsHtml=rows.map(row=>{
-      // Per-type field activity → adds .itin-disabled + disabled attribute when field is off for this row's type
-      const fa = f => _itinFieldActive(row.type,f);
-      const cls = f => fa(f) ? '' : ' itin-disabled';
-      const dis = f => fa(f) ? '' : ' disabled';
-      return `
+    // Build a single row's <tr> HTML
+    const mkRow=row=>`
       <tr id="itinRow-${row.id}">
         <td><input class="itin-cell itin-date" type="date" value="${esc_(row.date)}" onchange="updateItinCell('${trip.id}','${row.id}','date',this.value)"></td>
-        <td><input class="itin-cell itin-night${cls('nightNum')}"${dis('nightNum')} type="number" min="1" placeholder="—" value="${esc_(row.nightNum)}" oninput="updateItinCell('${trip.id}','${row.id}','nightNum',this.value)"></td>
-        <td><input class="itin-cell itin-name" placeholder="Name…" value="${esc_(row.name)}" oninput="updateItinCell('${trip.id}','${row.id}','name',this.value)"></td>
-        <td><select class="itin-sel itin-type" onchange="updateItinCell('${trip.id}','${row.id}','type',this.value)">${typeOpts(row.type)}</select></td>
-        <td><input class="itin-cell itin-time${cls('checkInTime')}"${dis('checkInTime')} type="time" value="${esc_(row.checkInTime)}" onchange="updateItinCell('${trip.id}','${row.id}','checkInTime',this.value)"></td>
-        <td><input class="itin-cell itin-time${cls('checkOutTime')}"${dis('checkOutTime')} type="time" value="${esc_(row.checkOutTime)}" onchange="updateItinCell('${trip.id}','${row.id}','checkOutTime',this.value)"></td>
-        <td><input class="itin-cell itin-from${cls('travelFrom')}"${dis('travelFrom')} placeholder="From…" value="${esc_(row.travelFrom)}" oninput="updateItinCell('${trip.id}','${row.id}','travelFrom',this.value)"></td>
-        <td><input class="itin-cell itin-to${cls('travelTo')}"${dis('travelTo')} placeholder="To…" value="${esc_(row.travelTo)}" oninput="updateItinCell('${trip.id}','${row.id}','travelTo',this.value)"></td>
-        <td><input class="itin-cell itin-transit${cls('transit')}"${dis('transit')} placeholder="e.g. Eurostar" value="${esc_(row.transit)}" oninput="updateItinCell('${trip.id}','${row.id}','transit',this.value)"></td>
-        <td><input class="itin-cell itin-time${cls('transitTime')}"${dis('transitTime')} type="time" value="${esc_(row.transitTime)}" onchange="updateItinCell('${trip.id}','${row.id}','transitTime',this.value)"></td>
-        <td><input class="itin-cell itin-time${cls('arrivalTime')}"${dis('arrivalTime')} type="time" value="${esc_(row.arrivalTime)}" onchange="updateItinCell('${trip.id}','${row.id}','arrivalTime',this.value)"></td>
+        <td><input class="itin-cell itin-name" placeholder="Item / name…" value="${esc_(row.name)}" oninput="updateItinCell('${trip.id}','${row.id}','name',this.value)"></td>
+        <td><select class="itin-sel itin-cat-sel" onchange="updateItinCell('${trip.id}','${row.id}','category',this.value)">${catOpts(row.category||'other')}</select></td>
+        <td><select class="itin-sel itin-type-sel" onchange="updateItinCell('${trip.id}','${row.id}','type',this.value)">${_itinTypeOpts(row.category||'other',row.type||'')}</select></td>
+        <td><input class="itin-cell itin-loc" placeholder="Location…" value="${esc_(row.location)}" oninput="updateItinCell('${trip.id}','${row.id}','location',this.value)"></td>
+        <td><input class="itin-cell itin-time" type="time" value="${esc_(row.startTime)}" onchange="updateItinCell('${trip.id}','${row.id}','startTime',this.value)"></td>
+        <td><input class="itin-cell itin-time" type="time" value="${esc_(row.endTime)}" onchange="updateItinCell('${trip.id}','${row.id}','endTime',this.value)"></td>
         <td><select class="itin-sel itin-status" onchange="updateItinCell('${trip.id}','${row.id}','status',this.value)">${statOpts(row.status)}</select></td>
+        <td><select class="itin-sel itin-paid-sel" onchange="updateItinCell('${trip.id}','${row.id}','paid',this.value)">${paidOpts(row.paid)}</select></td>
         <td><input class="itin-cell itin-notes" placeholder="Notes…" value="${esc_(row.notes)}" title="${esc_(row.notes)}" oninput="updateItinCell('${trip.id}','${row.id}','notes',this.value);this.title=this.value;"></td>
-        <td><select class="itin-sel itin-pay${cls('paymentNote')}"${dis('paymentNote')} onchange="updateItinCell('${trip.id}','${row.id}','paymentNote',this.value)">${payOpts(row.paymentNote)}</select></td>
-        <td><input class="itin-cell itin-cancel${cls('cancellationPolicy')}"${dis('cancellationPolicy')} placeholder="Cancellation policy…" value="${esc_(row.cancellationPolicy)}" title="${esc_(row.cancellationPolicy)}" oninput="updateItinCell('${trip.id}','${row.id}','cancellationPolicy',this.value);this.title=this.value;"></td>
+        <td><input class="itin-cell itin-cancel" placeholder="Cancellation policy…" value="${esc_(row.cancellationPolicy)}" title="${esc_(row.cancellationPolicy)}" oninput="updateItinCell('${trip.id}','${row.id}','cancellationPolicy',this.value);this.title=this.value;"></td>
         <td><input class="itin-cell itin-money" type="number" min="0" step="0.01" placeholder="0.00" value="${esc_(row.estCost)}" oninput="updateItinCell('${trip.id}','${row.id}','estCost',this.value)"></td>
         <td><input class="itin-cell itin-money" type="number" min="0" step="0.01" placeholder="0.00" value="${esc_(row.actCost)}" oninput="updateItinCell('${trip.id}','${row.id}','actCost',this.value)"></td>
         <td><input class="itin-cell itin-code" placeholder="Code…" list="costCodeList" value="${esc_(row.costCode)}" oninput="updateItinCell('${trip.id}','${row.id}','costCode',this.value)"></td>
         <td style="white-space:nowrap;padding:0 4px;">
           <input class="itin-cell itin-url" placeholder="https://…" value="${esc_(row.url)}" oninput="updateItinCell('${trip.id}','${row.id}','url',this.value)">
-          ${row.url?`<a href="${esc_(row.url)}" target="_blank" style="font-size:10px;color:var(--accent);">↗</a>`:''}
+          ${row.url?`<a href="${esc_(row.url)}" target="_blank" style="font-size:10px;color:var(--accent);margin-left:2px;">↗</a>`:''}
         </td>
         <td class="itin-row-actions">
-          <button class="itin-row-btn" onclick="openItinRowEdit('${trip.id}','${row.id}')" title="Edit">✎</button>
+          <button class="itin-row-btn" onclick="openItinRowEdit('${trip.id}','${row.id}')" title="Full edit">✎</button>
           <button class="itin-row-btn" onclick="duplicateItinRow('${trip.id}','${row.id}')" title="Duplicate">⎘</button>
           <button class="itin-row-btn itin-row-del" onclick="deleteItinRow('${trip.id}','${row.id}')" title="Delete">×</button>
           <div class="itin-row-add-btns">
@@ -11646,45 +11823,137 @@ function renderItinerary(){
           </div>
         </td>
       </tr>`;
-    }).join('');
 
-    const emptyMsg=rows.length===0?`<tr><td colspan="20" style="text-align:center;padding:14px;color:var(--text-faint);font-size:12px;font-style:italic;">${trip.rows.length?'No rows match the current filter.':'No rows yet — click + Add row below.'}</td></tr>`:'';
+    // Build tbody HTML depending on view mode
+    let tbodyHtml='';
+    if(view==='category'){
+      // Group by category
+      const grouped={};
+      rows.forEach(r=>{ const k=r.category||'other'; (grouped[k]=grouped[k]||[]).push(r); });
+      // Maintain ITIN_CATEGORIES order
+      const usedCats=ITIN_CATEGORIES.filter(c=>grouped[c.val]);
+      if(!usedCats.length){
+        tbodyHtml=`<tr><td colspan="16" style="text-align:center;padding:14px;color:var(--text-faint);font-size:12px;font-style:italic;">${trip.rows.length?'No items match the filter.':'No reservations yet — use + Add Reservation.'}</td></tr>`;
+      } else {
+        usedCats.forEach(cat=>{
+          tbodyHtml+=`<tr class="itin-cat-row"><td colspan="16">${cat.label}</td></tr>`;
+          tbodyHtml+=grouped[cat.val].map(mkRow).join('');
+        });
+      }
+    } else {
+      // Date view — group by date using trip date range
+      const dateRange=_itinDateRange(trip);
+      if(dateRange){
+        // Map rows by date
+        const byDate={};
+        const unscheduled=[];
+        rows.forEach(r=>{
+          if(r.date && dateRange.includes(r.date)){ (byDate[r.date]=byDate[r.date]||[]).push(r); }
+          else { unscheduled.push(r); }
+        });
+        dateRange.forEach(ds=>{
+          tbodyHtml+=`<tr class="itin-day-row"><td colspan="16">${_itinFmtDate(ds,trip.startDate)}</td></tr>`;
+          const dayRows=byDate[ds]||[];
+          if(dayRows.length){
+            tbodyHtml+=dayRows.map(mkRow).join('');
+          } else {
+            tbodyHtml+=`<tr><td colspan="16" style="padding:8px 14px;color:var(--text-faint);font-size:11px;font-style:italic;">No reservations for this day
+              <button class="itin-add-btn" onclick="addItinRow('${trip.id}','${ds}')" style="margin-left:10px;">+ Add</button>
+            </td></tr>`;
+          }
+        });
+        if(unscheduled.length){
+          tbodyHtml+=`<tr class="itin-day-row"><td colspan="16">Unscheduled / Outside Dates</td></tr>`;
+          tbodyHtml+=unscheduled.map(mkRow).join('');
+        }
+        if(!rows.length){
+          tbodyHtml=`<tr><td colspan="16" style="text-align:center;padding:14px;color:var(--text-faint);font-size:12px;font-style:italic;">${trip.rows.length?'No items match the filter.':'No reservations yet — use + Add Reservation.'}</td></tr>`;
+        }
+      } else {
+        // No date range — just list all rows (flat, with day separators per unique date)
+        const dateSeen=new Set();
+        if(!rows.length){
+          tbodyHtml=`<tr><td colspan="16" style="text-align:center;padding:14px;color:var(--text-faint);font-size:12px;font-style:italic;">${trip.rows.length?'No items match the filter.':'No reservations yet — use + Add Reservation.'}</td></tr>`;
+        } else {
+          rows.forEach(r=>{
+            if(r.date && !dateSeen.has(r.date)){
+              dateSeen.add(r.date);
+              tbodyHtml+=`<tr class="itin-day-row"><td colspan="16">${_itinFmtDate(r.date,'')}</td></tr>`;
+            }
+            tbodyHtml+=mkRow(r);
+          });
+        }
+      }
+    }
+
+    // Toolbar
+    const catFilterOpts=['<option value="">All Categories</option>',...ITIN_CATEGORIES.map(c=>`<option value="${c.val}"${fs.ft===c.val?' selected':''}>${c.label}</option>`)].join('');
+    const statFilterOpts=['<option value="">All Statuses</option>',...ITIN_STATUSES.map(t=>`<option value="${t.val}"${fs.fs===t.val?' selected':''}>${t.label}</option>`)].join('');
+    const sortOpts=[
+      {val:'',label:'No sort'},{val:'date',label:'Date'},{val:'category',label:'Category'},
+      {val:'name',label:'Name'},{val:'status',label:'Status'},{val:'estCost',label:'Est £'},
+    ].map(o=>`<option value="${o.val}"${fs.sf===o.val?' selected':''}>${o.label}</option>`).join('');
+    const hasFilter=fs.ft||fs.fs||fs.sf;
+    const toolbar=`<div class="itin-toolbar">
+      <select class="itin-tb-sel" onchange="setItinFS('${trip.id}','ft',this.value)" title="Filter by category">${catFilterOpts}</select>
+      <select class="itin-tb-sel" onchange="setItinFS('${trip.id}','fs',this.value)" title="Filter by status">${statFilterOpts}</select>
+      <span class="itin-tb-sep">|</span>
+      <span style="font-size:11px;color:var(--text-muted);">Sort:</span>
+      <select class="itin-tb-sel" onchange="setItinFS('${trip.id}','sf',this.value)">${sortOpts}</select>
+      <button class="itin-tb-btn" onclick="setItinFS('${trip.id}','sd',${fs.sd===1?-1:1})">${fs.sd===1?'↑':'↓'}</button>
+      ${hasFilter?`<button class="itin-tb-btn" onclick="_itinClearFS('${trip.id}')">✕ Clear</button>`:''}
+      <span class="itin-tb-sep">|</span>
+      <button class="itin-tb-btn" onclick="exportItinCsv('${trip.id}')">⬇ CSV</button>
+      <button class="itin-tb-btn" onclick="toggleItinColPopup('${trip.id}',this)">👁 Columns</button>
+    </div>`;
+
+    const tripDateStr=_itinFmtTripDates(trip);
 
     return `
     <div class="itin-trip" id="itinTrip-${trip.id}">
       <div class="itin-trip-hdr" onclick="toggleItinTrip('${trip.id}')">
         <span class="itin-trip-chevron${trip.open?' open':''}">▶</span>
         <span class="itin-trip-name">${esc_(trip.name)}</span>
+        ${tripDateStr?`<span class="itin-trip-dates">${esc_(tripDateStr)}</span>`:''}
         <span class="itin-trip-meta" id="itinSum-${trip.id}">${summary}</span>
-        <button onclick="event.stopPropagation();deleteItinTrip('${trip.id}')" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:13px;padding:2px 6px;" title="Delete trip">🗑</button>
+        <button class="itin-hdr-btn add-res" onclick="event.stopPropagation();openItinAddRes('${trip.id}')" title="Add reservation">+ Add Reservation</button>
+        <button class="itin-hdr-btn" onclick="event.stopPropagation();openEditItinTrip('${trip.id}')" title="Edit trip">✎ Edit</button>
+        <button class="itin-hdr-btn del-trip" onclick="event.stopPropagation();deleteItinTrip('${trip.id}')" title="Delete trip">🗑</button>
       </div>
       <div class="itin-trip-body${trip.open?' open':''}">
+        <div class="itin-view-toggle">
+          <button class="itin-view-btn${view==='date'?' active':''}" onclick="setItinView('${trip.id}','date')">By Date</button>
+          <button class="itin-view-btn${view==='category'?' active':''}" onclick="setItinView('${trip.id}','category')">By Category</button>
+        </div>
         ${toolbar}
         <table class="itin-tbl" id="itinTbl-${trip.id}">
           <thead><tr>
-            <th>Date</th><th>Night #</th><th>Name</th><th>Type</th>
-            <th>Check-in</th><th>Check-out</th>
-            <th>Travelling From</th><th>Travelling To</th>
-            <th>Transit</th><th>Transit Time</th><th>Arrival Time</th>
-            <th>Status</th><th>Notes</th>
-            <th>Payment Note</th><th>Cancellation Policy</th>
-            <th>Est £</th><th>Act £</th><th>Code</th><th>URL</th><th></th>
+            <th>Date</th><th>Item</th><th>Category</th><th>Type</th>
+            <th>Location</th><th>Start</th><th>End</th>
+            <th>Status</th><th>Paid?</th><th>Notes</th>
+            <th>Cancel Policy</th><th>Est £</th><th>Act £</th><th>Code</th><th>URL</th><th></th>
           </tr></thead>
-          <tbody>${rowsHtml}${emptyMsg}</tbody>
+          <tbody>${tbodyHtml}</tbody>
         </table>
         <div class="itin-add-row">
-          <button onclick="addItinRow('${trip.id}')">+ Add row</button>
+          <button onclick="openItinAddRes('${trip.id}')">+ Add reservation</button>
+          <button onclick="addItinRow('${trip.id}','')">+ Quick add (no date)</button>
+        </div>
+        <div class="itin-notes-box">
+          <label>Trip Notes</label>
+          <textarea placeholder="Add notes about this trip…" oninput="_itinSaveTripNotes('${trip.id}',this.value)">${esc_(trip.notes||'')}</textarea>
         </div>
       </div>
     </div>`;
   }).join('');
 
-  // Init resize handles after render
-  setTimeout(()=>getItins().forEach(t=>{ if(t.open) _itinInitResize(t.id); }),50);
-  // Apply column visibility prefs (default: all visible)
   _applyItinColPrefs();
-  // Keep budget in sync (cheap; reconciles even if no mutation hook ran)
   if(typeof _syncItinRowsToBudget==='function') _syncItinRowsToBudget();
+}
+
+function _itinSaveTripNotes(tripId, val){
+  const trips=getItins(), t=trips.find(t=>t.id===tripId); if(!t) return;
+  t.notes=val; setItins(trips);
 }
 
 function _itinClearFS(tripId){
@@ -11869,7 +12138,7 @@ function planToItinerary(planId) {
     if (!sameName.planId) sameName.planId = card.id;
   } else {
     itinTripId = 'itin' + Date.now();
-    itins.push({id: itinTripId, name: card.title, open: true, rows: [], planId: card.id});
+    itins.push({id: itinTripId, name: card.title, startDate:'', endDate:'', open: true, view:'date', notes:'', rows: [], planId: card.id});
   }
   setItins(itins);
   // Persist link on the plan so re-renders show "→ Itinerary"
