@@ -1035,12 +1035,12 @@
   .itin-tbl tr:not(.itin-day-row):not(.itin-cat-row):hover td{background:var(--bg-warm);}
   /* Day / Category separator rows */
   .itin-day-row td,.itin-cat-row td{
-    padding:6px 14px;font-size:11px;font-weight:700;letter-spacing:.3px;
-    background:var(--surface);color:var(--header-bg);
+    padding:8px 14px;font-weight:800;letter-spacing:.4px;
+    background:var(--surface);color:var(--text);
     border-top:2px solid var(--border);border-bottom:1px solid var(--border-light);
   }
-  .itin-day-row td{text-transform:uppercase;}
-  .itin-cat-row td{font-size:12px;}
+  .itin-day-row td{font-size:13px;text-transform:uppercase;}
+  .itin-cat-row td{font-size:13px;}
   /* Inputs / selects */
   .itin-cell{width:100%;border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--text);padding:6px 10px;outline:none;box-sizing:border-box;}
   .itin-cell:focus{background:var(--surface);outline:2px solid var(--accent-soft);}
@@ -2514,6 +2514,7 @@ body {
     <button class="ql-btn" onclick="showPage('watchlist')">List</button>
     <button class="ql-btn" onclick="showPage('relo')">Relocation</button>
     <a class="ql-btn" href="https://www.worldtimebuddy.com/?pl=1&lid=2643743,2174003&h=2643743&hf=1" target="_blank" rel="noopener">Timezone</a>
+    <span id="bkpStatus" style="font-size:10px;color:rgba(255,255,255,.65);transition:opacity 1.5s;opacity:0;white-space:nowrap;"></span>
     <button class="btn-copy" onclick="openSearch()" title="Search (Ctrl+K)">🔍</button>
     <button class="btn-copy" id="undoBtn" onclick="doUndo()" title="Undo last change" style="opacity:0.5;pointer-events:none;" disabled>↩</button>
     <div class="hdr-menu-wrap" id="hdrMenuWrap">
@@ -2534,6 +2535,7 @@ body {
         <button class="hdr-menu-item" onclick="triggerIcsOrJsonImport();closeHdrMenu()">Import (ICS / JSON)</button>
         <button class="hdr-menu-item" onclick="openDeleteImportedMo();closeHdrMenu()">Delete imported events…</button>
         <button class="hdr-menu-item" onclick="downloadBackup();closeHdrMenu()">Download Backup (JSON)</button>
+        <button class="hdr-menu-item" onclick="bkpPickFolder()">📁 Set auto-backup folder…</button>
         <hr class="hdr-menu-divider">
         <button class="hdr-menu-item" onclick="openSetPin();closeHdrMenu()">Set PIN lock</button>
         <button class="hdr-menu-item" onclick="startTour();closeHdrMenu()">Take the tour</button>
@@ -4592,10 +4594,15 @@ try { supa = supabase.createClient(SUPA_URL, SUPA_KEY); } catch(e) { console.war
 let svTimer = null;
 let svPending = false; // tracks if there's unsaved Supabase data
 let svSupaEnabled = false; // gate: only write to Supabase after init loads real data
+let _svFromRemote = false; // true only when ldRemote() successfully returned data this session
+// Note: local file:// is allowed to write to Supabase (same as live site).
+// Protection comes from _svFromRemote and _svMinWeekEvents guards instead.
+const _IS_LOCAL_FILE = false; // disabled — local file works same as live
+let _svMinWeekEvents = 0; // high-water mark of events seen from Supabase this session
 
 // Flush to Supabase immediately (used on page unload)
 async function svFlush() {
-  if (!svPending) return;
+  if (_IS_LOCAL_FILE || !svPending || !svSupaEnabled) return;
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
   try {
     await fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {
@@ -4610,7 +4617,7 @@ async function svFlush() {
 // Flush to Supabase on page hide using fetch keepalive (sendBeacon cannot set
 // custom headers so it always fails against Supabase REST — use fetch instead).
 function svBeacon() {
-  if (!svPending || !svSupaEnabled) return;
+  if (_IS_LOCAL_FILE || !svPending || !svSupaEnabled) return;
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
   const body = JSON.stringify({id:SUPA_ROW,data,updated_at:new Date().toISOString()});
   try {
@@ -4626,7 +4633,7 @@ function svBeacon() {
   } catch(e) {}
 }
 
-window.addEventListener('beforeunload', () => { svBeacon(); svFlush(); });
+window.addEventListener('beforeunload', () => { clearTimeout(svTimer); svBeacon(); svFlush(); });
 window.addEventListener('pagehide', () => { svBeacon(); });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') { svBeacon(); svFlush(); }
@@ -4673,8 +4680,24 @@ function doUndo() { undoLast(); }
 function sv() {
   pushUndo();
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
+  const ts = new Date().toISOString();
   try { localStorage.setItem('stw-v7', JSON.stringify(data)); } catch(e) {}
+  // Record local save timestamp separately so boot() can compare with Supabase's updated_at
+  try { localStorage.setItem('stw-v7-ts', ts); } catch(e) {}
   if (!svSupaEnabled) return; // don't write to Supabase during init
+  // Block writes from local file:// — read-only mode
+  if (_IS_LOCAL_FILE) { return; }
+  // Block writes if we fell back to localStorage (Supabase was unreachable on load)
+  if (!_svFromRemote) {
+    console.warn('[stw] Supabase write blocked — loaded from localStorage fallback, not remote');
+    return;
+  }
+  // Sanity check: refuse writes that would drop event count by >30% vs what we loaded
+  const _curEvCount = (wev[wkKey()] || []).length;
+  if (_svMinWeekEvents > 5 && _curEvCount < _svMinWeekEvents * 0.7) {
+    console.warn('[stw] Supabase write BLOCKED: would reduce events from', _svMinWeekEvents, 'to', _curEvCount, '— possible stale state');
+    return;
+  }
   svPending = true;
   const ind = document.getElementById('stw-unsaved-indicator');
   if(ind) ind.classList.add('visible');
@@ -4684,7 +4707,7 @@ function sv() {
       await fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {
         method: 'POST',
         headers: {...H, Prefer: 'resolution=merge-duplicates,return=minimal'},
-        body: JSON.stringify({id:SUPA_ROW, data, updated_at: new Date().toISOString()})
+        body: JSON.stringify({id:SUPA_ROW, data, updated_at: ts})
       });
     } catch(e) {}
     svPending = false;
@@ -4695,34 +4718,47 @@ function sv() {
 
 async function svImmediate() {
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
+  const ts = new Date().toISOString();
   try { localStorage.setItem('stw-v7', JSON.stringify(data)); } catch(e) {}
+  try { localStorage.setItem('stw-v7-ts', ts); } catch(e) {}
   try {
+    // keepalive:true ensures the request survives page unload
     await fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {
       method: 'POST',
       headers: {...H, Prefer: 'resolution=merge-duplicates,return=minimal'},
-      body: JSON.stringify({id:SUPA_ROW, data, updated_at: new Date().toISOString()})
+      body: JSON.stringify({id:SUPA_ROW, data, updated_at: ts}),
+      keepalive: true
     });
   } catch(e) {}
   svPending = false;
 }
 
-window.addEventListener('beforeunload', () => { if(svPending){ clearTimeout(svTimer); svImmediate(); } });
+// NOTE: beforeunload is handled above (svBeacon + svFlush). svImmediate() is kept for manual flush only.
 
-// Load — Supabase first, localStorage fallback
+// Load — Supabase first, localStorage fallback.
+// Returns { data, remoteTs } so boot() can do timestamp comparison.
+// Does NOT write to localStorage (boot() does that after the merge).
 async function ldRemote() {
   try {
-    const r = await fetch(`${SUPA_URL}/rest/v1/planner_data?select=data&id=eq.${SUPA_ROW}`, {headers: H});
+    // Fetch data AND updated_at so we can compare freshness with localStorage
+    const r = await fetch(`${SUPA_URL}/rest/v1/planner_data?select=data,updated_at&id=eq.${SUPA_ROW}`, {headers: H});
     if (r.ok) {
       const rows = await r.json();
       const d = rows[0]?.data;
+      const remoteTs = rows[0]?.updated_at || '';
       if (d) {
+        _svFromRemote = true; // mark that we have real remote data this session
+        // Immediately sync localStorage with fresh Supabase data (v50 pattern).
+        // This ensures localStorage is never stale relative to Supabase,
+        // so fallback on next load is always current.
         try { localStorage.setItem('stw-v7', JSON.stringify(d)); } catch(e) {}
-
-        return d;
+        // Set high-water mark of events for current week (used in save sanity check)
+        try { const _wk = Object.keys(d.wev||{}).find(k => /^\d{4}-\d{2}-\d{2}$/.test(k) && d.wev[k]?.length > _svMinWeekEvents); if(_wk) _svMinWeekEvents = d.wev[_wk].length; } catch(e){}
+        return {data: d, remoteTs};
       }
     }
   } catch(e) {}
-  try { const s = localStorage.getItem('stw-v7'); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+  return null;
 }
 
 function applyState(S) {
@@ -4916,50 +4952,53 @@ async function boot() {
     setTimeout(()=>dlAutoSync(-1),200);
   } catch(e) { console.error('First paint error:', e); }
 
-  // Load from Supabase
-  const remote = await ldRemote();
+  // Load from Supabase — Supabase is always the source of truth.
+  const remoteResult = await ldRemote();
+  const remote = remoteResult?.data || null;
 
-  // Always trust Supabase as source of truth.
-  // But merge wev.daily from localStorage so no log entries are lost.
-  const local = (() => { try { const s=localStorage.getItem('stw-v7'); return s?JSON.parse(s):null; } catch(e){return null;} })();
+  // localStorage is only a fallback if Supabase is unreachable, never a winner.
+  const local = remote ? null : (() => { try { const s=localStorage.getItem('stw-v7'); return s?JSON.parse(s):null; } catch(e){return null;} })();
 
   let useData = remote || local;
-  if (remote && local) {
-    // Merge daily log: keep any local entries that Supabase doesn't have
-    const remoteDly = (remote.wev||{}).daily || {};
-    const localDly  = (local.wev||{}).daily  || {};
-    const mergedDly = Object.assign({}, localDly, remoteDly); // remote wins on conflicts
-    if (remote.wev) remote.wev.daily = mergedDly;
-    // Merge tripbrains: if user added trips locally before Supabase finished loading,
-    // those trips were saved to localStorage but not Supabase (svSupaEnabled was false).
-    // Merge any local-only trip entries so they aren't wiped by applyState.
-    const remoteTrips = (remote.wev||{}).tripbrains || [];
-    const localTrips  = (local.wev||{}).tripbrains  || [];
-    if (localTrips.length > 0 && remote.wev) {
-      const remoteIds = new Set(remoteTrips.map(t => t.id));
-      const localOnly = localTrips.filter(t => !remoteIds.has(t.id));
-      if (localOnly.length) remote.wev.tripbrains = [...remoteTrips, ...localOnly];
+  if (remote) {
+    // Supabase wins on all fields. The only merges are for append-only log data
+    // where a local entry might not have reached Supabase yet (e.g. user typed
+    // a daily log entry and the tab closed before the 400ms debounce fired).
+    const localCache = (() => { try { const s=localStorage.getItem('stw-v7'); return s?JSON.parse(s):null; } catch(e){return null;} })();
+    if (localCache) {
+      // Merge daily log: keep any local-only day entries Supabase doesn't have
+      const remoteDly = (remote.wev||{}).daily || {};
+      const localDly  = (localCache.wev||{}).daily  || {};
+      const mergedDly = Object.assign({}, localDly, remoteDly); // remote wins on conflicts
+      if (remote.wev) remote.wev.daily = mergedDly;
+
+      // Merge tripbrains: any locally-created plan cards not yet in Supabase
+      const remoteTrips = (remote.wev||{}).tripbrains || [];
+      const localTrips  = (localCache.wev||{}).tripbrains  || [];
+      if (localTrips.length > 0 && remote.wev) {
+        const remoteIds = new Set(remoteTrips.map(t => t.id));
+        const localOnly = localTrips.filter(t => !remoteIds.has(t.id));
+        if (localOnly.length) remote.wev.tripbrains = [...remoteTrips, ...localOnly];
+      }
+
+      // Merge itinTrips: any locally-created trips/rows not yet in Supabase
+      const remoteItin = (remote.wev||{}).itinTrips || [];
+      const localItin  = (localCache.wev||{}).itinTrips  || [];
+      if (localItin.length > 0 && remote.wev) {
+        const remoteItinIds = new Set(remoteItin.map(t => t.id));
+        const localOnlyTrips = localItin.filter(t => !remoteItinIds.has(t.id));
+        const mergedItin = remoteItin.map(rt => {
+          const lt = localItin.find(t => t.id === rt.id);
+          if (!lt) return rt;
+          const remoteRowIds = new Set((rt.rows||[]).map(r => r.id));
+          const localOnlyRows = (lt.rows||[]).filter(r => !remoteRowIds.has(r.id));
+          if (!localOnlyRows.length) return rt;
+          return {...rt, rows: [...(rt.rows||[]), ...localOnlyRows]};
+        });
+        remote.wev.itinTrips = [...mergedItin, ...localOnlyTrips];
+      }
     }
-    // Merge itinTrips: same pattern — protect locally-added itinerary trips
-    // and locally-added rows within existing trips from being silently wiped.
-    const remoteItin = (remote.wev||{}).itinTrips || [];
-    const localItin  = (local.wev||{}).itinTrips  || [];
-    if (localItin.length > 0 && remote.wev) {
-      const remoteItinIds = new Set(remoteItin.map(t => t.id));
-      // Merge trips that exist only locally
-      const localOnlyTrips = localItin.filter(t => !remoteItinIds.has(t.id));
-      // For trips that exist in both, merge any rows that are local-only
-      const mergedItin = remoteItin.map(rt => {
-        const lt = localItin.find(t => t.id === rt.id);
-        if (!lt) return rt;
-        const remoteRowIds = new Set((rt.rows||[]).map(r => r.id));
-        const localOnlyRows = (lt.rows||[]).filter(r => !remoteRowIds.has(r.id));
-        if (!localOnlyRows.length) return rt;
-        return {...rt, rows: [...(rt.rows||[]), ...localOnlyRows]};
-      });
-      remote.wev.itinTrips = [...mergedItin, ...localOnlyTrips];
-    }
-    useData = remote; // Supabase is always the base
+    useData = remote;
   }
 
   if (useData) {
@@ -4989,6 +5028,23 @@ async function boot() {
     document.getElementById('lockScreen').style.display = 'flex';
   }
   svSupaEnabled = true; // safe to write to Supabase now that real data is loaded
+  // If Supabase was unreachable and we fell back to localStorage, retry in background.
+  // When it comes back, load fresh data and enable writes — prevents stale overwrites.
+  if (!_svFromRemote) {
+    console.warn('[stw] Supabase unreachable on boot — writes blocked. Retrying in 30s...');
+    const _retryTimer = setInterval(async () => {
+      const _r = await ldRemote();
+      if (_r?.data) {
+        clearInterval(_retryTimer);
+        applyState(_r.data);
+        try { renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderList();renderTripBrains();renderItinerary();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility(); } catch(e) {}
+        console.log('[stw] Supabase recovered — fresh data loaded, writes re-enabled');
+      }
+    }, 30000);
+  }
+  _bkpRun(); // auto-backup: silent no-op if folder not set or slot already done
+  // Timer: check every 15 min if a new backup slot is due (fires even without page reload)
+  setInterval(() => { _bkpRun(); }, 15 * 60 * 1000);
   // Hash-based routing: honour #relo, #budget, #trips etc on load
   const _hash = window.location.hash.slice(1);
   const _pgList = ['planner','relo','budget','trips','itinerary','daily','tracker','checklist','goals','activities','bucketlist','list','watchlist'];
@@ -5391,6 +5447,137 @@ async function downloadBackup(){
   setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
 }
 
+// ── AUTO BACKUP (File System Access API) ──────────────────────────────────
+const _BKP_DB      = 'stw-backup-db';
+const _BKP_STORE   = 'handles';
+const _BKP_KEY     = 'backupDir';
+const _BKP_SLOTS   = 'stw-backup-slots';
+
+function _bkpSlot() {
+  const h = new Date().getHours();
+  return h < 12 ? 'AM' : h < 18 ? 'MIDDAY' : 'PM';
+}
+function _bkpDateStr(d) {
+  const dd = d || new Date();
+  return dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
+}
+function _bkpSlotKey() { return _bkpDateStr() + '_' + _bkpSlot(); }
+
+function _bkpOpenDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(_BKP_DB, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(_BKP_STORE);
+    req.onsuccess = e => res(e.target.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+async function _bkpGetHandle() {
+  try {
+    const db = await _bkpOpenDB();
+    return new Promise(res => {
+      const req = db.transaction(_BKP_STORE,'readonly').objectStore(_BKP_STORE).get(_BKP_KEY);
+      req.onsuccess = () => res(req.result || null);
+      req.onerror  = () => res(null);
+    });
+  } catch(e) { return null; }
+}
+async function _bkpStoreHandle(handle) {
+  try {
+    const db = await _bkpOpenDB();
+    return new Promise(res => {
+      const tx = db.transaction(_BKP_STORE,'readwrite');
+      tx.objectStore(_BKP_STORE).put(handle, _BKP_KEY);
+      tx.oncomplete = () => res(true);
+      tx.onerror    = () => res(false);
+    });
+  } catch(e) { return false; }
+}
+
+function _bkpSlotsLog() {
+  try { return JSON.parse(localStorage.getItem(_BKP_SLOTS) || '{}'); } catch(e) { return {}; }
+}
+function _bkpMarkSlot() {
+  const log = _bkpSlotsLog();
+  log[_bkpSlotKey()] = new Date().toISOString();
+  // Keep only the last 12 entries (4 days × 3 slots)
+  const keys = Object.keys(log).sort();
+  if (keys.length > 12) keys.slice(0, keys.length - 12).forEach(k => delete log[k]);
+  try { localStorage.setItem(_BKP_SLOTS, JSON.stringify(log)); } catch(e) {}
+}
+function _bkpIsDue() { return !_bkpSlotsLog()[_bkpSlotKey()]; }
+
+function _bkpBuildJson() {
+  return JSON.stringify({
+    exportedAt: new Date().toISOString(),
+    version: 'v51_25',
+    slot: _bkpSlot(),
+    data: {lib, oo, wev, adev, goals, trips, tpls, ints, tpo},
+    budgetTransactions: (typeof budgetTxs !== 'undefined'
+      ? budgetTxs.filter(t => (t.source || 'budget') !== 'itinerary') : []),
+  }, null, 2);
+}
+
+async function _bkpWriteFile(dirHandle, name, content) {
+  const fh = await dirHandle.getFileHandle(name, {create: true});
+  const wr = await fh.createWritable();
+  await wr.write(content);
+  await wr.close();
+}
+async function _bkpCleanOld(dirHandle) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 2);
+  const cutStr = _bkpDateStr(cutoff);
+  try {
+    for await (const [name] of dirHandle.entries()) {
+      const m = name.match(/^TheWeek_(\d{4}-\d{2}-\d{2})_(AM|MIDDAY|PM)\.json$/);
+      if (m && m[1] < cutStr) { try { await dirHandle.removeEntry(name); } catch(e) {} }
+    }
+  } catch(e) {}
+}
+function _bkpSetStatus(msg) {
+  const el = document.getElementById('bkpStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 4000);
+}
+
+async function _bkpRun() {
+  if (!window.showDirectoryPicker) return;  // browser doesn't support FSA
+  if (!_bkpIsDue()) return;                 // slot already done
+  const handle = await _bkpGetHandle();
+  if (!handle) return;                      // folder not configured yet
+  try {
+    const perm = await handle.requestPermission({mode: 'readwrite'});
+    if (perm !== 'granted') return;
+    const fname = 'TheWeek_' + _bkpDateStr() + '_' + _bkpSlot() + '.json';
+    await _bkpWriteFile(handle, fname, _bkpBuildJson());
+    await _bkpCleanOld(handle);
+    _bkpMarkSlot();
+    _bkpSetStatus('📁 ' + _bkpSlot() + ' backup saved');
+  } catch(e) { console.warn('Auto-backup failed:', e); }
+}
+
+async function bkpPickFolder() {
+  if (!window.showDirectoryPicker) {
+    alert('Auto-backup requires Chrome 86+. Your browser does not support the File System Access API.');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({mode: 'readwrite', id: 'stw-backup'});
+    await _bkpStoreHandle(handle);
+    // Write immediately so the user sees it worked
+    const fname = 'TheWeek_' + _bkpDateStr() + '_' + _bkpSlot() + '.json';
+    await _bkpWriteFile(handle, fname, _bkpBuildJson());
+    _bkpMarkSlot();
+    _bkpSetStatus('📁 Folder set — backup saved now');
+    closeHdrMenu();
+  } catch(e) {
+    if (e.name !== 'AbortError') console.warn('Backup folder setup failed:', e);
+  }
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 function copyLastWeekRoutine(){
   const d=getRoutineData();
   const lastWko=wko-1;
@@ -5773,8 +5960,10 @@ function triggerIcsOrJsonImport(){
           if(imported.planner_data && !imported.wev) imported = imported.planner_data;
           if(!imported.wev && !imported.lib && !imported.goals){ showToast('Not a valid The Week backup'); return; }
           if(!confirm(`Import backup "${file.name}"?\nThis will replace your current data.`)) return;
+          const _importTs=new Date().toISOString();
           localStorage.setItem('stw-v7', JSON.stringify(imported));
-          fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {method:'POST',headers:{...H,Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:SUPA_ROW,data:imported,updated_at:new Date().toISOString()})}).catch(()=>{});
+          localStorage.setItem('stw-v7-ts', _importTs);
+          fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {method:'POST',headers:{...H,Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:SUPA_ROW,data:imported,updated_at:_importTs})}).catch(()=>{});
           applyState(imported);
           renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();
           showToast('✓ Data restored from backup');
@@ -5807,8 +5996,10 @@ function handleJsonImport(input){
       }
       if(!confirm(`Import backup from file "${file.name}"?\n\nThis will replace your current data.`)) return;
       // Save to localStorage and Supabase
+      const _importTs2=new Date().toISOString();
       localStorage.setItem('stw-v7', JSON.stringify(imported));
-      fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {method:'POST',headers:{...H,Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:SUPA_ROW,data:imported,updated_at:new Date().toISOString()})}).catch(()=>{});
+      localStorage.setItem('stw-v7-ts', _importTs2);
+      fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {method:'POST',headers:{...H,Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:SUPA_ROW,data:imported,updated_at:_importTs2})}).catch(()=>{});
       applyState(imported);
       renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();
       showToast('✓ Data restored from backup');
@@ -6083,7 +6274,7 @@ function dlCalcSleepHours(dayIdx){
   if(!d[k])d[k]={};
   d[k]['hours-slept-auto']=hours;
   wev['daily']=d;
-  try{localStorage.setItem('stw-v7',JSON.stringify({lib,oo,wev,adev,goals,trips,tpls,ints,tpo}));}catch(e){}
+  try{const _ts=new Date().toISOString();localStorage.setItem('stw-v7',JSON.stringify({lib,oo,wev,adev,goals,trips,tpls,ints,tpo}));localStorage.setItem('stw-v7-ts',_ts);}catch(e){}
   const els = document.querySelectorAll(`[id="dl-sleep-calc-${dayIdx}"]`);
   console.log('found elements:', els.length);
   els.forEach(el=>el.textContent=hours+' hrs');
