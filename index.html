@@ -4598,18 +4598,14 @@ let _svFromRemote = false; // true only when ldRemote() successfully returned da
 // Note: local file:// is allowed to write to Supabase (same as live site).
 // Protection comes from _svFromRemote and _svMinWeekEvents guards instead.
 const _IS_LOCAL_FILE = false; // disabled — local file works same as live
-let _svMinWeekEvents = 0; // high-water mark of events seen from Supabase this session
+let _svMinWeekEvents = {}; // per-week high-water mark: { '2026-05-18': 55, ... }
 
 // Flush to Supabase immediately (used on page unload)
 async function svFlush() {
   if (_IS_LOCAL_FILE || !svPending || !svSupaEnabled) return;
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
   try {
-    await fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {
-      method: 'POST',
-      headers: {...H, Prefer: 'resolution=merge-duplicates,return=minimal'},
-      body: JSON.stringify({id:SUPA_ROW, data, updated_at: new Date().toISOString()})
-    });
+    if(supa) await supa.from('planner_data').upsert({id:SUPA_ROW,data,updated_at:new Date().toISOString()},{onConflict:'id'});
     svPending = false;
   } catch(e) {}
 }
@@ -4692,10 +4688,12 @@ function sv() {
     console.warn('[stw] Supabase write blocked — loaded from localStorage fallback, not remote');
     return;
   }
-  // Sanity check: refuse writes that would drop event count by >30% vs what we loaded
-  const _curEvCount = (wev[wkKey()] || []).length;
-  if (_svMinWeekEvents > 5 && _curEvCount < _svMinWeekEvents * 0.7) {
-    console.warn('[stw] Supabase write BLOCKED: would reduce events from', _svMinWeekEvents, 'to', _curEvCount, '— possible stale state');
+  // Sanity check: refuse writes that would drop THIS week's event count by >50%
+  const _curKey = wkKey();
+  const _curEvCount = (wev[_curKey] || []).length;
+  const _weekMin = _svMinWeekEvents[_curKey] || 0;
+  if (_weekMin > 5 && _curEvCount < _weekMin * 0.5) {
+    console.warn('[stw] Supabase write BLOCKED: would reduce events from', _weekMin, 'to', _curEvCount, '— possible stale state');
     return;
   }
   svPending = true;
@@ -4703,13 +4701,7 @@ function sv() {
   if(ind) ind.classList.add('visible');
   clearTimeout(svTimer);
   svTimer = setTimeout(async () => {
-    try {
-      await fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {
-        method: 'POST',
-        headers: {...H, Prefer: 'resolution=merge-duplicates,return=minimal'},
-        body: JSON.stringify({id:SUPA_ROW, data, updated_at: ts})
-      });
-    } catch(e) {}
+    if(supa) await supa.from('planner_data').upsert({ id: SUPA_ROW, data, updated_at: ts }, { onConflict: 'id' });
     svPending = false;
     const ind2 = document.getElementById('stw-unsaved-indicator');
     if(ind2) ind2.classList.remove('visible');
@@ -4752,8 +4744,14 @@ async function ldRemote() {
         // This ensures localStorage is never stale relative to Supabase,
         // so fallback on next load is always current.
         try { localStorage.setItem('stw-v7', JSON.stringify(d)); } catch(e) {}
-        // Set high-water mark of events for current week (used in save sanity check)
-        try { const _wk = Object.keys(d.wev||{}).find(k => /^\d{4}-\d{2}-\d{2}$/.test(k) && d.wev[k]?.length > _svMinWeekEvents); if(_wk) _svMinWeekEvents = d.wev[_wk].length; } catch(e){}
+        // Set per-week high-water marks (used in save sanity check)
+        try {
+          Object.entries(d.wev || {}).forEach(([k, v]) => {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(k) && Array.isArray(v)) {
+              _svMinWeekEvents[k] = v.length;
+            }
+          });
+        } catch(e) {}
         return {data: d, remoteTs};
       }
     }
