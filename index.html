@@ -12491,6 +12491,11 @@ function mbnActive(id) {
   if (el) el.classList.add('active');
 }
 
+// ── Month view toggle state (must be declared before boot runs) ──
+let _mvShowCycle = true;
+let _mvShowExercise = true;
+let _mvShowAllDay = true;
+
 // boot() handles all initial rendering — mobile init happens inside boot callback
 checkFirstVisit();
 // Start Supabase auth — loads remote data if logged in, shows login if not
@@ -14874,9 +14879,6 @@ const CYCLE_SPANS = [
   {s:'2026-12-29',e:'2027-01-05',t:'📈 Mid Follicular | The Build',c:'#f06292'},
 ];
 
-let _mvShowCycle = true;
-let _mvShowExercise = true;
-let _mvShowAllDay = true;
 
 // ── Derive exercise spans from cycle spans + workout phase mapping ──
 const CYCLE_PHASE_FROM_TITLE = {
