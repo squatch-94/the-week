@@ -12496,6 +12496,16 @@ let _mvShowCycle = true;
 let _mvShowExercise = true;
 let _mvShowAllDay = true;
 
+// ── DIRECT ROW TOGGLES (must be declared before boot runs) ──
+const DIRECT_ROW_KEY = 'stw-direct-hidden';
+let _hiddenDirectRows = (()=>{ try{ return JSON.parse(localStorage.getItem(DIRECT_ROW_KEY)||'{}'); }catch{ return {}; } })();
+const DIRECT_ROW_MAP = {
+  wx:  { tblClass:'wx-row-hidden',  btnId:'lrtb-wx' },
+  txt: { tblClass:'txt-row-hidden', btnId:'lrtb-daytext' },
+  ad:  { tblClass:'ad-row-hidden',  btnId:'lrtb-allday' },
+  cal: { tblClass:'cal-hidden',     btnId:'lrtb-cal' },
+};
+
 // boot() handles all initial rendering — mobile init happens inside boot callback
 checkFirstVisit();
 // Start Supabase auth — loads remote data if logged in, shows login if not
@@ -14614,15 +14624,6 @@ function toggleTimeLabels() {
 }
 
 // ── DIRECT ROW TOGGLES (wx, txt, ad, cal) — active = row IS hidden ──
-const DIRECT_ROW_KEY = 'stw-direct-hidden';
-let _hiddenDirectRows = (()=>{ try{ return JSON.parse(localStorage.getItem(DIRECT_ROW_KEY)||'{}'); }catch{ return {}; } })();
-
-const DIRECT_ROW_MAP = {
-  wx:  { tblClass:'wx-row-hidden',  btnId:'lrtb-wx' },
-  txt: { tblClass:'txt-row-hidden', btnId:'lrtb-daytext' },
-  ad:  { tblClass:'ad-row-hidden',  btnId:'lrtb-allday' },
-  cal: { tblClass:'cal-hidden',     btnId:'lrtb-cal' },
-};
 function applyDirectRows(){
   const tbl = document.getElementById('gridTbl');
   if(!tbl) return;
