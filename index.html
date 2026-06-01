@@ -1010,6 +1010,7 @@
 
   /* ── ITINERARY ── */
   .itin-pg{padding:24px 28px;min-height:calc(100vh - 52px);display:flex;flex-direction:column;}
+  #page-itinerary.active{overflow-y:auto;}
   .itin-pg-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-shrink:0;}
   .itin-trip{border:1.5px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;}
   .itin-trip-hdr{display:flex;align-items:center;gap:8px;padding:11px 16px;background:var(--surface);cursor:pointer;user-select:none;}
@@ -2210,6 +2211,30 @@ body {
   .rp-tab-group{display:flex;gap:2px;background:var(--bg);padding:3px;border-radius:8px;border:1px solid var(--border);}
   .rp-tab{font-family:'SashasFont',serif;font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:4px 12px;border-radius:5px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;white-space:nowrap;}
   .rp-tab.active{background:var(--header-bg);color:#fff;}
+  /* Feelings modal wider */
+  #feelingEvMo .md{max-width:min(600px,95vw);width:min(600px,95vw);}
+  #feelingEvMo #feelingEvName{width:100%;box-sizing:border-box;}
+  /* Schepens checklist */
+  .sch-wrap{max-width:760px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:18px;}
+  .sch-header{text-align:center;padding:18px 0 6px;}
+  .sch-title{font-family:'SashasFont',serif;font-size:26px;letter-spacing:.06em;text-transform:uppercase;color:var(--header-bg);}
+  .sch-sub{font-size:12px;color:var(--text-muted);margin-top:4px;font-family:'League Spartan',sans-serif;}
+  .sch-section{background:var(--card-bg,#fff);border:1px solid var(--border);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;}
+  .sch-section-title{font-family:'League Spartan',sans-serif;font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+  .sch-urgent{font-size:10px;font-weight:700;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:10px;padding:2px 8px;margin-left:8px;text-transform:uppercase;letter-spacing:.05em;vertical-align:middle;}
+  .sch-item{display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:4px 0;}
+  .sch-item input[type=checkbox]{margin-top:3px;accent-color:var(--header-bg);width:16px;height:16px;flex-shrink:0;cursor:pointer;}
+  .sch-label{font-size:13px;line-height:1.5;color:var(--text);}
+  .sch-label.sch-done{text-decoration:line-through;color:var(--text-muted);}
+  .sch-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .sch-table th{font-family:'League Spartan',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);border-bottom:1px solid var(--border);padding:6px 8px;text-align:left;}
+  .sch-table td{padding:7px 8px;border-bottom:1px solid var(--border-light,#f0eada);vertical-align:top;color:var(--text);}
+  .sch-table tr:last-child td{border-bottom:none;}
+  .sch-td-date{white-space:nowrap;padding-right:16px;color:var(--text-muted);}
+  .sch-customs td:last-child{text-align:center;}
+  .sch-customs input[type=checkbox]{accent-color:var(--header-bg);width:16px;height:16px;cursor:pointer;}
+  .sch-warning{background:#fef9ec;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.6;color:#92400e;}
+
   .rp-view-toggle{display:flex;gap:2px;background:var(--bg);padding:3px;border-radius:8px;border:1px solid var(--border);}
   .rp-view-btn{font-family:'League Spartan',sans-serif;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:4px 12px;border-radius:5px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;white-space:nowrap;}
   .rp-view-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08);}
@@ -2879,32 +2904,32 @@ body {
         </div>
       </div>
 
-      <!-- RECURRING -->
-      <div class="qc-section mc-section" style="margin-bottom:0;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <span class="mc-title">Recurring</span>
+      <!-- ANNUAL CHECKLIST (next to monthly) -->
+      <div class="mc-section" style="margin-bottom:0;">
+        <div class="mc-hdr">
+          <div style="display:flex;align-items:center;">
+            <span class="mc-title">Annual Checklist</span>
+            <span class="mc-month" id="acYearLabel"></span>
+          </div>
+          <button class="btn-at" onclick="addAcItem()" title="Add item">+</button>
         </div>
-        <div id="qcList"></div>
+        <div class="mc-col-hdrs">
+          <div class="mc-col-hdr-spacer"></div>
+          <span class="mc-col-hdr-lbl">Complete by</span>
+          <span class="mc-col-hdr-lbl">Completed on</span>
+          <span style="width:22px;flex-shrink:0;"></span>
+          <span class="mc-col-hdr-actions"><span>→ Tasks</span><span>→ Cal</span></span>
+        </div>
+        <div id="acList"></div>
       </div>
     </div>
 
-    <!-- ANNUAL CHECKLIST (full width below) -->
-    <div class="mc-section">
-      <div class="mc-hdr">
-        <div style="display:flex;align-items:center;">
-          <span class="mc-title">Annual Checklist</span>
-          <span class="mc-month" id="acYearLabel"></span>
-        </div>
-        <button class="btn-at" onclick="addAcItem()" title="Add item">+</button>
+    <!-- RECURRING (full width below) -->
+    <div class="mc-section qc-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span class="mc-title">Recurring</span>
       </div>
-      <div class="mc-col-hdrs">
-        <div class="mc-col-hdr-spacer"></div>
-        <span class="mc-col-hdr-lbl">Complete by</span>
-        <span class="mc-col-hdr-lbl">Completed on</span>
-        <span style="width:22px;flex-shrink:0;"></span>
-        <span class="mc-col-hdr-actions"><span>→ Tasks</span><span>→ Cal</span></span>
-      </div>
-      <div id="acList"></div>
+      <div id="qcList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;align-items:start;"></div>
     </div>
 
   </div>
@@ -3549,6 +3574,17 @@ body {
       <div id="wlRatingStars" style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;"></div>
       <div id="wlRatingReadout" style="font-size:11px;color:var(--text-faint);margin-top:4px;">Not rated</div>
     </div>
+    <div class="fg"><label>Month completed</label>
+      <select id="wlRatingMonth" class="mo-inp">
+        <option value="">— Select month —</option>
+        <option value="Jan 2026">Jan 2026</option><option value="Feb 2026">Feb 2026</option>
+        <option value="Mar 2026">Mar 2026</option><option value="Apr 2026">Apr 2026</option>
+        <option value="May 2026">May 2026</option><option value="Jun 2026">Jun 2026</option>
+        <option value="Jul 2026">Jul 2026</option><option value="Aug 2026">Aug 2026</option>
+        <option value="Sep 2026">Sep 2026</option><option value="Oct 2026">Oct 2026</option>
+        <option value="Nov 2026">Nov 2026</option><option value="Dec 2026">Dec 2026</option>
+      </select>
+    </div>
     <div class="fg"><label>Thoughts <span style="font-weight:400;color:var(--text-faint)">(optional)</span></label>
       <textarea id="wlRatingThoughts" class="mo-inp" rows="2" style="resize:vertical;" placeholder="What stayed with you?"></textarea>
     </div>
@@ -3609,10 +3645,22 @@ body {
       </select>
     </div>
     <div class="fg"><label>Column</label>
-      <select id="listCardCol">
+      <select id="listCardCol" onchange="listCardColChanged(this.value)">
         <option value="todo">On The List</option>
         <option value="priority">Priority</option>
         <option value="done">Completed</option>
+      </select>
+    </div>
+    <div class="fg" id="listCardMonthFg" style="display:none;">
+      <label>Month completed</label>
+      <select id="listCardMonth">
+        <option value="">— Select month —</option>
+        <option value="Jan 2026">Jan 2026</option><option value="Feb 2026">Feb 2026</option>
+        <option value="Mar 2026">Mar 2026</option><option value="Apr 2026">Apr 2026</option>
+        <option value="May 2026">May 2026</option><option value="Jun 2026">Jun 2026</option>
+        <option value="Jul 2026">Jul 2026</option><option value="Aug 2026">Aug 2026</option>
+        <option value="Sep 2026">Sep 2026</option><option value="Oct 2026">Oct 2026</option>
+        <option value="Nov 2026">Nov 2026</option><option value="Dec 2026">Dec 2026</option>
       </select>
     </div>
     <div class="md-btns">
@@ -3752,6 +3800,7 @@ body {
       <button class="rp-tab active" id="rpTab-main" onclick="reloSetTab('main')">Relocation</button>
       <button class="rp-tab" id="rpTab-artie" onclick="reloSetTab('artie')">Artie</button>
       <button class="rp-tab" id="rpTab-lists" onclick="reloSetTab('lists')">Lists</button>
+      <button class="rp-tab" id="rpTab-schepens" onclick="reloSetTab('schepens')">Schepens</button>
     </div>
     <div id="rpMainControls" style="display:contents;">
       <div class="rp-view-toggle">
@@ -4273,7 +4322,7 @@ body {
     <input type="hidden" id="feelingEvDay">
     <input type="hidden" id="feelingEvSlot">
     <input type="hidden" id="feelingEvIntensity" value="5">
-    <textarea id="feelingEvName" class="mo-inp" rows="5" placeholder="e.g. Anxious, Content, Overwhelmed…" autocomplete="off" style="resize:vertical;margin-bottom:18px;font-size:15px;line-height:1.5;"></textarea>
+    <textarea id="feelingEvName" class="mo-inp" rows="4" placeholder="e.g. Anxious, Content, Overwhelmed…" autocomplete="off" style="resize:vertical;margin-bottom:18px;font-size:14px;line-height:1.6;font-family:'SashasFont',serif;"></textarea>
     <div style="display:flex;gap:8px;">
       <button class="btn-save" onclick="saveFeelingEvent()" style="flex:1;background:#7c3aed;">Log feeling</button>
       <button class="btn-cancel" onclick="closeMo('feelingEvMo')">Cancel</button>
@@ -4531,6 +4580,12 @@ body {
       <select id="adCat"></select>
     </div>
     <div class="fg"><label>Day</label><div class="dp" id="adDayPick"></div></div>
+    <div id="adMoActions" style="display:none;gap:6px;margin-bottom:12px;">
+      <button onclick="const id=document.getElementById('adEditId').value;if(id)openAdGcal(id);" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">📅 Open in GCal</button>
+      <button onclick="const nm=document.getElementById('adName').value;if(nm){openListCardModal('todo',null,nm);closeMo('adMo');}" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">✓ Add to Tasks</button>
+      <button onclick="const nm=document.getElementById('adName').value;if(nm){const bs=getTripBrains();bs.push({id:'tb'+Date.now(),title:nm,type:'other',status:'planning',dates:'',notes:''});setTripBrains(bs);showToast('Added to Plans');closeMo('adMo');}" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">✈ Add to Plans</button>
+      <button onclick="const id=document.getElementById('adEditId').value;const nm=document.getElementById('adName').value;if(id){dupAdEv(id);closeMo('adMo');}else if(nm){const adEvs=getAdEvs();adEvs.push({id:'ad'+Date.now(),name:nm,cat:document.getElementById('adCat').value,day:adPickedDay??0});setAdEvs(adEvs);renderAdRow();closeMo('adMo');}" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);">⧉ Duplicate</button>
+    </div>
     <div class="md-btns"><button class="btn-cancel" onclick="closeMo('adMo')">Cancel</button><button class="btn-save" onclick="saveAdEv()">Add</button></div>
   </div>
 </div>
@@ -4594,18 +4649,17 @@ try { supa = supabase.createClient(SUPA_URL, SUPA_KEY); } catch(e) { console.war
 let svTimer = null;
 let svPending = false; // tracks if there's unsaved Supabase data
 let svSupaEnabled = false; // gate: only write to Supabase after init loads real data
-let _svFromRemote = false; // true only when ldRemote() successfully returned data this session
-// Note: local file:// is allowed to write to Supabase (same as live site).
-// Protection comes from _svFromRemote and _svMinWeekEvents guards instead.
-const _IS_LOCAL_FILE = false; // disabled — local file works same as live
-let _svMinWeekEvents = {}; // per-week high-water mark: { '2026-05-18': 55, ... }
 
 // Flush to Supabase immediately (used on page unload)
 async function svFlush() {
-  if (_IS_LOCAL_FILE || !svPending || !svSupaEnabled) return;
+  if (!svPending) return;
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
   try {
-    if(supa) await supa.from('planner_data').upsert({id:SUPA_ROW,data,updated_at:new Date().toISOString()},{onConflict:'id'});
+    await fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {
+      method: 'POST',
+      headers: {...H, Prefer: 'resolution=merge-duplicates,return=minimal'},
+      body: JSON.stringify({id:SUPA_ROW, data, updated_at: new Date().toISOString()})
+    });
     svPending = false;
   } catch(e) {}
 }
@@ -4613,7 +4667,7 @@ async function svFlush() {
 // Flush to Supabase on page hide using fetch keepalive (sendBeacon cannot set
 // custom headers so it always fails against Supabase REST — use fetch instead).
 function svBeacon() {
-  if (_IS_LOCAL_FILE || !svPending || !svSupaEnabled) return;
+  if (!svPending || !svSupaEnabled) return;
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
   const body = JSON.stringify({id:SUPA_ROW,data,updated_at:new Date().toISOString()});
   try {
@@ -4629,7 +4683,7 @@ function svBeacon() {
   } catch(e) {}
 }
 
-window.addEventListener('beforeunload', () => { clearTimeout(svTimer); svBeacon(); svFlush(); });
+window.addEventListener('beforeunload', () => { svBeacon(); svFlush(); });
 window.addEventListener('pagehide', () => { svBeacon(); });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') { svBeacon(); svFlush(); }
@@ -4681,27 +4735,18 @@ function sv() {
   // Record local save timestamp separately so boot() can compare with Supabase's updated_at
   try { localStorage.setItem('stw-v7-ts', ts); } catch(e) {}
   if (!svSupaEnabled) return; // don't write to Supabase during init
-  // Block writes from local file:// — read-only mode
-  if (_IS_LOCAL_FILE) { return; }
-  // Block writes if we fell back to localStorage (Supabase was unreachable on load)
-  if (!_svFromRemote) {
-    console.warn('[stw] Supabase write blocked — loaded from localStorage fallback, not remote');
-    return;
-  }
-  // Sanity check: refuse writes that would drop THIS week's event count by >50%
-  const _curKey = wkKey();
-  const _curEvCount = (wev[_curKey] || []).length;
-  const _weekMin = _svMinWeekEvents[_curKey] || 0;
-  if (_weekMin > 5 && _curEvCount < _weekMin * 0.5) {
-    console.warn('[stw] Supabase write BLOCKED: would reduce events from', _weekMin, 'to', _curEvCount, '— possible stale state');
-    return;
-  }
   svPending = true;
   const ind = document.getElementById('stw-unsaved-indicator');
   if(ind) ind.classList.add('visible');
   clearTimeout(svTimer);
   svTimer = setTimeout(async () => {
-    if(supa) await supa.from('planner_data').upsert({ id: SUPA_ROW, data, updated_at: ts }, { onConflict: 'id' });
+    try {
+      await fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {
+        method: 'POST',
+        headers: {...H, Prefer: 'resolution=merge-duplicates,return=minimal'},
+        body: JSON.stringify({id:SUPA_ROW, data, updated_at: ts})
+      });
+    } catch(e) {}
     svPending = false;
     const ind2 = document.getElementById('stw-unsaved-indicator');
     if(ind2) ind2.classList.remove('visible');
@@ -4725,7 +4770,7 @@ async function svImmediate() {
   svPending = false;
 }
 
-// NOTE: beforeunload is handled above (svBeacon + svFlush). svImmediate() is kept for manual flush only.
+window.addEventListener('beforeunload', () => { if(svPending){ clearTimeout(svTimer); svImmediate(); } });
 
 // Load — Supabase first, localStorage fallback.
 // Returns { data, remoteTs } so boot() can do timestamp comparison.
@@ -4739,19 +4784,6 @@ async function ldRemote() {
       const d = rows[0]?.data;
       const remoteTs = rows[0]?.updated_at || '';
       if (d) {
-        _svFromRemote = true; // mark that we have real remote data this session
-        // Immediately sync localStorage with fresh Supabase data (v50 pattern).
-        // This ensures localStorage is never stale relative to Supabase,
-        // so fallback on next load is always current.
-        try { localStorage.setItem('stw-v7', JSON.stringify(d)); } catch(e) {}
-        // Set per-week high-water marks (used in save sanity check)
-        try {
-          Object.entries(d.wev || {}).forEach(([k, v]) => {
-            if (/^\d{4}-\d{2}-\d{2}$/.test(k) && Array.isArray(v)) {
-              _svMinWeekEvents[k] = v.length;
-            }
-          });
-        } catch(e) {}
         return {data: d, remoteTs};
       }
     }
@@ -5026,23 +5058,7 @@ async function boot() {
     document.getElementById('lockScreen').style.display = 'flex';
   }
   svSupaEnabled = true; // safe to write to Supabase now that real data is loaded
-  // If Supabase was unreachable and we fell back to localStorage, retry in background.
-  // When it comes back, load fresh data and enable writes — prevents stale overwrites.
-  if (!_svFromRemote) {
-    console.warn('[stw] Supabase unreachable on boot — writes blocked. Retrying in 30s...');
-    const _retryTimer = setInterval(async () => {
-      const _r = await ldRemote();
-      if (_r?.data) {
-        clearInterval(_retryTimer);
-        applyState(_r.data);
-        try { renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderList();renderTripBrains();renderItinerary();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility(); } catch(e) {}
-        console.log('[stw] Supabase recovered — fresh data loaded, writes re-enabled');
-      }
-    }, 30000);
-  }
   _bkpRun(); // auto-backup: silent no-op if folder not set or slot already done
-  // Timer: check every 15 min if a new backup slot is due (fires even without page reload)
-  setInterval(() => { _bkpRun(); }, 15 * 60 * 1000);
   // Hash-based routing: honour #relo, #budget, #trips etc on load
   const _hash = window.location.hash.slice(1);
   const _pgList = ['planner','relo','budget','trips','itinerary','daily','tracker','checklist','goals','activities','bucketlist','list','watchlist'];
@@ -5095,7 +5111,7 @@ function setAdEvs(e){adev[wkKey()]=e;sv();}
 
 // ── ALL-DAY EVENTS ──
 function renderAdRow(){const adEvs=getAdEvs();for(let i=0;i<7;i++){const cell=document.querySelector(`.ad-cell[data-adday="${i}"]`);if(!cell)continue;const dayEvs=adEvs.filter(e=>e.day===i);cell.innerHTML='';dayEvs.forEach(ev=>{const cat=CATS[ev.cat]||CATS.personal;const el=document.createElement('div');el.className='ad-ev';el.draggable=true;el.style.cssText=`background:${cat.l};border-color:${cat.b};color:${cat.t};cursor:pointer;`;el.innerHTML=`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${ev.name}</span><button class="ad-ev-gcal" onclick="event.stopPropagation();openAdGcal('${ev.id}')" style="background:none;border:none;cursor:pointer;font-size:9px;font-weight:700;color:${cat.t};opacity:.7;padding:0 3px;flex-shrink:0;" title="Open in Google Calendar">GCal</button><button class="ad-ev-del" onclick="event.stopPropagation();delAdEv('${ev.id}',event)" style="color:${cat.t}">×</button>`;el.addEventListener('dblclick',e=>{e.stopPropagation();openAdEditModal(ev.id);});el.addEventListener('dragstart',e=>{drag={type:'adlib',adname:ev.name,adcat:ev.cat,lid:null,evid:null,tid:null,oo:false};e.dataTransfer.effectAllowed='copy';});cell.appendChild(el);});}}
-function openAdGcal(id){const adEvs=getAdEvs();const ev=adEvs.find(e=>e.id===id);if(!ev)return;const dates=wkDates(wko);const date=dates[ev.day];const ds=`${date.getFullYear()}${p2(date.getMonth()+1)}${p2(date.getDate())}`;const nd=new Date(date);nd.setDate(date.getDate()+1);const ds2=`${nd.getFullYear()}${p2(nd.getMonth()+1)}${p2(nd.getDate())}`;window.open(`https://calendar.google.com/calendar/render?action=EDIT&text=${encodeURIComponent(ev.name)}&dates=${ds}/${ds2}&ctz=Europe%2FLondon`,'_blank');}
+function openAdGcal(id){const adEvs=getAdEvs();const ev=adEvs.find(e=>e.id===id);if(!ev)return;const dates=wkDates(wko);const date=dates[ev.day];const ds=`${date.getFullYear()}${p2(date.getMonth()+1)}${p2(date.getDate())}`;const nd=new Date(date);nd.setDate(date.getDate()+1);const ds2=`${nd.getFullYear()}${p2(nd.getMonth()+1)}${p2(nd.getDate())}`;const tz=encodeURIComponent('Europe/London');window.open(`https://calendar.google.com/calendar/r/eventedit?action=TEMPLATE&text=${encodeURIComponent(ev.name)}&dates=${ds}/${ds2}&stz=${tz}&etz=${tz}`,'_blank');}
 function delAdEv(id,e){e.stopPropagation();e.preventDefault();setAdEvs(getAdEvs().filter(ev=>ev.id!==id));renderAdRow();}
 function saveAdEv(){
   const name=document.getElementById('adName').value.trim();
@@ -5117,6 +5133,7 @@ function openAdEditModal(id){
   if(!ev)return;
   document.getElementById('adEditId').value=id;
   document.getElementById('adMoTitle').textContent='Edit All-Day Event';
+  const _adAct=document.getElementById('adMoActions');if(_adAct){_adAct.style.display='flex';}
   document.getElementById('adName').value=ev.name;
   populateCatSelect('adCat', ev.cat||'personal');
   const pick=document.getElementById('adDayPick');
@@ -5137,6 +5154,7 @@ function dupAdEv(id){
 function openAdModal(){
   document.getElementById('adEditId').value='';
   document.getElementById('adMoTitle').textContent='Add All-Day Event';
+  const _adActH=document.getElementById('adMoActions');if(_adActH){_adActH.style.display='none';}
   document.getElementById('adName').value='';
   populateCatSelect('adCat','personal');
   const pick=document.getElementById('adDayPick');
@@ -7742,7 +7760,7 @@ viewDays.forEach(i=>{
 });
 // All-day row
 const ads=document.createElement('div');ads.className='ad-spacer';ads.innerHTML='<span class="ad-lbl">all day</span>';tbl.appendChild(ads);viewDays.forEach(i=>{const ac=document.createElement('div');ac.className='ad-cell';ac.dataset.adday=i;ac.addEventListener('dragover',e=>{e.preventDefault();ac.classList.add('dov');});ac.addEventListener('dragleave',()=>ac.classList.remove('dov'));ac.addEventListener('drop',e=>{e.preventDefault();ac.classList.remove('dov');if(drag.type==='adlib'){const day=parseInt(ac.dataset.adday);getAdEvs().push({id:'ad'+Date.now(),day,name:drag.adname,cat:drag.adcat});setAdEvs(getAdEvs());renderAdRow();drag={type:null,lid:null,evid:null,tid:null,oo:false,adname:null,adcat:null};}});
-ac.addEventListener('dblclick',()=>{if(!isMobile()){const d=parseInt(ac.dataset.adday);document.getElementById('adEditId').value='';document.getElementById('adMoTitle').textContent='Add All-Day Event';document.getElementById('adName').value='';populateCatSelect('adCat','personal');const pick=document.getElementById('adDayPick');pick.innerHTML=DAYS.map((dn,i)=>`<button class="dp-btn${i===d?' sel':''}" onclick="pickAdDay(${i},this)">${dn}</button>`).join('');adPickedDay=d;const saveBtn=document.querySelector('#adMo .btn-save');if(saveBtn)saveBtn.textContent='Add';document.getElementById('adMo').classList.add('open');setTimeout(()=>document.getElementById('adName').focus(),100);}});tbl.appendChild(ac);});
+ac.addEventListener('dblclick',()=>{if(!isMobile()){const d=parseInt(ac.dataset.adday);document.getElementById('adEditId').value='';document.getElementById('adMoTitle').textContent='Add All-Day Event';const _adActI=document.getElementById('adMoActions');if(_adActI){_adActI.style.display='none';}document.getElementById('adName').value='';populateCatSelect('adCat','personal');const pick=document.getElementById('adDayPick');pick.innerHTML=DAYS.map((dn,i)=>`<button class="dp-btn${i===d?' sel':''}" onclick="pickAdDay(${i},this)">${dn}</button>`).join('');adPickedDay=d;const saveBtn=document.querySelector('#adMo .btn-save');if(saveBtn)saveBtn.textContent='Add';document.getElementById('adMo').classList.add('open');setTimeout(()=>document.getElementById('adName').focus(),100);}});tbl.appendChild(ac);});
 // AM Routine row (sits between all-day and time slots)
 {const amSp=document.createElement('div');amSp.className='routine-spacer';amSp.innerHTML='<span class="routine-spacer-lbl">AM</span>';tbl.appendChild(amSp);
 viewDays.forEach(i=>{const amCell=document.createElement('div');amCell.className='routine-cell'+(i>=5?' weekend':'');amCell.style.background='var(--routine-l)';amCell.dataset.day=i;amCell.id='amRoutineCell-'+i;
@@ -8043,53 +8061,51 @@ function togTrips(){if(tpActiveView)tpCollapse();else tpSwitch('trips');}
 function renderTrips() {
   const list = document.getElementById('tripsList');
   if (!list) return;
-  if (!trips.length) {
-    list.innerHTML = '<div class="tp-empty">No plans yet.<br>Add one with +<br><br><span style="font-size:10px">Drag a plan onto the grid</span></div>';
+  // Read from tripBrains (same source as full Plans page)
+  const brains = getTripBrains();
+  if (!brains.length) {
+    list.innerHTML = '<div class="tp-empty">No plans yet.<br>Add one with +</div>';
     return;
   }
-  const TRIP_CATS = {
-    holiday:     { label:'Holiday', emoji:'✈', color:'#2d77ea' },
-    weekend:     { label:'Weekend Away', emoji:'🏡', color:'#5dac5b' },
-    daytrip:     { label:'Day Trip', emoji:'🚂', color:'#179e9a' },
-    dayout:      { label:'Day Out', emoji:'🌳', color:'#3a9e5c' },
-    attraction:  { label:'Tourist Attraction', emoji:'🏛️', color:'#9b59b6' },
-    bucketplace: { label:'Bucketlist Place', emoji:'📍', color:'#e67e22' },
-    event:       { label:'Concert / Event', emoji:'🎟', color:'#da2266' },
-    social:      { label:'Night Out', emoji:'🍻', color:'#fb7c23' },
-    other:       { label:'Other', emoji:'📌', color:'#8a7a5a' },
+  const TB_TYPE_EMOJI = {
+    holiday:'✈', weekend:'🏡', city:'🏙', daytrip:'🚂', dayout:'🌳',
+    attraction:'🏛️', bucketplace:'📍', event:'🎟', social:'🍻', other:'📌',
   };
   const STATUS = {
-    planning: { label:'Planning', color:'#496bb8', bg:'#e8ecf7' },
-    booked:   { label:'Booked ✓', color:'#2d6b2c', bg:'#e5f4e5' },
-    done:     { label:'Done', color:'#8a7a5a', bg:'#f0e4c2' },
+    dream:    { label:'✨ Dream it', color:'#8237bc', bg:'#f3eafa' },
+    planning: { label:'Planning',   color:'#496bb8', bg:'#e8ecf7' },
+    booked:   { label:'Booked ✓',  color:'#2d6b2c', bg:'#e5f4e5' },
+    done:     { label:'Done',       color:'#8a7a5a', bg:'#f0e4c2' },
   };
   list.innerHTML = '';
-  trips.forEach(t => {
-    const tc = TRIP_CATS[t.tripCat || 'holiday'];
+  // Show all except done — order: dream → planning → booked
+  const order = ['dream','planning','booked','done'];
+  const sorted = [...brains].sort((a,b) => {
+    return order.indexOf(a.status||'planning') - order.indexOf(b.status||'planning');
+  });
+  sorted.forEach(t => {
+    const emoji = TB_TYPE_EMOJI[t.type] || '📌';
     const st = STATUS[t.status || 'planning'];
     const card = document.createElement('div');
     card.className = 'tc2';
-    card.draggable = true;
-    card.dataset.tid = t.id;
     card.innerHTML = `
-      <span class="tc2-emoji">${tc.emoji}</span>
+      <span class="tc2-emoji">${emoji}</span>
       <div class="tc2-body">
         <div class="tc2-top">
           <span class="tc2-title">${t.title}</span>
           <span class="tc2-badge" style="background:${st.bg};color:${st.color}">${st.label}</span>
         </div>
-        ${t.date ? `<div class="tc2-dates">${t.date}</div>` : ''}
+        ${t.dates ? `<div class="tc2-dates">${t.dates}</div>` : ''}
       </div>
       <div class="tc2-hover-actions">
-        <button class="tc2-hover-btn" onclick="exportTripICS('${t.id}')">→ Cal</button>
         <button class="tc2-hover-btn" onclick="openGoalModal('trip','${t.id}')">Edit</button>
-        <button class="tc2-hover-btn" onclick="delTrip('${t.id}')">×</button>
+        <button class="tc2-hover-btn" onclick="delTripBrain('${t.id}')">×</button>
       </div>`;
-    card.addEventListener('dragstart', onTDrag);
     list.appendChild(card);
   });
 }
 function delTrip(id){trips=trips.filter(t=>t.id!==id);sv();renderTrips();renderGoals();}
+function delTripBrain(id){const b=getTripBrains().filter(t=>t.id!==id);setTripBrains(b);renderTrips();renderTripBrains();}
 // Build ICS lines for a set of week offsets, optionally filtered to one category
 // Returns {lines, hasEvents}
 function buildICSLines(weekOffsets, catFilter) {
@@ -9103,6 +9119,8 @@ function wlOpenRating(id){
   document.getElementById('wlRatingTitle').textContent=wlData[id]?.title||'';
   document.getElementById('wlRatingThoughts').value=wlData[id]?.thoughts||'';
   wlBuildStars('wlRatingStars',wlCurrentRating,'wlRatingVal');
+  const _wlMs=document.getElementById('wlRatingMonth');
+  if(_wlMs){const _n=new Date();const _mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];_wlMs.value=wlData[id]?.completedMonth||(_mo[_n.getMonth()]+' '+_n.getFullYear());}
   document.getElementById('wlRatingMo').classList.add('open');
 }
 
@@ -9112,6 +9130,8 @@ async function wlSubmitRating(){
   if(rating>0)wlData[id].rating=rating;
   const thoughts=document.getElementById('wlRatingThoughts').value.trim();
   if(thoughts)wlData[id].thoughts=thoughts;
+  const _wlMo=document.getElementById('wlRatingMonth')?.value||'';
+  if(_wlMo)wlData[id].completedMonth=_wlMo;
   closeMo('wlRatingMo');wlRender();await wlSave(id);
 }
 
@@ -9487,7 +9507,7 @@ function renderPriorityTasks() {
 function markPriorityDone(id) {
   const cards = getLists();
   const card = cards.find(c => c.id === id);
-  if (card) { card.col = 'done'; setLists(cards); renderPriorityTasks(); renderList(); }
+  if (card) { card.col = 'done'; setLists(cards); renderPriorityTasks(); renderList(); setTimeout(() => openListCardModal(null, id), 50); }
 }
 
 function toggleJumpDate() {
@@ -10364,14 +10384,14 @@ function renderQc(){
 
   // Inline add-item row
   const addRow=document.createElement('div');
-  addRow.style.cssText='display:flex;gap:6px;margin-bottom:10px;';
+  addRow.style.cssText='display:flex;gap:6px;margin-bottom:10px;grid-column:1/-1;';
   addRow.innerHTML=`<input id="qcNewItemText" class="mc-date-input" placeholder="New recurring item…" style="flex:1;font-size:12px;padding:4px 8px;border-radius:6px;" onkeydown="if(event.key==='Enter')addQcItem()">
     <button class="btn-at" onclick="addQcItem()" title="Add">+</button>`;
   list.appendChild(addRow);
 
   if(!items.length){
     const empty=document.createElement('div');
-    empty.style.cssText='font-size:12px;color:var(--text-faint);font-style:italic;padding:4px;';
+    empty.style.cssText='font-size:12px;color:var(--text-faint);font-style:italic;padding:4px;grid-column:1/-1;';
     empty.textContent='No recurring items yet';
     list.appendChild(empty);
     return;
@@ -10384,7 +10404,7 @@ function renderQc(){
     const wrap=document.createElement('div');
     wrap.dataset.qci=i;
     wrap.draggable=true;
-    wrap.style.cssText='background:var(--surface);border:1.5px solid var(--border-light);border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:grab;';
+    wrap.style.cssText='background:var(--surface);border:1.5px solid var(--border-light);border-radius:8px;padding:8px 10px;cursor:grab;';
     wrap.addEventListener('dragstart',()=>{_qcDragFrom=i;wrap.style.opacity='.4';});
     wrap.addEventListener('dragend',()=>{wrap.style.opacity='';_qcDragFrom=null;});
     wrap.addEventListener('dragover',e=>{e.preventDefault();wrap.style.borderColor='var(--header-bg)';});
@@ -10423,44 +10443,58 @@ function renderQc(){
     const occs=item.occurrences||[];
     occs.forEach((occ,j)=>{
       const occRow=document.createElement('div');
-      occRow.style.cssText='display:flex;align-items:center;gap:6px;padding:3px 0;border-top:1px solid var(--border-light);';
+      occRow.style.cssText='display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--border-light);flex-wrap:wrap;';
+      // Checkbox
       const cb=document.createElement('input');
-      cb.type='checkbox';cb.checked=occ.done;cb.style.cssText='accent-color:var(--header-bg);flex-shrink:0;cursor:pointer;';
+      cb.type='checkbox';cb.checked=occ.done;cb.style.cssText='accent-color:var(--header-bg);flex-shrink:0;cursor:pointer;width:15px;height:15px;';
       cb.onchange=()=>toggleQcOcc(i,j,cb.checked);
+      occRow.appendChild(cb);
+      // Due date + goto
+      const _qcDueWrap=document.createElement('div');
+      _qcDueWrap.style.cssText='display:flex;gap:3px;align-items:center;';
       const dueInp=document.createElement('input');
       dueInp.type='date';dueInp.value=occ.nextDue||'';dueInp.className='mc-date-input';
       dueInp.onchange=()=>{const its=getQcItemsMigrated();its[i].occurrences[j].nextDue=dueInp.value;setQcItems(its);renderQc();};
-      const statusLbl=document.createElement('span');
-      statusLbl.style.cssText='font-size:9px;flex:1;';
-      if(occ.done){
-        statusLbl.style.color='var(--text-faint)';
-        statusLbl.textContent='✓ Done'+(occ.doneDate?' '+new Date(occ.doneDate+'T12:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'');
-      } else if(occ.nextDue){
-        const due=new Date(occ.nextDue+'T12:00');const diff=Math.round((due-today)/86400000);
-        if(diff<0){statusLbl.style.color='#da2266';statusLbl.textContent='Overdue '+Math.abs(diff)+'d';}
-        else if(diff===0){statusLbl.style.color='#e07b00';statusLbl.textContent='Due today';}
-        else if(diff<=7){statusLbl.style.color='#e07b00';statusLbl.textContent='In '+diff+'d';}
-        else statusLbl.style.color='var(--text-faint)';
-      }
-      const delOcc=document.createElement('button');
-      delOcc.style.cssText='font-size:9px;padding:1px 5px;border:1px solid var(--border-light);border-radius:4px;background:none;cursor:pointer;color:var(--text-faint);';
-      delOcc.textContent='×';
-      delOcc.onclick=()=>{const its=getQcItemsMigrated();its[i].occurrences.splice(j,1);setQcItems(its);renderQc();};
-      occRow.appendChild(cb);
-      // Due date + goto button
-      const _qcDueWrap=document.createElement('div');
-      _qcDueWrap.style.cssText='display:flex;gap:3px;align-items:center;flex:1;min-width:0;';
       _qcDueWrap.appendChild(dueInp);
       if(occ.nextDue){
         const _qcGoto=document.createElement('button');
-        _qcGoto.className='mc-goto-btn';
-        _qcGoto.textContent='→';
-        _qcGoto.title='Go to this week in planner';
+        _qcGoto.className='mc-goto-btn';_qcGoto.textContent='→';_qcGoto.title='Go to this week';
         _qcGoto.onclick=()=>goToPlannerDate(occ.nextDue);
         _qcDueWrap.appendChild(_qcGoto);
       }
       occRow.appendChild(_qcDueWrap);
-      occRow.appendChild(statusLbl);occRow.appendChild(delOcc);
+      // "Done on" date (shown when checked)
+      const doneDateInp=document.createElement('input');
+      doneDateInp.type='date';doneDateInp.className='mc-date-input'+(occ.doneDate?' has-value':'');
+      doneDateInp.value=occ.doneDate||'';
+      doneDateInp.disabled=!occ.done;
+      doneDateInp.title='Completed on';
+      doneDateInp.onchange=()=>{const its=getQcItemsMigrated();its[i].occurrences[j].doneDate=doneDateInp.value;setQcItems(its);};
+      // Status label
+      const statusLbl=document.createElement('span');
+      statusLbl.style.cssText='font-size:9px;flex:1;';
+      if(occ.done){
+        statusLbl.style.color='#2d6b2c';
+        statusLbl.textContent='✓ Done'+(occ.doneDate?' '+new Date(occ.doneDate+'T12:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'');
+        doneDateInp.style.display='';
+      } else if(occ.nextDue){
+        doneDateInp.style.display='none';
+        const due=new Date(occ.nextDue+'T12:00');const diff=Math.round((due-today)/86400000);
+        if(diff<0){statusLbl.style.color='#da2266';statusLbl.textContent='Overdue '+Math.abs(diff)+'d';}
+        else if(diff===0){statusLbl.style.color='#e07b00';statusLbl.textContent='Due today';}
+        else if(diff<=7){statusLbl.style.color='#e07b00';statusLbl.textContent='In '+diff+'d';}
+        else{statusLbl.style.color='var(--text-faint)';}
+      } else {
+        doneDateInp.style.display='none';
+      }
+      occRow.appendChild(doneDateInp);
+      occRow.appendChild(statusLbl);
+      // Delete occ
+      const delOcc=document.createElement('button');
+      delOcc.style.cssText='font-size:9px;padding:1px 5px;border:1px solid var(--border-light);border-radius:4px;background:none;cursor:pointer;color:var(--text-faint);';
+      delOcc.textContent='×';
+      delOcc.onclick=()=>{const its=getQcItemsMigrated();its[i].occurrences.splice(j,1);setQcItems(its);renderQc();};
+      occRow.appendChild(delOcc);
       wrap.appendChild(occRow);
     });
 
@@ -11206,6 +11240,7 @@ function renderList() {
         </div>
         ${cat ? `<div class="lcard-cat"><span class="lcard-cat-dot" style="background:${cat.color}"></span><span style="color:${cat.color}">${cat.label}</span></div>` : ''}
         <div class="lcard-title">${card.title}</div>
+        ${card.completedMonth ? `<div class="lcard-body" style="font-size:10px;color:var(--text-muted);margin-top:2px;">✓ ${card.completedMonth}</div>` : ''}
         ${card.body ? `<div class="lcard-body">${card.body}</div>` : ''}`;
       // Build Cal + Trip buttons — appended inside lcard-actions
       const _lcActions=div.querySelector('.lcard-actions');
@@ -11244,6 +11279,10 @@ function moveListCard(id, dir) {
   card.col = cols[newIdx];
   setLists(cards);
   renderList();
+  // If moved to done, pop edit modal so user can set the month
+  if (card.col === 'done') {
+    setTimeout(() => openListCardModal(null, id), 50);
+  }
 }
 
 function listColDragOver(e, col) {
@@ -11275,27 +11314,49 @@ function openListCardModal(col, editId, prefillTitle) {
     document.getElementById('listCardBody').value = card.body || '';
     populateCatSelect('listCardCat', card.cat || 'none');
     document.getElementById('listCardCol').value = card.col;
+    const _lcMonthFg = document.getElementById('listCardMonthFg');
+    if (_lcMonthFg) _lcMonthFg.style.display = card.col === 'done' ? '' : 'none';
+    const _lcMonth = document.getElementById('listCardMonth');
+    if (_lcMonth) _lcMonth.value = card.completedMonth || '';
   } else {
     document.getElementById('listCardTitle').value = prefillTitle || '';
     document.getElementById('listCardBody').value = '';
     populateCatSelect('listCardCat', 'none');
     document.getElementById('listCardCol').value = col || 'todo';
+    const _lcMonthFgA = document.getElementById('listCardMonthFg');
+    if (_lcMonthFgA) _lcMonthFgA.style.display = (col === 'done') ? '' : 'none';
   }
   document.getElementById('listCardMo').classList.add('open');
   setTimeout(() => document.getElementById('listCardTitle').focus(), 100);
 }
 
+function listCardColChanged(val) {
+  const fg = document.getElementById('listCardMonthFg');
+  if (fg) fg.style.display = val === 'done' ? '' : 'none';
+  // Auto-set current month if moving to done and nothing set
+  if (val === 'done') {
+    const sel = document.getElementById('listCardMonth');
+    if (sel && !sel.value) {
+      const now = new Date();
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      sel.value = months[now.getMonth()] + ' ' + now.getFullYear();
+    }
+  }
+}
 function saveListCard() {
   const title = document.getElementById('listCardTitle').value.trim();
   if (!title) return;
   const editId = document.getElementById('listCardId').value;
   const cards = getLists();
+  const _lcCol = document.getElementById('listCardCol').value;
+  const _lcMonth = document.getElementById('listCardMonth');
   const item = {
     id: editId || ('lc' + Date.now()),
     title,
     body: document.getElementById('listCardBody').value.trim(),
     cat: document.getElementById('listCardCat').value,
-    col: document.getElementById('listCardCol').value,
+    col: _lcCol,
+    completedMonth: _lcCol === 'done' && _lcMonth ? (_lcMonth.value || '') : '',
   };
   const idx = editId ? cards.findIndex(c => c.id === editId) : -1;
   if (idx >= 0) cards[idx] = item; else cards.push(item);
@@ -12489,21 +12550,6 @@ function mbnActive(id) {
   if (el) el.classList.add('active');
 }
 
-// ── Month view toggle state (must be declared before boot runs) ──
-let _mvShowCycle = true;
-let _mvShowExercise = true;
-let _mvShowAllDay = true;
-
-// ── DIRECT ROW TOGGLES (must be declared before boot runs) ──
-const DIRECT_ROW_KEY = 'stw-direct-hidden';
-let _hiddenDirectRows = (()=>{ try{ return JSON.parse(localStorage.getItem(DIRECT_ROW_KEY)||'{}'); }catch{ return {}; } })();
-const DIRECT_ROW_MAP = {
-  wx:  { tblClass:'wx-row-hidden',  btnId:'lrtb-wx' },
-  txt: { tblClass:'txt-row-hidden', btnId:'lrtb-daytext' },
-  ad:  { tblClass:'ad-row-hidden',  btnId:'lrtb-allday' },
-  cal: { tblClass:'cal-hidden',     btnId:'lrtb-cal' },
-};
-
 // boot() handles all initial rendering — mobile init happens inside boot callback
 checkFirstVisit();
 // Start Supabase auth — loads remote data if logged in, shows login if not
@@ -12981,7 +13027,7 @@ function reloSetTab(t) {
   document.getElementById('rpTab-'+t)?.classList.add('active');
   const mc = document.getElementById('rpMainControls');
   const ab = document.getElementById('rpAddBtn');
-  const hidden = t==='artie'||t==='lists';
+  const hidden = t==='artie'||t==='lists'||t==='schepens';
   if (mc) mc.style.display = hidden?'none':'contents';
   if (ab) ab.style.display = hidden?'none':'';
   reloRender();
@@ -13009,6 +13055,7 @@ function reloRender() {
   if (!el) return;
   if (reloTab === 'artie') { el.innerHTML = reloRenderArtie(); reloAttachHandlers(); return; }
   if (reloTab === 'lists') { el.innerHTML = reloRenderLists(); reloAttachListHandlers(); return; }
+  if (reloTab === 'schepens') { el.innerHTML = reloRenderSchepens(); reloAttachSchepensHandlers(); return; }
   const list = reloFiltered();
   if (!list.length && !reloTasks.length) {
     el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--text-faint);gap:10px;"><div style="font-size:40px;">⏳</div><div style="font-family:SashasFont,serif;letter-spacing:.07em;text-transform:uppercase;font-size:14px;">Loading...</div></div>';
@@ -13589,6 +13636,151 @@ function reloAttachListHandlers() {
     });
   });
 }
+
+
+// ── SCHEPENS MOVE CHECKLIST ───────────────────────────────────────────────────
+function getSchepensChecks() {
+  try { return JSON.parse(localStorage.getItem('stw-schepens-checks') || '{}'); } catch(e) { return {}; }
+}
+function setSchepensCheck(id, val) {
+  const d = getSchepensChecks();
+  d[id] = val;
+  localStorage.setItem('stw-schepens-checks', JSON.stringify(d));
+  sv();
+}
+
+function reloRenderSchepens() {
+  const chk = getSchepensChecks();
+  const cb = (id, label) => `<label class="sch-item"><input type="checkbox" class="sch-chk" data-id="${id}" ${chk[id]?'checked':''}><span class="sch-label ${chk[id]?'sch-done':''}">${label}</span></label>`;
+
+  return `
+  <div class="sch-wrap">
+    <div class="sch-header">
+      <div class="sch-title">Schepens Move</div>
+      <div class="sch-sub">London → Copenhagen &nbsp;·&nbsp; Collection: 21 July 2026</div>
+    </div>
+
+    <div class="sch-section">
+      <div class="sch-section-title" style="display:flex;align-items:center;justify-content:space-between;">📅 Key Dates <button onclick="schepensImportDates()" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:8px;border:1.5px solid var(--header-bg);background:transparent;color:var(--header-bg);cursor:pointer;font-family:inherit;">+ Import to Tracker</button></div>
+      <table class="sch-table">
+        <tr><td class="sch-td-date"><b>ASAP</b></td><td>Send customs documents to Tracey (all at once)</td></tr>
+        <tr><td class="sch-td-date"><b>20 July</b></td><td>Pay remaining balance to Schepens (~£1,297)</td></tr>
+        <tr><td class="sch-td-date"><b>21 July</b></td><td>Collection day — Apt 36, 11 Selborne Road, Walthamstow E17 7GD</td></tr>
+        <tr><td class="sch-td-date"><b>Before 27 July</b></td><td>CPR number must be with Schepens before truck departs</td></tr>
+        <tr><td class="sch-td-date"><b>27 July</b></td><td>Truck departs UK</td></tr>
+        <tr><td class="sch-td-date"><b>Early August</b></td><td>Delivery to Bülowsvej 35B, TV, 1870 Frederiksberg</td></tr>
+      </table>
+    </div>
+
+    <div class="sch-section">
+      <div class="sch-section-title">1 · Acceptance Form <span class="sch-urgent">URGENT</span></div>
+      ${cb('accept-sign','Sign and date the acceptance form attached to Tracey\'s email')}
+      ${cb('accept-return','Return to tracey@schepens.co.uk — removal cannot commence without this')}
+    </div>
+
+    <div class="sch-section">
+      <div class="sch-section-title">2 · Customs Documents <span style="font-size:11px;font-weight:400;color:var(--text-muted)">Send all together — name each file: Folker [description]</span></div>
+      <table class="sch-table sch-customs">
+        <thead><tr><th>#</th><th>Document</th><th>Done</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Brief description labels on top of each packed box</td><td><input type="checkbox" class="sch-chk" data-id="cust-1" ${chk['cust-1']?'checked':''}></td></tr>
+          <tr><td>2</td><td>CPR number OR proof you've applied for it</td><td><input type="checkbox" class="sch-chk" data-id="cust-2" ${chk['cust-2']?'checked':''}></td></tr>
+          <tr><td>3</td><td>Letter in Danish + English explaining why you're moving to Denmark</td><td><input type="checkbox" class="sch-chk" data-id="cust-3" ${chk['cust-3']?'checked':''}></td></tr>
+          <tr><td>4</td><td>Copy of passport</td><td><input type="checkbox" class="sch-chk" data-id="cust-4" ${chk['cust-4']?'checked':''}></td></tr>
+          <tr><td>5</td><td>Customs form — <b>email Tracey first to confirm correct version</b></td><td><input type="checkbox" class="sch-chk" data-id="cust-5" ${chk['cust-5']?'checked':''}></td></tr>
+          <tr><td>6</td><td>DK rental/tenancy agreement (Canvas Living, Bülowsvej 35B)</td><td><input type="checkbox" class="sch-chk" data-id="cust-6" ${chk['cust-6']?'checked':''}></td></tr>
+          <tr><td>7</td><td>Work contract in Denmark (LEGO)</td><td><input type="checkbox" class="sch-chk" data-id="cust-7" ${chk['cust-7']?'checked':''}></td></tr>
+          <tr><td>8</td><td>2× proof of UK residence within last 12 months (phone/electricity/council tax bills) + 1 older bill</td><td><input type="checkbox" class="sch-chk" data-id="cust-8" ${chk['cust-8']?'checked':''}></td></tr>
+          <tr><td>9</td><td>2nd-hand value of goods (eBay/Facebook Marketplace prices) — note: if customs reject VAT-free entry, you'll be billed ~30% of this figure</td><td><input type="checkbox" class="sch-chk" data-id="cust-9" ${chk['cust-9']?'checked':''}></td></tr>
+        </tbody>
+      </table>
+      <div class="sch-warning">⚠️ No alcohol or food on the inventory or customs form.<br>⚠️ If you've already lived in Denmark for over 12 months, let Tracey know — you won't be entitled to VAT-free entry.</div>
+    </div>
+
+    <div class="sch-section">
+      <div class="sch-section-title">3 · MoveProtect Insurance</div>
+      ${cb('mp-form','Complete the MoveProtect European Valuation Overseas Insurance Form (attached to booking email)')}
+      ${cb('mp-value','Value your items using 2nd-hand prices (eBay, Facebook Marketplace)')}
+      ${cb('mp-return','Return the completed form to Schepens')}
+    </div>
+
+    <div class="sch-section">
+      <div class="sch-section-title">4 · CPR Number <span class="sch-urgent">Critical Deadline</span></div>
+      ${cb('cpr-apply','Apply for CPR as soon as you arrive in Copenhagen (lease starts 15 July)')}
+      ${cb('cpr-send','Send CPR number or proof of application to Schepens before 27 July')}
+    </div>
+
+    <div class="sch-section">
+      <div class="sch-section-title">5 · Pay Remaining Balance</div>
+      ${cb('pay-balance','Pay ~£1,297 the day before collection — 20 July (bank details on page 4 of the quote)')}
+    </div>
+
+    <div class="sch-section">
+      <div class="sch-section-title">6 · Packing</div>
+      ${cb('pack-labels','Label the top of every box with a brief description of contents')}
+      ${cb('pack-noalcohol','Do NOT include alcohol or food in any boxes going with Schepens')}
+      ${cb('pack-inventory','Schepens will complete the full inventory on collection day')}
+    </div>
+
+    <div class="sch-section">
+      <div class="sch-section-title">📬 Contacts</div>
+      <table class="sch-table">
+        <tr><td><b>Tracey Shearing</b> (admin/customs)</td><td><a href="mailto:tracey@schepens.co.uk" style="color:var(--header-bg)">tracey@schepens.co.uk</a></td><td>01794 323558</td></tr>
+        <tr><td><b>Chris Schepens</b> (operations)</td><td><a href="mailto:chris@schepens.co.uk" style="color:var(--header-bg)">chris@schepens.co.uk</a></td><td>01794 323558</td></tr>
+      </table>
+    </div>
+
+    <div class="sch-section">
+      <div class="sch-section-title">💷 Financials</div>
+      <table class="sch-table">
+        <tr><td>Total quote (door to door)</td><td><b>£1,853.00</b></td></tr>
+        <tr><td>Deposit paid (30%)</td><td>£556.00</td></tr>
+        <tr><td>Remaining balance</td><td><b style="color:#8d0e3f">~£1,297.00</b></td></tr>
+        <tr><td>Storage (if needed)</td><td>£62.40/week</td></tr>
+        <tr><td>MoveProtect insurance</td><td>TBC</td></tr>
+      </table>
+    </div>
+  </div>`;
+}
+
+function reloAttachSchepensHandlers() {
+  document.querySelectorAll('.sch-chk').forEach(el => {
+    el.addEventListener('change', function() {
+      const id = this.dataset.id;
+      const val = this.checked;
+      setSchepensCheck(id, val);
+      // Update label style without full re-render
+      const lbl = this.closest('label');
+      if (lbl) {
+        const span = lbl.querySelector('.sch-label');
+        if (span) { span.classList.toggle('sch-done', val); }
+      }
+    });
+  });
+}
+function schepensImportDates() {
+  const dates = [
+    {title:'Schepens: Send customs documents to Tracey (all at once)', category:'Moving', owner:'Sasha', dueDate:'2026-06-01', priority:'High'},
+    {title:'Schepens: Pay remaining balance ~£1,297', category:'Moving', owner:'Sasha', dueDate:'2026-07-20', priority:'High'},
+    {title:'Schepens: Collection day — 11 Selborne Road, Walthamstow E17 7GD', category:'Moving', owner:'Sasha', dueDate:'2026-07-21', priority:'High'},
+    {title:'Schepens: Send CPR number/proof to Tracey before truck departs', category:'Moving', owner:'Sasha', dueDate:'2026-07-26', priority:'High'},
+    {title:'Schepens: Truck departs UK', category:'Moving', owner:'Sasha', dueDate:'2026-07-27', priority:'Normal'},
+    {title:'Schepens: Delivery to Bülowsvej 35B Frederiksberg', category:'Moving', owner:'Sasha', dueDate:'2026-08-04', priority:'Normal'},
+  ];
+  // Check for existing to avoid duplicates
+  const existing = reloTasks.map(t => t.title);
+  let added = 0;
+  dates.forEach(d => {
+    if (!existing.includes(d.title)) {
+      reloTasks.push({ id: 'sch' + Date.now() + Math.random(), ...d, status: 'To Do', done: false, notes: '' });
+      added++;
+    }
+  });
+  if (added === 0) { showToast('Already imported — no duplicates added'); return; }
+  sv(); reloRender();
+  showToast('✓ ' + added + ' key dates added to Relocation Tracker');
+}
+// ── END SCHEPENS ──────────────────────────────────────────────────────────────
 
 function reloListAddRow(key) {
   const d=getReloLists();
@@ -14622,6 +14814,15 @@ function toggleTimeLabels() {
 }
 
 // ── DIRECT ROW TOGGLES (wx, txt, ad, cal) — active = row IS hidden ──
+const DIRECT_ROW_KEY = 'stw-direct-hidden';
+let _hiddenDirectRows = (()=>{ try{ return JSON.parse(localStorage.getItem(DIRECT_ROW_KEY)||'{}'); }catch{ return {}; } })();
+
+const DIRECT_ROW_MAP = {
+  wx:  { tblClass:'wx-row-hidden',  btnId:'lrtb-wx' },
+  txt: { tblClass:'txt-row-hidden', btnId:'lrtb-daytext' },
+  ad:  { tblClass:'ad-row-hidden',  btnId:'lrtb-allday' },
+  cal: { tblClass:'cal-hidden',     btnId:'lrtb-cal' },
+};
 function applyDirectRows(){
   const tbl = document.getElementById('gridTbl');
   if(!tbl) return;
@@ -14878,6 +15079,9 @@ const CYCLE_SPANS = [
   {s:'2026-12-29',e:'2027-01-05',t:'📈 Mid Follicular | The Build',c:'#f06292'},
 ];
 
+let _mvShowCycle = true;
+let _mvShowExercise = true;
+let _mvShowAllDay = true;
 
 // ── Derive exercise spans from cycle spans + workout phase mapping ──
 const CYCLE_PHASE_FROM_TITLE = {
