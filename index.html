@@ -4649,6 +4649,7 @@ try { supa = supabase.createClient(SUPA_URL, SUPA_KEY); } catch(e) { console.war
 let svTimer = null;
 let svPending = false; // tracks if there's unsaved Supabase data
 let svSupaEnabled = false; // gate: only write to Supabase after init loads real data
+let _svMinWeekEvents = 0; // safety watermark — blocks writes that would wipe events
 
 // Flush to Supabase immediately (used on page unload)
 async function svFlush() {
@@ -4735,6 +4736,13 @@ function sv() {
   // Record local save timestamp separately so boot() can compare with Supabase's updated_at
   try { localStorage.setItem('stw-v7-ts', ts); } catch(e) {}
   if (!svSupaEnabled) return; // don't write to Supabase during init
+  // Safety watermark: block writes that would drop total event count by >50%
+  const _curEvCount = Object.values(wev).reduce((n,v) => n + (Array.isArray(v) ? v.filter(e=>e&&e.id).length : 0), 0);
+  if (_svMinWeekEvents > 10 && _curEvCount < _svMinWeekEvents * 0.5) {
+    console.warn('[sv] BLOCKED — event count dropped from', _svMinWeekEvents, 'to', _curEvCount, '— possible wipe prevented');
+    return;
+  }
+  if (_curEvCount > _svMinWeekEvents) _svMinWeekEvents = _curEvCount;
   svPending = true;
   const ind = document.getElementById('stw-unsaved-indicator');
   if(ind) ind.classList.add('visible');
@@ -5058,6 +5066,8 @@ async function boot() {
     document.getElementById('lockScreen').style.display = 'flex';
   }
   svSupaEnabled = true; // safe to write to Supabase now that real data is loaded
+  _svMinWeekEvents = Object.values(wev).reduce((n,v) => n + (Array.isArray(v) ? v.filter(e=>e&&e.id).length : 0), 0);
+  console.log('[boot] svMinWeekEvents watermark set to', _svMinWeekEvents);
   _bkpRun(); // auto-backup: silent no-op if folder not set or slot already done
   // Hash-based routing: honour #relo, #budget, #trips etc on load
   const _hash = window.location.hash.slice(1);
