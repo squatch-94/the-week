@@ -4762,6 +4762,12 @@ function sv() {
 }
 
 async function svImmediate() {
+  // Apply same watermark protection as sv()
+  const _immEvCount = Object.values(wev).reduce((n,v) => n + (Array.isArray(v) ? v.filter(e=>e&&e.id).length : 0), 0);
+  if (_svMinWeekEvents > 10 && _immEvCount < _svMinWeekEvents * 0.5) {
+    console.warn('[svImmediate] BLOCKED — event count dropped from', _svMinWeekEvents, 'to', _immEvCount);
+    return;
+  }
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
   const ts = new Date().toISOString();
   try { localStorage.setItem('stw-v7', JSON.stringify(data)); } catch(e) {}
@@ -4990,18 +4996,29 @@ async function boot() {
     setTimeout(()=>dlAutoSync(-1),200);
   } catch(e) { console.error('First paint error:', e); }
 
-  // Load from Supabase — Supabase is always the source of truth.
+  // Load from Supabase first, but also check localStorage.
   const remoteResult = await ldRemote();
   const remote = remoteResult?.data || null;
 
-  // localStorage is only a fallback if Supabase is unreachable, never a winner.
-  const local = remote ? null : (() => { try { const s=localStorage.getItem('stw-v7'); return s?JSON.parse(s):null; } catch(e){return null;} })();
+  // Always load localStorage for comparison — Supabase can be in a wiped state.
+  const localCache = (() => { try { const s=localStorage.getItem('stw-v7'); return s?JSON.parse(s):null; } catch(e){return null;} })();
 
-  let useData = remote || local;
-  if (remote) {
-    // Supabase wins on all fields. The only merges are for append-only log data
-    // where a local entry might not have reached Supabase yet (e.g. user typed
-    // a daily log entry and the tab closed before the 400ms debounce fired).
+  // Count real events (with IDs) in each source
+  const _countEvs = (d) => d ? Object.values(d.wev||{}).reduce((n,v) => n + (Array.isArray(v) ? v.filter(e=>e&&e.id).length : 0), 0) : 0;
+  const remoteCount = _countEvs(remote);
+  const localCount  = _countEvs(localCache);
+
+  // If Supabase has significantly fewer events than localStorage, localStorage wins.
+  // This prevents a wiped Supabase from overwriting good local data.
+  let _bootedFromLocal = false;
+  if (remote && remoteCount < localCount * 0.6 && localCount > 20) {
+    console.warn('[boot] Supabase has', remoteCount, 'events but localStorage has', localCount, '— using localStorage to prevent data loss');
+    _bootedFromLocal = true;
+  }
+
+  let useData = (!_bootedFromLocal && remote) ? remote : (localCache || remote);
+  if (remote && !_bootedFromLocal) {
+    // Supabase wins — merge append-only log data from localStorage
     const localCache = (() => { try { const s=localStorage.getItem('stw-v7'); return s?JSON.parse(s):null; } catch(e){return null;} })();
     if (localCache) {
       // Merge daily log: keep any local-only day entries Supabase doesn't have
