@@ -7927,7 +7927,7 @@ function onEvDrag(e){drag={type:'ev',evid:e.currentTarget.dataset.evid,lid:null,
 function onTDrag(e){drag={type:'trip',tid:e.currentTarget.dataset.tid,lid:null,evid:null,oo:false};e.dataTransfer.effectAllowed='copy';}
 function onSOver(e){e.preventDefault();e.currentTarget.classList.add('dov');}
 function onSLeave(e){e.currentTarget.classList.remove('dov');}
-function onSDrop(e){e.preventDefault();e.currentTarget.classList.remove('dov');const day=parseInt(e.currentTarget.dataset.day),slot=parseInt(e.currentTarget.dataset.slot);let evs=getEvs();if(drag.type==='lib'){const item=[...lib,...oo].find(i=>i.id===drag.lid);if(!item)return;evs.push({id:'ev'+Date.now(),day,slot,slots:1,name:item.name,cat:item.cat,note:''});if(drag.oo){oo=oo.filter(i=>i.id!==drag.lid);renderLib();}autoIncrementTallies(item.name);}else if(drag.type==='ev'){const ev=evs.find(e=>e.id===drag.evid);if(ev){ev.day=day;ev.slot=slot;}}else if(drag.type==='trip'){const t=trips.find(t=>t.id===drag.tid);if(t)evs.push({id:'ev'+Date.now(),day,slot,slots:2,name:'✈ '+t.title,cat:'social',note:t.notes||''});}else if(drag.type==='adlib'&&drag.adname){const newEv={id:'ev'+Date.now(),day,slot,slots:1,name:drag.adname,cat:drag.adcat||'personal',note:''};evs.push(newEv);setEvs(evs);renderEvents();renderBudget();setTimeout(()=>openEvEdit(newEv.id),50);return;}
+function onSDrop(e){e.preventDefault();e.currentTarget.classList.remove('dov');const day=parseInt(e.currentTarget.dataset.day),slot=parseInt(e.currentTarget.dataset.slot);let evs=getEvs();if(drag.type==='lib'){const item=[...lib,...oo].find(i=>i.id===drag.lid);if(!item)return;evs.push({id:'ev'+Date.now(),day,slot,slots:1,name:item.name,cat:item.cat,note:''});if(drag.oo){oo=oo.filter(i=>i.id!==drag.lid);renderLib();}autoIncrementTallies(item.name);}else if(drag.type==='ev'){const ev=evs.find(e=>e.id===drag.evid);if(ev){ev.day=day;ev.slot=slot;}}else if(drag.type==='trip'){const t=trips.find(t=>t.id===drag.tid);if(t)evs.push({id:'ev'+Date.now(),day,slot,slots:2,name:'✈ '+t.title,cat:'social',note:t.notes||''});}else if(drag.type==='tripbrain'){const tb=getTripBrains().find(t=>t.id===drag.tbid);if(tb){evs.push({id:'ev'+Date.now(),day,slot,slots:4,name:tb.title,cat:drag.evcat||'personal',note:tb.notes||''});showToast('✓ Added to planner');}}else if(drag.type==='adlib'&&drag.adname){const newEv={id:'ev'+Date.now(),day,slot,slots:1,name:drag.adname,cat:drag.adcat||'personal',note:''};evs.push(newEv);setEvs(evs);renderEvents();renderBudget();setTimeout(()=>openEvEdit(newEv.id),50);return;}
 else if(drag.type==='routine'){evs.push({id:'ev'+Date.now(),day,slot,slots:1,name:drag.rname,cat:'routine',note:''});}
 else if(drag.type==='checklist-task'){const _d=drag;drag={type:null};const _slotDate=wkDates(wko)[day];const _slotDateStr=_slotDate?_slotDate.toISOString().slice(0,10):'';openCalFromChecklist(_d.taskname,null,_d.dueDate||_slotDateStr);return;}else if(drag.type==='task'){evs.push({id:'ev'+Date.now(),day,slot,slots:1,name:drag.taskname,cat:drag.taskcat,note:''});}setEvs(evs);renderEvents();renderBudget();drag={type:null,lid:null,evid:null,tid:null,oo:false};}
 function mkResize(evId){return function(e){e.preventDefault();e.stopPropagation();let evs=getEvs();const ev=evs.find(e=>e.id===evId);if(!ev)return;const sy=e.clientY,ss=ev.slots;function mm(e){const d=Math.round((e.clientY-sy)/SHP);ev.slots=Math.max(1,Math.min(TOTAL-ev.slot,ss+d));setEvs(evs);renderEvents();renderBudget();}function mu(){document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);}document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);};}
@@ -8088,7 +8088,6 @@ function togTrips(){if(tpActiveView)tpCollapse();else tpSwitch('trips');}
 function renderTrips() {
   const list = document.getElementById('tripsList');
   if (!list) return;
-  // Read from tripBrains (same source as full Plans page)
   const brains = getTripBrains();
   if (!brains.length) {
     list.innerHTML = '<div class="tp-empty">No plans yet.<br>Add one with +</div>';
@@ -8098,37 +8097,48 @@ function renderTrips() {
     holiday:'✈', weekend:'🏡', city:'🏙', daytrip:'🚂', dayout:'🌳',
     attraction:'🏛️', bucketplace:'📍', event:'🎟', social:'🍻', other:'📌',
   };
-  const STATUS = {
-    dream:    { label:'✨ Dream it', color:'#8237bc', bg:'#f3eafa' },
-    planning: { label:'Planning',   color:'#496bb8', bg:'#e8ecf7' },
-    booked:   { label:'Booked ✓',  color:'#2d6b2c', bg:'#e5f4e5' },
-    done:     { label:'Done',       color:'#8a7a5a', bg:'#f0e4c2' },
-  };
+  const GROUPS = [
+    { key:'booked',   label:'Booked ✓',  color:'#2d6b2c', bg:'#e5f4e5', border:'#b5ddb4' },
+    { key:'planning', label:'Planning',   color:'#496bb8', bg:'#e8ecf7', border:'#c0ceee' },
+    { key:'dream',    label:'✨ Dream it', color:'#8237bc', bg:'#f3eafa', border:'#d9bef5' },
+    { key:'done',     label:'Done',       color:'#8a7a5a', bg:'#f0e4c2', border:'#ddd0a8' },
+  ];
   list.innerHTML = '';
-  // Show all except done — order: dream → planning → booked
-  const order = ['dream','planning','booked','done'];
-  const sorted = [...brains].sort((a,b) => {
-    return order.indexOf(a.status||'planning') - order.indexOf(b.status||'planning');
-  });
-  sorted.forEach(t => {
-    const emoji = TB_TYPE_EMOJI[t.type] || '📌';
-    const st = STATUS[t.status || 'planning'];
-    const card = document.createElement('div');
-    card.className = 'tc2';
-    card.innerHTML = `
-      <span class="tc2-emoji">${emoji}</span>
-      <div class="tc2-body">
-        <div class="tc2-top">
-          <span class="tc2-title">${t.title}</span>
-          <span class="tc2-badge" style="background:${st.bg};color:${st.color}">${st.label}</span>
+  GROUPS.forEach(grp => {
+    const items = brains.filter(t => (t.status || 'planning') === grp.key);
+    if (!items.length) return;
+    // Section header
+    const hdr = document.createElement('div');
+    hdr.style.cssText = `font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${grp.color};padding:8px 4px 3px;margin-top:4px;`;
+    hdr.textContent = grp.label + ' (' + items.length + ')';
+    list.appendChild(hdr);
+    items.forEach(t => {
+      const emoji = TB_TYPE_EMOJI[t.type] || '📌';
+      const card = document.createElement('div');
+      card.className = 'tc2';
+      card.draggable = true;
+      card.dataset.tbid = t.id;
+      card.style.cssText = `border-left:3px solid ${grp.border};`;
+      card.innerHTML = `
+        <span class="tc2-emoji">${emoji}</span>
+        <div class="tc2-body">
+          <div class="tc2-top">
+            <span class="tc2-title">${t.title}</span>
+          </div>
+          ${t.dates ? `<div class="tc2-dates">${t.dates}</div>` : ''}
         </div>
-        ${t.dates ? `<div class="tc2-dates">${t.dates}</div>` : ''}
-      </div>
-      <div class="tc2-hover-actions">
-        <button class="tc2-hover-btn" onclick="openGoalModal('trip','${t.id}')">Edit</button>
-        <button class="tc2-hover-btn" onclick="delTripBrain('${t.id}')">×</button>
-      </div>`;
-    list.appendChild(card);
+        <div class="tc2-hover-actions">
+          <button class="tc2-hover-btn" onclick="promoteToPlanner('${t.id}')">+ Plan</button>
+          <button class="tc2-hover-btn" onclick="delTripBrain('${t.id}')">×</button>
+        </div>`;
+      card.addEventListener('dragstart', e => {
+        drag = {type:'tripbrain', tbid:t.id, evname:t.title, evcat: ({'holiday':'travel','weekend':'travel','daytrip':'travel','dayout':'travel','event':'events','social':'socialfamily'}[t.type]||'personal')};
+        e.dataTransfer.effectAllowed = 'copy';
+        card.classList.add('dragging');
+      });
+      card.addEventListener('dragend', () => card.classList.remove('dragging'));
+      list.appendChild(card);
+    });
   });
 }
 function delTrip(id){trips=trips.filter(t=>t.id!==id);sv();renderTrips();renderGoals();}
