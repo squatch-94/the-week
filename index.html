@@ -8118,7 +8118,8 @@ function renderTrips() {
       card.className = 'tc2';
       card.draggable = true;
       card.dataset.tbid = t.id;
-      card.style.cssText = `border-left:3px solid ${grp.border};`;
+      card.style.cssText = `border-left:3px solid ${grp.border};cursor:pointer;`;
+      card.addEventListener('click', e => { if (!e.target.closest('button')) promoteToPlanner(t.id); });
       card.innerHTML = `
         <span class="tc2-emoji">${emoji}</span>
         <div class="tc2-body">
@@ -12361,6 +12362,7 @@ function saveTripBrain() {
   if (idx >= 0) cards[idx] = item; else cards.push(item);
   setTripBrains(cards);
   renderTripBrains();
+  renderTrips(); // keep sidebar in sync
   closeMo('tripBrainMo');
 }
 
@@ -12473,7 +12475,11 @@ function savePlanToPlanner() {
   evs.push({id:'ev'+Date.now(), day:dayIdx, slot, slots, name:card.title, cat, note:card.notes||''});
   wev[wk] = evs;
   sv();
-  renderEvents();
+  // Navigate to the target week so the user sees the event
+  const todayMon = new Date(); const td = todayMon.getDay(); todayMon.setDate(todayMon.getDate() + (td===0?-6:1-td)); todayMon.setHours(0,0,0,0);
+  const targetOffset = Math.round((mon - todayMon) / (7*86400000));
+  wko = targetOffset;
+  renderEvents(); renderGrid(); updateViewButtons();
   closeMo('planToPlnMo');
   showToast('\u2713 Added to planner!');
 }
