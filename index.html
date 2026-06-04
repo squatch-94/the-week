@@ -12432,25 +12432,40 @@ function planToItinerary(planId) {
 function promoteToPlanner(id) {
   const card = getTripBrains().find(c => c.id === id);
   if (!card) return;
-  // Map brainstorm type to trip modal type
-  const tripTypeMap = {holiday:'holiday',weekend:'weekend',daytrip:'daytrip',event:'event',social:'social',other:'other'};
-  const statusMap = {dream:'planning',planning:'planning',booked:'booked',done:'done'};
-  trips.push({
-    id: 'trip' + Date.now(),
-    title: card.title,
-    type: 'trip',
-    tripCat: tripTypeMap[card.type] || 'other',
-    status: statusMap[card.status] || 'planning',
-    date: card.dates || '',
-    notes: card.notes || '',
-  });
+  document.getElementById('planToPlnId').value = id;
+  document.getElementById('planToPlnName').textContent = card.title;
+  // Default to today
+  const today = new Date();
+  document.getElementById('planToPlnDate').value = today.toISOString().slice(0,10);
+  document.getElementById('planToPlnMo').classList.add('open');
+}
+
+function savePlanToPlanner() {
+  const id = document.getElementById('planToPlnId').value;
+  const card = getTripBrains().find(c => c.id === id);
+  if (!card) return;
+  const dateStr = document.getElementById('planToPlnDate').value;
+  if (!dateStr) { alert('Please pick a date'); return; }
+  const slot = parseInt(document.getElementById('planToPlnTime').value);
+  const slots = parseInt(document.getElementById('planToPlnDur').value);
+  // Work out week key and day index from chosen date
+  const d = new Date(dateStr + 'T12:00:00');
+  const dow = d.getDay(); // 0=Sun
+  const dayIdx = dow === 0 ? 6 : dow - 1; // 0=Mon … 6=Sun
+  const diff = dow === 0 ? -6 : 1 - dow;
+  const mon = new Date(d); mon.setDate(d.getDate() + diff);
+  const wk = `${mon.getFullYear()}-${p2(mon.getMonth()+1)}-${p2(mon.getDate())}`;
+  // Category: map plan type to event category
+  const catMap = {holiday:'travel',weekend:'travel',daytrip:'travel',dayout:'travel',tourist:'travel',bucket:'travel',concert:'events',nightout:'socialfamily',other:'personal'};
+  const cat = catMap[card.type] || 'personal';
+  // Add the event
+  const evs = wev[wk] || [];
+  evs.push({id:'ev'+Date.now(), day:dayIdx, slot, slots, name:card.title, cat, note:card.notes||''});
+  wev[wk] = evs;
   sv();
-  renderTrips();
-  // Show confirmation
-  const btn = event.target;
-  const orig = btn.textContent;
-  btn.textContent = '✓ Added!';
-  setTimeout(() => { btn.textContent = orig; }, 1500);
+  renderEvents();
+  closeMo('planToPlnMo');
+  showToast('\u2713 Added to planner!');
 }
 
 
@@ -15429,5 +15444,72 @@ function goMonthToday(){
 }
 
 </script>
+
+<!-- Plan → Planner modal -->
+<div class="mo" id="planToPlnMo">
+  <div class="md" style="max-width:380px;">
+    <h3>Add to Planner</h3>
+    <div id="planToPlnName" style="font-weight:600;margin-bottom:16px;color:var(--header-bg);font-size:15px;"></div>
+    <input type="hidden" id="planToPlnId">
+    <div class="fg"><label>Date</label><input type="date" id="planToPlnDate" class="mo-inp"></div>
+    <div class="fg"><label>Time</label>
+      <select id="planToPlnTime" class="mo-inp">
+        <option value="12">6:00 AM</option>
+        <option value="13">6:30 AM</option>
+        <option value="14">7:00 AM</option>
+        <option value="15">7:30 AM</option>
+        <option value="16">8:00 AM</option>
+        <option value="17">8:30 AM</option>
+        <option value="18" selected>9:00 AM</option>
+        <option value="19">9:30 AM</option>
+        <option value="20">10:00 AM</option>
+        <option value="21">10:30 AM</option>
+        <option value="22">11:00 AM</option>
+        <option value="23">11:30 AM</option>
+        <option value="24">12:00 PM</option>
+        <option value="25">12:30 PM</option>
+        <option value="26">1:00 PM</option>
+        <option value="27">1:30 PM</option>
+        <option value="28">2:00 PM</option>
+        <option value="29">2:30 PM</option>
+        <option value="30">3:00 PM</option>
+        <option value="31">3:30 PM</option>
+        <option value="32">4:00 PM</option>
+        <option value="33">4:30 PM</option>
+        <option value="34">5:00 PM</option>
+        <option value="35">5:30 PM</option>
+        <option value="36">6:00 PM</option>
+        <option value="37">6:30 PM</option>
+        <option value="38">7:00 PM</option>
+        <option value="39">7:30 PM</option>
+        <option value="40">8:00 PM</option>
+        <option value="41">8:30 PM</option>
+        <option value="42">9:00 PM</option>
+        <option value="43">9:30 PM</option>
+        <option value="44">10:00 PM</option>
+        <option value="45">10:30 PM</option>
+        <option value="46">11:00 PM</option>
+        <option value="47">11:30 PM</option>
+        
+      </select>
+    </div>
+    <div class="fg"><label>Duration</label>
+      <select id="planToPlnDur" class="mo-inp">
+        <option value="2">30 min</option>
+        <option value="4" selected>1 hour</option>
+        <option value="6">1.5 hours</option>
+        <option value="8">2 hours</option>
+        <option value="12">3 hours</option>
+        <option value="20">5 hours</option>
+        <option value="24">All day (6hrs)</option>
+      </select>
+    </div>
+    <div class="mo-btns">
+      <button class="btn-cancel" onclick="closeMo('planToPlnMo')">Cancel</button>
+      <button class="btn-save" onclick="savePlanToPlanner()">Add to Planner</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
