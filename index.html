@@ -3518,12 +3518,16 @@ body {
       </div>
       <div class="wl-mo-field">
         <span class="wl-mo-label">Status</span>
-        <select id="wlEditCol" class="mo-inp">
+        <select id="wlEditCol" class="mo-inp" onchange="document.getElementById('wlEditDoneAtGroup').style.display=this.value==='finished'?'flex':'none'">
           <option value="onlist">On The List</option>
           <option value="upnext">Up Next</option>
           <option value="current">Current</option>
           <option value="finished">Finished</option>
         </select>
+      </div>
+      <div class="wl-mo-field" id="wlEditDoneAtGroup" style="display:none;">
+        <span class="wl-mo-label">Month completed</span>
+        <input type="month" id="wlEditDoneAt" class="mo-inp">
       </div>
       <div class="wl-mo-field">
         <span class="wl-mo-label">Rating <span style="opacity:.6;font-weight:400;text-transform:none;">(optional, /10)</span></span>
@@ -3549,6 +3553,9 @@ body {
     <div class="fg"><label>Rating</label>
       <div id="wlRatingStars" style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;"></div>
       <div id="wlRatingReadout" style="font-size:11px;color:var(--text-faint);margin-top:4px;">Not rated</div>
+    </div>
+    <div class="fg"><label>Month completed</label>
+      <input type="month" id="wlRatingMonth" class="mo-inp">
     </div>
     <div class="fg"><label>Thoughts <span style="font-weight:400;color:var(--text-faint)">(optional)</span></label>
       <textarea id="wlRatingThoughts" class="mo-inp" rows="2" style="resize:vertical;" placeholder="What stayed with you?"></textarea>
@@ -5988,6 +5995,8 @@ function handleJsonImport(input){
       let imported = JSON.parse(e.target.result);
       // Handle Supabase row dump format: [{id:'sasha', data:{...}, updated_at:'...'}]
       if(Array.isArray(imported) && imported[0]?.data) imported = imported[0].data;
+      // Extract watchlist BEFORE reassigning imported (it lives at top level of downloadBackup format)
+      const _importedWatchlist = Array.isArray(imported.watchlist) ? imported.watchlist : null;
       // Also handle the downloadBackup() format: {version, planner_data:{...}, ...}
       if(imported.planner_data && !imported.wev) imported = imported.planner_data;
       // Validate it looks like The Week data
@@ -6003,6 +6012,10 @@ function handleJsonImport(input){
       fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {method:'POST',headers:{...H,Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:SUPA_ROW,data:imported,updated_at:_importTs2})}).catch(()=>{});
       applyState(imported);
       renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();
+      // Restore watchlist to Supabase if present in backup
+      if(_importedWatchlist&&_importedWatchlist.length&&typeof window.wlRestoreFromBackup==='function'){
+        window.wlRestoreFromBackup(_importedWatchlist);
+      }
       showToast('✓ Data restored from backup');
     } catch(err) {
       showToast('❌ Could not parse file — is it a valid JSON backup?');
@@ -9026,6 +9039,14 @@ function wlOpenEdit(id){
   document.getElementById('wlEditNote').value=item.note||'';
   document.getElementById('wlEditThoughts').value=item.thoughts||'';
   document.getElementById('wlEditCol').value=item.col||'onlist';
+  const doneAtGroup=document.getElementById('wlEditDoneAtGroup');
+  const doneAtInp=document.getElementById('wlEditDoneAt');
+  if(doneAtGroup&&doneAtInp){
+    const isFinished=(item.col||'onlist')==='finished';
+    doneAtGroup.style.display=isFinished?'flex':'none';
+    if(item.doneAt){const d=new Date(item.doneAt);doneAtInp.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+    else doneAtInp.value=isFinished?`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`:'';
+  }
   // Category picker
   document.querySelectorAll('#wlEditCatPicker .wl-sub-opt').forEach(b=>b.classList.toggle('selected',b.dataset.val===wlEditCat));
   // Show/hide sub-fields
@@ -9094,8 +9115,11 @@ async function wlSubmitEdit(){
   wlData[id].col=newCol;
   const ratingVal=parseInt(document.getElementById('wlEditRating')?.value)||0;
   if(ratingVal>0)wlData[id].rating=ratingVal;
-  if(newCol==='finished'&&oldCol!=='finished'&&!wlData[id].doneAt)wlData[id].doneAt=new Date().toISOString();
-  if(newCol!=='finished')wlData[id].doneAt=null;
+  if(newCol==='finished'){
+    const editMonthVal=document.getElementById('wlEditDoneAt')?.value;
+    if(editMonthVal)wlData[id].doneAt=new Date(editMonthVal+'-01T12:00:00.000Z').toISOString();
+    else if(!wlData[id].doneAt)wlData[id].doneAt=new Date().toISOString();
+  }else{wlData[id].doneAt=null;}
   closeMo('wlEditMo');wlRender();await wlSave(id);
 }
 
@@ -9106,6 +9130,8 @@ function wlOpenRating(id){
   document.getElementById('wlRatingTitle').textContent=wlData[id]?.title||'';
   document.getElementById('wlRatingThoughts').value=wlData[id]?.thoughts||'';
   wlBuildStars('wlRatingStars',wlCurrentRating,'wlRatingVal');
+  const d=wlData[id]?.doneAt?new Date(wlData[id].doneAt):new Date();
+  document.getElementById('wlRatingMonth').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('wlRatingMo').classList.add('open');
 }
 
@@ -9115,6 +9141,8 @@ async function wlSubmitRating(){
   if(rating>0)wlData[id].rating=rating;
   const thoughts=document.getElementById('wlRatingThoughts').value.trim();
   if(thoughts)wlData[id].thoughts=thoughts;
+  const monthVal=document.getElementById('wlRatingMonth')?.value;
+  if(monthVal)wlData[id].doneAt=new Date(monthVal+'-01T12:00:00.000Z').toISOString();
   closeMo('wlRatingMo');wlRender();await wlSave(id);
 }
 
@@ -9137,14 +9165,22 @@ function wlAddToPlanner(id){
   toast('Added to planner: '+item.title);
 }
 
-// ── EXPORT CSV ──
+// ── EXPORT CSV (full backup format — importable via ⬆ CSV) ──
 function wlExportCSV(){
-  const items=wlVisible();
-  const headers=['Title','Category','Status','Meta','Rating','Note','Thoughts','Done At'];
-  const rows=items.map(i=>[i.title,i.cat,WL_COL_LABELS[i.col]||i.col,i.meta||'',i.rating||'',i.note||'',i.thoughts||'',i.doneAt||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const items=Object.values(wlData); // all items, not just visible
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const headers=['id','col','cat','title','meta','note','rating','thoughts','book_type','format','film_type','tv_type','stage_type','stage_format','custom','done_at','created_at'];
+  const rows=items.map(i=>[
+    q(i.id),q(i.col),q(i.cat),q(i.title),q(i.meta||''),q(i.note||''),
+    q(i.rating!=null?i.rating:''),q(i.thoughts||''),
+    q(i.bookType||''),q(i.format||''),q(i.filmType||''),q(i.tvType||''),
+    q(i.stageType||''),q(i.stageFormat||''),
+    q(i.custom?'TRUE':'FALSE'),q(i.doneAt||''),q(i.createdAt||'')
+  ].join(','));
   const csv=[headers.join(','),...rows].join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='the-list-export.csv';a.click();
+  const date=new Date().toISOString().slice(0,10);
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`the-list-backup-${date}.csv`;a.click();
 }
 
 // ── IMPORT CSV ──
@@ -9232,6 +9268,23 @@ window.wlSetView=wlSetView;window.wlSetCat=wlSetCat;window.wlSetCol=wlSetCol;
 window.wlOpenAddModal=wlOpenAddModal;window.wlOpenUrlModal=wlOpenUrlModal;
 window.wlOpenEdit=wlOpenEdit;window.wlConfirmDelete=wlConfirmDelete;
 window.wlAddToPlanner=wlAddToPlanner;window.wlExportCSV=wlExportCSV;window.wlImportCSV=wlImportCSV;
+window.wlRestoreFromBackup=async function(items){
+  if(!Array.isArray(items)||!items.length)return;
+  const BATCH=50;
+  for(let i=0;i<items.length;i+=BATCH){
+    const batch=items.slice(i,i+BATCH).map(item=>({
+      id:item.id,col:item.col||'onlist',cat:item.cat||'Film',title:item.title,
+      meta:item.meta||null,note:item.note||null,rating:item.rating||null,
+      thoughts:item.thoughts||null,book_type:item.bookType||null,format:item.format||null,
+      film_type:item.filmType||null,tv_type:item.tvType||null,stage_type:item.stageType||null,
+      stage_format:item.stageFormat||null,custom:item.custom||false,done_at:item.doneAt||null,
+    }));
+    await fetch(`${WL_URL}/rest/v1/${WL_TABLE}`,{method:'POST',
+      headers:{...WL_H,Prefer:'resolution=merge-duplicates'},
+      body:JSON.stringify(batch)}).catch(()=>{});
+  }
+  wlLoaded=false;wlLoad();
+};
 window.wlSubmitAdd=wlSubmitAdd;window.wlQaSearch=wlQaSearch;window.wlQaPick=wlQaPick;window.wlQaSubmit=wlQaSubmit;
 window.wlSubmitEdit=wlSubmitEdit;window.wlSubmitRating=wlSubmitRating;
 window.wlPickCat=wlPickCat;window.wlPickSub=wlPickSub;window.wlQaFetchAndPopulate=wlQaFetchAndPopulate;window.wlQaPopulateForm=wlQaPopulateForm;
