@@ -5440,7 +5440,7 @@ async function downloadBackup(){
     planner_data: plannerData,
     relo_tasks: reloData,
     budget_transactions: budgetData,
-    watchlist: (typeof wlData !== 'undefined' ? Object.values(wlData) : []),
+    watchlist: (typeof window.wlFetchForBackup==='function' ? await window.wlFetchForBackup() : Object.values(wlData||{})),
     local_extras: extras,
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
@@ -9268,6 +9268,23 @@ window.wlSetView=wlSetView;window.wlSetCat=wlSetCat;window.wlSetCol=wlSetCol;
 window.wlOpenAddModal=wlOpenAddModal;window.wlOpenUrlModal=wlOpenUrlModal;
 window.wlOpenEdit=wlOpenEdit;window.wlConfirmDelete=wlConfirmDelete;
 window.wlAddToPlanner=wlAddToPlanner;window.wlExportCSV=wlExportCSV;window.wlImportCSV=wlImportCSV;
+// Fetch ALL WL items directly from Supabase for backup — bypasses lazy-load so
+// the backup is complete even if the List tab was never visited this session.
+window.wlFetchForBackup=async function(){
+  try{
+    const res=await fetch(`${WL_URL}/rest/v1/${WL_TABLE}?select=*`,{
+      headers:{apikey:WL_KEY,Authorization:'Bearer '+WL_KEY}});
+    if(!res.ok)return Object.values(wlData);
+    const rows=await res.json();
+    return rows.map(r=>({
+      id:r.id,col:r.col,cat:r.cat,title:r.title,meta:r.meta,note:r.note,
+      rating:r.rating,thoughts:r.thoughts,bookType:r.book_type,format:r.format,
+      filmType:r.film_type,tvType:r.tv_type,stageType:r.stage_type,
+      stageFormat:r.stage_format,custom:r.custom,doneAt:r.done_at,
+      createdAt:r.created_at
+    }));
+  }catch(e){return Object.values(wlData);}
+};
 window.wlRestoreFromBackup=async function(items){
   if(!Array.isArray(items)||!items.length)return;
   const BATCH=50;
