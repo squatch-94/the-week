@@ -4637,7 +4637,20 @@ function svBeacon() {
   } catch(e) {}
 }
 
-window.addEventListener('beforeunload', () => { clearTimeout(svTimer); svBeacon(); svFlush(); });
+window.addEventListener('beforeunload', (e) => {
+  clearTimeout(svTimer);
+  svBeacon();
+  svFlush();
+  // Warn before leaving if a Supabase write is still pending. The keepalive flush
+  // above can silently fail once the payload exceeds the browser's ~64KB keepalive
+  // body limit, so this is the real safety net against losing an edit to an
+  // accidental refresh/close.
+  if (svPending) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
+});
 window.addEventListener('pagehide', () => { svBeacon(); });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') { svBeacon(); svFlush(); }
@@ -5461,14 +5474,27 @@ const _BKP_KEY     = 'backupDir';
 const _BKP_SLOTS   = 'stw-backup-slots';
 
 function _bkpSlot() {
-  const h = new Date().getHours();
-  return h < 12 ? 'AM' : h < 18 ? 'MIDDAY' : 'PM';
+  // 30-min backup slots, only between 8am and 11pm. Returns null outside that
+  // window so _bkpRun() skips entirely (no file written).
+  const now = new Date();
+  const h = now.getHours();
+  if (h < 8 || h >= 23) return null;
+  const m = now.getMinutes() < 30 ? '00' : '30';
+  return String(h).padStart(2,'0') + m;
+}
+function _bkpSlotOrNow() {
+  // Like _bkpSlot() but never returns null — used for the manual "set folder"
+  // write so it always succeeds even outside the scheduled window.
+  const s = _bkpSlot();
+  if (s) return s;
+  const now = new Date();
+  return String(now.getHours()).padStart(2,'0') + (now.getMinutes() < 30 ? '00' : '30');
 }
 function _bkpDateStr(d) {
   const dd = d || new Date();
   return dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
 }
-function _bkpSlotKey() { return _bkpDateStr() + '_' + _bkpSlot(); }
+function _bkpSlotKey() { const s = _bkpSlot(); return s ? (_bkpDateStr() + '_' + s) : null; }
 
 function _bkpOpenDB() {
   return new Promise((res, rej) => {
@@ -5504,14 +5530,17 @@ function _bkpSlotsLog() {
   try { return JSON.parse(localStorage.getItem(_BKP_SLOTS) || '{}'); } catch(e) { return {}; }
 }
 function _bkpMarkSlot() {
+  const key = _bkpSlotKey();
+  if (!key) return;
   const log = _bkpSlotsLog();
-  log[_bkpSlotKey()] = new Date().toISOString();
-  // Keep only the last 12 entries (4 days × 3 slots)
+  log[key] = new Date().toISOString();
+  // Keep roughly the last 3 days (8am-11pm = 30 half-hour slots/day, plus buffer)
   const keys = Object.keys(log).sort();
-  if (keys.length > 12) keys.slice(0, keys.length - 12).forEach(k => delete log[k]);
+  const KEEP = 30 * 3 + 10;
+  if (keys.length > KEEP) keys.slice(0, keys.length - KEEP).forEach(k => delete log[k]);
   try { localStorage.setItem(_BKP_SLOTS, JSON.stringify(log)); } catch(e) {}
 }
-function _bkpIsDue() { return !_bkpSlotsLog()[_bkpSlotKey()]; }
+function _bkpIsDue() { const key = _bkpSlotKey(); return !!key && !_bkpSlotsLog()[key]; }
 
 function _bkpBuildJson() {
   return JSON.stringify({
@@ -5533,11 +5562,12 @@ async function _bkpWriteFile(dirHandle, name, content) {
 }
 async function _bkpCleanOld(dirHandle) {
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 2);
+  cutoff.setDate(cutoff.getDate() - 3);
   const cutStr = _bkpDateStr(cutoff);
   try {
     for await (const [name] of dirHandle.entries()) {
-      const m = name.match(/^TheWeek_(\d{4}-\d{2}-\d{2})_(AM|MIDDAY|PM)\.json$/);
+      // Matches both the new HHmm slot filenames and any leftover legacy AM/MIDDAY/PM ones
+      const m = name.match(/^TheWeek_(\d{4}-\d{2}-\d{2})_(AM|MIDDAY|PM|\d{4})\.json$/);
       if (m && m[1] < cutStr) { try { await dirHandle.removeEntry(name); } catch(e) {} }
     }
   } catch(e) {}
@@ -5574,10 +5604,10 @@ async function bkpPickFolder() {
   try {
     const handle = await window.showDirectoryPicker({mode: 'readwrite', id: 'stw-backup'});
     await _bkpStoreHandle(handle);
-    // Write immediately so the user sees it worked
-    const fname = 'TheWeek_' + _bkpDateStr() + '_' + _bkpSlot() + '.json';
+    // Write immediately so the user sees it worked (always, even outside the 8am-11pm window)
+    const fname = 'TheWeek_' + _bkpDateStr() + '_' + _bkpSlotOrNow() + '.json';
     await _bkpWriteFile(handle, fname, _bkpBuildJson());
-    _bkpMarkSlot();
+    if (_bkpSlot()) _bkpMarkSlot();
     _bkpSetStatus('📁 Folder set — backup saved now');
     closeHdrMenu();
   } catch(e) {
