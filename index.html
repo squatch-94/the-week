@@ -260,6 +260,13 @@
   .tc2-edit:hover{color:var(--text);}
   .tc2-hint{display:none;}
   .tp-empty{color:var(--text-faint);font-size:11px;text-align:center;padding:20px 6px;line-height:1.6;}
+  .tp-trip-section{display:flex;flex-direction:column;gap:6px;}
+  .tp-trip-section-hdr{display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 2px;user-select:none;}
+  .tp-trip-section-arrow{font-size:9px;color:var(--text-faint);width:10px;flex-shrink:0;}
+  .tp-trip-section-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);flex:1;}
+  .tp-trip-section-body{display:flex;flex-direction:column;gap:6px;}
+  .tc2-move-select{font-size:9px;padding:2px 3px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--text-muted);font-family:inherit;max-width:70px;}
+  .tc2-move-select:hover{background:var(--header-bg);color:white;border-color:var(--header-bg);}
   .mo{display:none;position:fixed;inset:0;background:rgba(42,34,24,.35);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
   .mo.open{display:flex;}
   .md{background:var(--surface);border-radius:14px;padding:24px;width:min(96vw,560px);box-shadow:0 8px 40px var(--shadow-md);border:1px solid var(--border);max-height:90vh;overflow-y:auto;}
@@ -4923,6 +4930,7 @@ const S = (() => { try { const s = localStorage.getItem('stw-v7'); return s ? JS
 let lib=S?.lib||[...DEF],oo=S?.oo||[],wev=S?.wev||{},adev=S?.adev||{},goals=S?.goals||[],trips=S?.trips||[],tpls=S?.tpls||[],ints=S?.ints||{},tpo=S?.tpo!==undefined?S.tpo:true;
 let wko=0,applyDay=null,wxc={},plannerCatFilter=new Set(),_hideTimelabels=false;
 const p2=n=>String(n).padStart(2,'0');
+const fmtHourAmPm=h=>{const h12=h%12===0?12:h%12;const ap=h<12?'AM':'PM';return`${h12} ${ap}`;};
 function wkKey(o=wko){const d=wkStart(o);return`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;}
 function getEvs(){return wev[wkKey()]||[];}
 function setEvs(e){wev[wkKey()]=e;sv();setTimeout(()=>dlAutoSync(-1),100);}
@@ -4985,6 +4993,10 @@ function openAdModal(){
 let adPickedDay=null;
 function pickAdDay(idx,btn){adPickedDay=idx;document.querySelectorAll('#adDayPick .dp-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
 function wkStart(o=0){const n=new Date(),d=n.getDay(),diff=d===0?-6:1-d,m=new Date(n);m.setDate(n.getDate()+diff+o*7);m.setHours(0,0,0,0);return m;}
+// Monday of the week containing an arbitrary date (not relative to today — used by
+// Month view so it doesn't rely on rounding a fractional week offset from today's week,
+// which was the cause of events showing up on the wrong date/week in Month view).
+function mondayOf(date){const d=new Date(date),dow=d.getDay(),diff=dow===0?-6:1-dow;d.setDate(d.getDate()+diff);d.setHours(0,0,0,0);return d;}
 function wkDates(o=0){const s=wkStart(o);return Array.from({length:7},(_,i)=>{const d=new Date(s);d.setDate(s.getDate()+i);return d;});}
 // Navigate the planner to the week containing a given date string (YYYY-MM-DD)
 function goToPlannerDate(dateStr){
@@ -4992,8 +5004,9 @@ function goToPlannerDate(dateStr){
   const target=new Date(dateStr+'T12:00:00');
   if(isNaN(target))return;
   const thisWeekStart=wkStart(0);
+  const targetWeekStart=mondayOf(target);
   const msPerWeek=7*24*60*60*1000;
-  const offset=Math.round((target-thisWeekStart)/msPerWeek);
+  const offset=Math.round((targetWeekStart-thisWeekStart)/msPerWeek);
   wko=offset;
   showPage('planner');
   setTimeout(()=>{renderGrid();renderBudget();},50);
@@ -5941,6 +5954,24 @@ function handleJsonImport(input){
   input.value = '';
 }
 // ── BUCKETS PANEL ──
+function tpBucketToggleById(bucketId,itemId,checked){
+  const buckets=getBuckets();
+  const bi=buckets.findIndex(b=>b.id===bucketId);
+  if(bi===-1)return;
+  const ii=buckets[bi].items.findIndex(it=>it.id===itemId);
+  if(ii===-1)return;
+  toggleBucketItem(bi,ii,checked);
+  renderTpBuckets();
+}
+function tpBucketEditById(bucketId,itemId){
+  const buckets=getBuckets();
+  const bi=buckets.findIndex(b=>b.id===bucketId);
+  if(bi===-1)return;
+  const ii=buckets[bi].items.findIndex(it=>it.id===itemId);
+  if(ii===-1)return;
+  renameBucketItem(bi,ii);
+  renderTpBuckets();
+}
 function renderTpBuckets(){
   const el=document.getElementById('tpBucketsList');
   if(!el)return;
@@ -5965,17 +5996,29 @@ function renderTpBuckets(){
         div.className='tc2';
         div.style.cssText='border-left:3px solid #8d0e3f;padding-left:9px;margin-left:-10px;position:relative;';
         div.draggable=true;
-        div.innerHTML='<div class="tc2-title">'+item.text+'</div><div class="tc2-foot"></div>';
+        const _cb=document.createElement('input');
+        _cb.type='checkbox';_cb.className='mc-cb';
+        _cb.title='Mark complete';
+        _cb.onchange=e=>tpBucketToggleById(bucket.id,item.id,e.target.checked);
+        div.appendChild(_cb);
+        const _body=document.createElement('div');
+        _body.className='tc2-body';
+        _body.innerHTML='<div class="tc2-title">'+item.text+'</div><div class="tc2-foot"></div>';
+        div.appendChild(_body);
         const _bHover=document.createElement('div');
         _bHover.className='tc2-hover-actions';
+        const _bEditBtn=document.createElement('button');
+        _bEditBtn.className='tc2-hover-btn';_bEditBtn.textContent='Edit';
+        _bEditBtn.onclick=()=>tpBucketEditById(bucket.id,item.id);
         const _bCalBtn=document.createElement('button');
         _bCalBtn.className='tc2-hover-btn';_bCalBtn.textContent='→ Cal';
         _bCalBtn.onclick=()=>openCalFromChecklist(item.text,null,'');
         const _bTripBtn=document.createElement('button');
         _bTripBtn.className='tc2-hover-btn';_bTripBtn.textContent='+ Plan';
         _bTripBtn.onclick=()=>addBucketItemToTrip(item.text);
-        _bHover.appendChild(_bCalBtn);_bHover.appendChild(_bTripBtn);
+        _bHover.appendChild(_bEditBtn);_bHover.appendChild(_bCalBtn);_bHover.appendChild(_bTripBtn);
         div.appendChild(_bHover);
+        div.addEventListener('dblclick',e=>{if(e.target.closest('.tc2-hover-btn')||e.target.closest('.mc-cb'))return;tpBucketEditById(bucket.id,item.id);});
         div.addEventListener('dragstart',e=>{
           drag={type:'adlib',lid:null,evid:null,tid:null,oo:false,adname:item.text,adcat:'personal'};
           e.dataTransfer.effectAllowed='copy';
@@ -7856,7 +7899,7 @@ amCell.addEventListener('drop',e=>{e.preventDefault();amCell.classList.remove('d
 tbl.appendChild(amCell);});
 }
 // Time slots
-for(let s=0;s<TOTAL;s++){const hour=SH+Math.floor(s/SPH),min=(s%SPH)*30,isHr=min===0;const tc=document.createElement('div');tc.className='tc'+(isHr?' hr':'');tc.textContent=isHr?`${p2(hour)}:00`:'';tbl.appendChild(tc);viewDays.forEach(d=>{const slot=document.createElement('div');slot.className='slot'+(isHr?' ht':'')+(d>=5?' weekend':'');slot.dataset.day=d;slot.dataset.slot=s;slot.addEventListener('dragover',onSOver);slot.addEventListener('dragleave',onSLeave);slot.addEventListener('drop',onSDrop);slot.addEventListener('click',()=>{if(isMobile()){if(feelingsLayerActive)openFeelingAdd(d,s);else openMobileAddSheet(d,s);}});
+for(let s=0;s<TOTAL;s++){const hour=SH+Math.floor(s/SPH),min=(s%SPH)*30,isHr=min===0;const tc=document.createElement('div');tc.className='tc'+(isHr?' hr':'');tc.textContent=isHr?fmtHourAmPm(hour):'';tbl.appendChild(tc);viewDays.forEach(d=>{const slot=document.createElement('div');slot.className='slot'+(isHr?' ht':'')+(d>=5?' weekend':'');slot.dataset.day=d;slot.dataset.slot=s;slot.addEventListener('dragover',onSOver);slot.addEventListener('dragleave',onSLeave);slot.addEventListener('drop',onSDrop);slot.addEventListener('click',()=>{if(isMobile()){if(feelingsLayerActive)openFeelingAdd(d,s);else openMobileAddSheet(d,s);}});
 slot.addEventListener('dblclick',()=>{if(!isMobile()){if(feelingsLayerActive)openFeelingAdd(d,s);else openSlotAdd(d,s);}});tbl.appendChild(slot);})}renderEvents();renderAdRow();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderBriefingRow();renderDailyLogRow();applyRowVisibility();}
 function renderEvents(){document.querySelectorAll('.gev').forEach(e=>e.remove());
   let evs = getEvs();
@@ -8139,6 +8182,41 @@ function tpCollapse() {
 }
 // Legacy alias kept for applyState
 function togTrips(){if(tpActiveView)tpCollapse();else tpSwitch('trips');}
+const TRIP_CATS = {
+  holiday:     { label:'Holiday', emoji:'✈', color:'#2d77ea' },
+  weekend:     { label:'Weekend Away', emoji:'🏡', color:'#5dac5b' },
+  daytrip:     { label:'Day Trip', emoji:'🚂', color:'#179e9a' },
+  dayout:      { label:'Day Out', emoji:'🌳', color:'#3a9e5c' },
+  attraction:  { label:'Tourist Attraction', emoji:'🏛️', color:'#9b59b6' },
+  bucketplace: { label:'Bucketlist Place', emoji:'📍', color:'#e67e22' },
+  event:       { label:'Concert / Event', emoji:'🎟', color:'#da2266' },
+  social:      { label:'Night Out', emoji:'🍻', color:'#fb7c23' },
+  other:       { label:'Other', emoji:'📌', color:'#8a7a5a' },
+};
+const TRIP_STATUS_ORDER = ['planning','booked','done'];
+const TRIP_STATUS = {
+  planning: { label:'Planning', color:'#496bb8', bg:'#e8ecf7' },
+  booked:   { label:'Booked ✓', color:'#2d6b2c', bg:'#e5f4e5' },
+  done:     { label:'Done', color:'#8a7a5a', bg:'#f0e4c2' },
+};
+function getTripsSidebarCollapse(){
+  try { return JSON.parse(localStorage.getItem('tripsSidebarCollapse') || '{}'); } catch(e){ return {}; }
+}
+function toggleTripsSidebarSection(statusKey){
+  const c = getTripsSidebarCollapse();
+  c[statusKey] = !c[statusKey];
+  localStorage.setItem('tripsSidebarCollapse', JSON.stringify(c));
+  renderTrips();
+}
+function moveTripStatus(id, status){
+  if (!status) return;
+  const t = trips.find(x => x.id === id);
+  if (!t) return;
+  t.status = status;
+  sv();
+  renderTrips();
+  renderGoals();
+}
 function renderTrips() {
   const list = document.getElementById('tripsList');
   if (!list) return;
@@ -8146,31 +8224,15 @@ function renderTrips() {
     list.innerHTML = '<div class="tp-empty">No plans yet.<br>Add one with +<br><br><span style="font-size:10px">Drag a plan onto the grid</span></div>';
     return;
   }
-  const TRIP_CATS = {
-    holiday:     { label:'Holiday', emoji:'✈', color:'#2d77ea' },
-    weekend:     { label:'Weekend Away', emoji:'🏡', color:'#5dac5b' },
-    daytrip:     { label:'Day Trip', emoji:'🚂', color:'#179e9a' },
-    dayout:      { label:'Day Out', emoji:'🌳', color:'#3a9e5c' },
-    attraction:  { label:'Tourist Attraction', emoji:'🏛️', color:'#9b59b6' },
-    bucketplace: { label:'Bucketlist Place', emoji:'📍', color:'#e67e22' },
-    event:       { label:'Concert / Event', emoji:'🎟', color:'#da2266' },
-    social:      { label:'Night Out', emoji:'🍻', color:'#fb7c23' },
-    other:       { label:'Other', emoji:'📌', color:'#8a7a5a' },
-  };
-  const STATUS = {
-    planning: { label:'Planning', color:'#496bb8', bg:'#e8ecf7' },
-    booked:   { label:'Booked ✓', color:'#2d6b2c', bg:'#e5f4e5' },
-    done:     { label:'Done', color:'#8a7a5a', bg:'#f0e4c2' },
-  };
-  list.innerHTML = '';
-  trips.forEach(t => {
+  const collapsed = getTripsSidebarCollapse();
+  const cardHtml = t => {
     const tc = TRIP_CATS[t.tripCat || 'holiday'];
-    const st = STATUS[t.status || 'planning'];
-    const card = document.createElement('div');
-    card.className = 'tc2';
-    card.draggable = true;
-    card.dataset.tid = t.id;
-    card.innerHTML = `
+    const stKey = t.status || 'planning';
+    const st = TRIP_STATUS[stKey];
+    const moveOptions = TRIP_STATUS_ORDER.filter(s => s !== stKey)
+      .map(s => `<option value="${s}">${TRIP_STATUS[s].label}</option>`).join('');
+    return `
+    <div class="tc2" draggable="true" data-tid="${t.id}">
       <span class="tc2-emoji">${tc.emoji}</span>
       <div class="tc2-body">
         <div class="tc2-top">
@@ -8180,13 +8242,35 @@ function renderTrips() {
         ${t.date ? `<div class="tc2-dates">${t.date}</div>` : ''}
       </div>
       <div class="tc2-hover-actions">
+        <select class="tc2-move-select" title="Move to…" onchange="moveTripStatus('${t.id}', this.value); this.selectedIndex=0;">
+          <option value="" selected disabled>Move to…</option>
+          ${moveOptions}
+        </select>
         <button class="tc2-hover-btn" onclick="exportTripICS('${t.id}')">→ Cal</button>
         <button class="tc2-hover-btn" onclick="openGoalModal('trip','${t.id}')">Edit</button>
         <button class="tc2-hover-btn" onclick="delTrip('${t.id}')">×</button>
+      </div>
+    </div>`;
+  };
+  list.innerHTML = TRIP_STATUS_ORDER.map(statusKey => {
+    const items = trips.filter(t => (t.status || 'planning') === statusKey);
+    const isCollapsed = !!collapsed[statusKey];
+    return `
+      <div class="tp-trip-section">
+        <div class="tp-trip-section-hdr" onclick="toggleTripsSidebarSection('${statusKey}')">
+          <span class="tp-trip-section-arrow">${isCollapsed ? '▸' : '▾'}</span>
+          <span class="tp-trip-section-lbl">${TRIP_STATUS[statusKey].label}</span>
+          <span class="list-col-count">${items.length}</span>
+        </div>
+        <div class="tp-trip-section-body" style="display:${isCollapsed ? 'none' : 'flex'};">
+          ${items.length ? items.map(cardHtml).join('') : '<div class="tp-empty" style="padding:8px 4px;">Nothing here</div>'}
+        </div>
       </div>`;
-    card.addEventListener('dblclick', e => { if(e.target.closest('.tc2-hover-btn'))return; openGoalModal('trip', t.id); });
+  }).join('');
+  list.querySelectorAll('.tc2').forEach(card => {
+    const id = card.dataset.tid;
+    card.addEventListener('dblclick', e => { if(e.target.closest('.tc2-hover-btn')||e.target.closest('.tc2-move-select'))return; openGoalModal('trip', id); });
     card.addEventListener('dragstart', onTDrag);
-    list.appendChild(card);
   });
 }
 function delTrip(id){trips=trips.filter(t=>t.id!==id);sv();renderTrips();renderGoals();}
@@ -9448,11 +9532,27 @@ function togLib() {
 // ── RIGHT PANEL SECTION COLLAPSE ──
 const tpSecState = {};
 // ── TP PANEL RENDER FUNCTIONS ──
+function toggleChecklistItemById(kind, id, checked){
+  const items = kind==='mc' ? getMcItems() : getAcItems();
+  const idx = items.findIndex(x=>x.id===id);
+  if(idx===-1) return;
+  if(kind==='mc') toggleMcItem(idx, checked); else toggleAcItem(idx, checked);
+  renderTpChecklist();
+}
+function toggleTpQcOcc(itemId, occId, checked){
+  const items = getQcItemsMigrated ? getQcItemsMigrated() : getQcItems();
+  const i = items.findIndex(x=>x.id===itemId);
+  if(i===-1) return;
+  const j = (items[i].occurrences||[]).findIndex(o=>o.id===occId);
+  if(j===-1) return;
+  toggleQcOcc(i, j, checked);
+  renderTpChecklist();
+}
 function renderTpChecklist(){
   const el=document.getElementById('tpChecklistContent');
   if(!el) return;
   el.innerHTML='';
-  function makeSection(title, items, dragType){
+  function makeSection(title, items, kind){
     if(!items.length) return;
     const sec=document.createElement('div');
     sec.style.marginBottom='10px';
@@ -9467,7 +9567,15 @@ function renderTpChecklist(){
       div.className='tc2';
       div.draggable=true;
       const _dueStr=item.dueDate?'<div style="font-size:9px;color:var(--text-muted);margin-top:1px;">Due: '+new Date(item.dueDate+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'})+'</div>':'';
-      div.innerHTML='<div class="tc2-title">'+item.text+'</div>'+_dueStr+'<div class="tc2-foot"></div>';
+      const _cb=document.createElement('input');
+      _cb.type='checkbox';_cb.className='mc-cb';
+      _cb.title='Mark complete';
+      _cb.onchange=e=>toggleChecklistItemById(kind,item.id,e.target.checked);
+      div.appendChild(_cb);
+      const _body=document.createElement('div');
+      _body.className='tc2-body';
+      _body.innerHTML='<div class="tc2-title">'+item.text+'</div>'+_dueStr+'<div class="tc2-foot"></div>';
+      div.appendChild(_body);
       const _clHover=document.createElement('div');
       _clHover.className='tc2-hover-actions';
       const _clCalBtn=document.createElement('button');
@@ -9495,7 +9603,7 @@ function renderTpChecklist(){
     el.appendChild(sec);
   }
   const now=new Date();
-  makeSection('Monthly — '+now.toLocaleDateString('en-GB',{month:'long',year:'numeric'}), getMcItems());
+  makeSection('Monthly — '+now.toLocaleDateString('en-GB',{month:'long',year:'numeric'}), getMcItems(), 'mc');
   // Show recurring items sorted by nearest upcoming due date
 (()=>{
   const items = getQcItemsMigrated ? getQcItemsMigrated() : getQcItems();
@@ -9509,11 +9617,20 @@ function renderTpChecklist(){
   const today=new Date();today.setHours(0,0,0,0);
   items.forEach(item=>{
     const upcomingOcc=(item.occurrences||[]).filter(o=>!o.done).sort((a,b)=>a.nextDue.localeCompare(b.nextDue))[0];
+    if(!upcomingOcc) return;
     const div=document.createElement('div');
     div.className='tc2';
     div.draggable=true;
     const dueStr=upcomingOcc?.nextDue?'<div style="font-size:9px;color:var(--text-muted);margin-top:1px;">Due: '+new Date(upcomingOcc.nextDue+'T12:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'})+'</div>':'';
-    div.innerHTML='<div class="tc2-title">'+item.text+'</div>'+dueStr+'<div class="tc2-foot"></div>';
+    const _cb=document.createElement('input');
+    _cb.type='checkbox';_cb.className='mc-cb';
+    _cb.title='Mark complete';
+    _cb.onchange=e=>toggleTpQcOcc(item.id,upcomingOcc.id,e.target.checked);
+    div.appendChild(_cb);
+    const _body=document.createElement('div');
+    _body.className='tc2-body';
+    _body.innerHTML='<div class="tc2-title">'+item.text+'</div>'+dueStr+'<div class="tc2-foot"></div>';
+    div.appendChild(_body);
     const _hover=document.createElement('div');
     _hover.className='tc2-hover-actions';
     const _calBtn=document.createElement('button');_calBtn.className='tc2-hover-btn';_calBtn.textContent='→ Cal';
@@ -9527,7 +9644,7 @@ function renderTpChecklist(){
   });
   el.appendChild(sec);
 })();
-  makeSection('Annual — '+now.getFullYear(), getAcItems());
+  makeSection('Annual — '+now.getFullYear(), getAcItems(), 'ac');
   if(!getMcItems().length&&!getQcItems().length&&!getAcItems().length){
     el.innerHTML='<div style="font-size:11px;color:var(--text-faint);font-style:italic;padding:8px 4px;">No checklist items yet.</div>';
   }
@@ -14841,10 +14958,7 @@ function generateMonthMatrix(offset){
   return cells;
 }
 function getMonthEventsForDate(date){
-  const thisMonStart=wkStart(0);
-  const msPerWeek=7*24*60*60*1000;
-  const offset=Math.round((date-thisMonStart)/msPerWeek);
-  const wk=wkStart(offset);
+  const wk=mondayOf(date);
   const wkK=`${wk.getFullYear()}-${p2(wk.getMonth()+1)}-${p2(wk.getDate())}`;
   const evs=(wev[wkK]||[]);
   const dow=(date.getDay()+6)%7;
@@ -14852,10 +14966,7 @@ function getMonthEventsForDate(date){
 }
 function getMonthAllDayForDate(date){
   if(!_mvShowAllDay) return [];
-  const thisMonStart=wkStart(0);
-  const msPerWeek=7*24*60*60*1000;
-  const offset=Math.round((date-thisMonStart)/msPerWeek);
-  const wk=wkStart(offset);
+  const wk=mondayOf(date);
   const wkK=`${wk.getFullYear()}-${p2(wk.getMonth()+1)}-${p2(wk.getDate())}`;
   const adEvs=(adev[wkK]||[]);
   const dow=(date.getDay()+6)%7;
