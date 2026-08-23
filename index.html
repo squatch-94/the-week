@@ -4811,7 +4811,7 @@ async function boot() {
     // renderBriefingRow crash that used to happen here) can't silently abort every
     // panel chained after it — that's what was causing The List (and others) to
     // render as empty even though renderList() itself was fine.
-    [renderLib,renderGrid,renderBudget,renderPriorityTasks,renderMc,renderQc,renderAc,renderBuckets,renderList,renderTripBrains,renderItinerary,renderMorningRow,renderCycleRow,renderWorkoutRow,renderMorningRow,renderRoutineRow,renderDailyLogRow,applyRowVisibility,applyDirectRows,updateViewButtons,renderIndices,renderMonthlyAverages].forEach(fn=>{
+    [()=>renderLib(),()=>renderGrid(),()=>renderBudget(),()=>renderPriorityTasks(),()=>renderMc(),()=>renderQc(),()=>renderAc(),()=>renderBuckets(),()=>renderList(),()=>renderTripBrains(),()=>renderItinerary(),()=>renderMorningRow(),()=>renderCycleRow(),()=>renderWorkoutRow(),()=>renderMorningRow(),()=>renderRoutineRow(),()=>renderDailyLogRow(),()=>applyRowVisibility(),()=>applyDirectRows(),()=>updateViewButtons(),()=>renderIndices(),()=>renderMonthlyAverages()].forEach(fn=>{
       try { fn(); } catch(e) { console.error('First paint error in ' + (fn.name||'anonymous') + ':', e); }
     });
     setTimeout(()=>dlAutoSync(-1),200);
@@ -4863,7 +4863,7 @@ async function boot() {
   if (useData) {
     applyState(useData);
     try {
-      [renderLib,renderGrid,renderBudget,renderGoals,renderTrips,renderTallies,renderWeekGoals,renderPriorityTasks,loadIntent,renderMc,renderQc,renderAc,renderBuckets,renderList,renderTripBrains,renderItinerary,renderMorningRow,renderCycleRow,renderWorkoutRow,renderMorningRow,renderRoutineRow,renderDailyLogRow,applyRowVisibility,updateViewButtons].forEach(fn=>{
+      [()=>renderLib(),()=>renderGrid(),()=>renderBudget(),()=>renderGoals(),()=>renderTrips(),()=>renderTallies(),()=>renderWeekGoals(),()=>renderPriorityTasks(),()=>loadIntent(),()=>renderMc(),()=>renderQc(),()=>renderAc(),()=>renderBuckets(),()=>renderList(),()=>renderTripBrains(),()=>renderItinerary(),()=>renderMorningRow(),()=>renderCycleRow(),()=>renderWorkoutRow(),()=>renderMorningRow(),()=>renderRoutineRow(),()=>renderDailyLogRow(),()=>applyRowVisibility(),()=>updateViewButtons()].forEach(fn=>{
         try { fn(); } catch(e) { console.error('Full render error in ' + (fn.name||'anonymous') + ':', e); }
       });
       if(tpo){tpSwitch('priorities');}
@@ -4898,7 +4898,7 @@ async function boot() {
       if (_r?.data) {
         clearInterval(_retryTimer);
         applyState(_r.data);
-        [renderLib,renderGrid,renderBudget,renderGoals,renderTrips,renderTallies,renderWeekGoals,renderPriorityTasks,loadIntent,renderMc,renderQc,renderAc,renderBuckets,renderList,renderTripBrains,renderItinerary,renderMorningRow,renderRoutineRow,renderDailyLogRow,applyRowVisibility].forEach(fn=>{
+        [()=>renderLib(),()=>renderGrid(),()=>renderBudget(),()=>renderGoals(),()=>renderTrips(),()=>renderTallies(),()=>renderWeekGoals(),()=>renderPriorityTasks(),()=>loadIntent(),()=>renderMc(),()=>renderQc(),()=>renderAc(),()=>renderBuckets(),()=>renderList(),()=>renderTripBrains(),()=>renderItinerary(),()=>renderMorningRow(),()=>renderRoutineRow(),()=>renderDailyLogRow(),()=>applyRowVisibility()].forEach(fn=>{
           try { fn(); } catch(e) { console.error('Supabase-recovered render error in ' + (fn.name||'anonymous') + ':', e); }
         });
         console.log('[stw] Supabase recovered — fresh data loaded, writes re-enabled');
@@ -8357,7 +8357,7 @@ function showPage(name){
   if(name==='checklist') { renderMc(); renderQc(); renderAc(); populateCopyFromSelect(); }
   if(name==='bucketlist') renderBuckets();
   if(name==='tracker') setTimeout(()=>{ renderTimeTracker(); renderIndices(); renderMonthlyAverages(); switchTrackerTab(_activeTrackerTab||'time'); }, 50);
-  if(name==='watchlist') { wlMaybeLoad(); wlSetView(wlView||'board'); }
+  if(name==='watchlist') { wlMaybeLoad(); wlSetView(window.wlView||'board'); }
   if(name==='list') renderList();
   if(name==='trips') renderTripBrains();
   if(name==='plans-history') renderPlansHistory();
@@ -8683,8 +8683,12 @@ function mobToggleFeelingsLayer(btn) {
 const _origRenderEvents = null; // placeholder — feelings filter is in renderEvents itself
 // ── THE LIST ──
 (function(){
-const WL_URL='https://qotnhrwksvilzmfqleat.supabase.co';
-const WL_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdG5ocndrc3ZpbHptZnFsZWF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MDg0NTYsImV4cCI6MjA4OTQ4NDQ1Nn0.sZL-yI9HgqIcVHqCLwu8T23yLAFwVcw7w7CEBbyyl-Q';
+// Points at the SAME consolidated Supabase project as the rest of the app
+// (see SUPA_URL/SUPA_KEY above) — the watchlist table was merged in here.
+// Previously this pointed at a separate, now-paused Supabase project,
+// which is why the List appeared empty.
+const WL_URL=SUPA_URL;
+const WL_KEY=SUPA_KEY;
 const WL_TABLE='watchlist';
 const WL_COLS=['onlist','upnext','current','finished'];
 const WL_COL_LABELS={'onlist':'On The List','upnext':'Up Next','current':'Current','finished':'Finished'};
@@ -8901,6 +8905,7 @@ function wlUpdateStats(){
 // ── VIEW SWITCHING ──
 function wlSetView(v){
   wlView=v;
+  window.wlView=v; // mirror onto window so showPage() (outside this IIFE) can read it
   document.querySelectorAll('.wl-view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
   document.getElementById('wl-view-board').style.display=v==='board'?'grid':'none';
   document.getElementById('wl-view-table').style.display=v==='table'?'block':'none';
