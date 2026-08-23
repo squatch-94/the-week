@@ -4793,12 +4793,27 @@ function migrateCategoryNames() {
 // PIN-gated boot — loads remote data, then shows PIN if one is set
 let gridView = 'week';
 let viewDayOffset = 0;
+// Must be initialized here (before boot() runs) — the duplicate guard further down
+// in the file executes too late: boot() is invoked partway through the script and
+// runs its first-paint render chain synchronously, reaching renderBriefingRow()
+// long before the script has executed as far as that later line. Without this,
+// renderBriefingRow() throws on window._briefingTexts[i]=..., which aborts the
+// entire renderLib();renderGrid();...;renderList();... chain mid-way — silently
+// skipping renderList() (and everything chained after the crash point) since it's
+// all one statement inside a single try/catch in boot().
+window._briefingTexts = window._briefingTexts || {};
 async function boot() {
   // Fast first paint from localStorage
   try {
     // Ensure dl/pm are visible by default (remove from hidden if present)
     const _hidden=getHiddenRows().filter(k=>k!=='dl'&&k!=='pm'&&k!=='dn');if(!_hidden.includes('cycle'))_hidden.push('cycle');if(!_hidden.includes('workout'))_hidden.push('workout');setHiddenRows(_hidden);
-    renderLib();renderGrid();renderBudget();renderPriorityTasks();renderMc();renderQc();renderAc();renderBuckets();renderList();renderTripBrains();renderItinerary();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();applyDirectRows();updateViewButtons();renderIndices();renderMonthlyAverages();
+    // Each panel render is individually try/caught so a bug in one (e.g. the
+    // renderBriefingRow crash that used to happen here) can't silently abort every
+    // panel chained after it — that's what was causing The List (and others) to
+    // render as empty even though renderList() itself was fine.
+    [renderLib,renderGrid,renderBudget,renderPriorityTasks,renderMc,renderQc,renderAc,renderBuckets,renderList,renderTripBrains,renderItinerary,renderMorningRow,renderCycleRow,renderWorkoutRow,renderMorningRow,renderRoutineRow,renderDailyLogRow,applyRowVisibility,applyDirectRows,updateViewButtons,renderIndices,renderMonthlyAverages].forEach(fn=>{
+      try { fn(); } catch(e) { console.error('First paint error in ' + (fn.name||'anonymous') + ':', e); }
+    });
     setTimeout(()=>dlAutoSync(-1),200);
   } catch(e) { console.error('First paint error:', e); }
   // Load from Supabase — Supabase is always the source of truth.
@@ -4848,7 +4863,9 @@ async function boot() {
   if (useData) {
     applyState(useData);
     try {
-      renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderList();renderTripBrains();renderItinerary();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();updateViewButtons();
+      [renderLib,renderGrid,renderBudget,renderGoals,renderTrips,renderTallies,renderWeekGoals,renderPriorityTasks,loadIntent,renderMc,renderQc,renderAc,renderBuckets,renderList,renderTripBrains,renderItinerary,renderMorningRow,renderCycleRow,renderWorkoutRow,renderMorningRow,renderRoutineRow,renderDailyLogRow,applyRowVisibility,updateViewButtons].forEach(fn=>{
+        try { fn(); } catch(e) { console.error('Full render error in ' + (fn.name||'anonymous') + ':', e); }
+      });
       if(tpo){tpSwitch('priorities');}
       // Re-render whichever non-planner page is currently active, in case user navigated
       // before Supabase finished loading (they'd have seen empty data)
@@ -4881,7 +4898,9 @@ async function boot() {
       if (_r?.data) {
         clearInterval(_retryTimer);
         applyState(_r.data);
-        try { renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderList();renderTripBrains();renderItinerary();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility(); } catch(e) {}
+        [renderLib,renderGrid,renderBudget,renderGoals,renderTrips,renderTallies,renderWeekGoals,renderPriorityTasks,loadIntent,renderMc,renderQc,renderAc,renderBuckets,renderList,renderTripBrains,renderItinerary,renderMorningRow,renderRoutineRow,renderDailyLogRow,applyRowVisibility].forEach(fn=>{
+          try { fn(); } catch(e) { console.error('Supabase-recovered render error in ' + (fn.name||'anonymous') + ':', e); }
+        });
         console.log('[stw] Supabase recovered — fresh data loaded, writes re-enabled');
       }
     }, 30000);
