@@ -2410,7 +2410,7 @@ body {
         <button class="hdr-menu-item" onclick="signOut();closeHdrMenu()">Lock app</button>
       </div>
     </div>
-    <input type="file" id="icsImportInput" accept=".ics" style="display:none" onchange="importICS(event)">
+    <input type="file" id="icsImportInput" accept=".ics" multiple style="display:none" onchange="importICS(event)">
   </div>
 </div>
 <div class="page active" id="page-planner">
@@ -4437,6 +4437,10 @@ try { supa = supabase.createClient(SUPA_URL, SUPA_KEY); } catch(e) { console.war
 let svTimer = null;
 let svPending = false; // tracks if there's unsaved Supabase data
 let svSupaEnabled = false; // gate: only write to Supabase after init loads real data
+let _editedDuringBoot = false; // true if the user edited something (e.g. a category)
+  // before the Supabase load in boot() finished — used to stop that load from
+  // clobbering the edit once it resolves. See sv() and boot().
+let _bootEditSnapshot = null; // the {lib,oo,wev,adev,...} data as of that early edit
 let _svFromRemote = false; // true only when ldRemote() successfully returned data this session
 // Note: local file:// is allowed to write to Supabase (same as live site).
 // Protection comes from _svFromRemote and _svMinWeekEvents guards instead.
@@ -4531,7 +4535,9 @@ function sv() {
   try { localStorage.setItem('stw-v7', JSON.stringify(data)); } catch(e) {}
   // Record local save timestamp separately so boot() can compare with Supabase's updated_at
   try { localStorage.setItem('stw-v7-ts', ts); } catch(e) {}
-  if (!svSupaEnabled) return; // don't write to Supabase during init
+  if (!svSupaEnabled) { _editedDuringBoot = true; _bootEditSnapshot = data; return; } // don't write to
+    // Supabase during init — but remember this happened, and what was saved, so boot()'s
+    // pending ldRemote() doesn't overwrite it once it resolves
   // Block writes from local file:// — read-only mode
   if (_IS_LOCAL_FILE) { return; }
   // Block writes if we fell back to localStorage (Supabase was unreachable on load)
@@ -4818,9 +4824,21 @@ async function boot() {
   } catch(e) { console.error('First paint error:', e); }
   // Load from Supabase — Supabase is always the source of truth.
   const remoteResult = await ldRemote();
-  const remote = remoteResult?.data || null;
+  // If the user made an edit (e.g. renamed/recoloured a category) while this fetch was
+  // still in flight, that edit only ever reached localStorage — svSupaEnabled was still
+  // false, so sv() couldn't push it to Supabase yet. The remote row we just fetched
+  // therefore predates the edit, and ldRemote() has just overwritten localStorage with
+  // that stale data too (it always syncs localStorage to whatever it fetched). Left
+  // alone, applying this fetch would silently revert the edit everywhere. So in that
+  // case, restore localStorage from the snapshot sv() took at edit time, ignore this
+  // fetch, and push the snapshot to Supabase ourselves once writes are enabled below.
+  let remote = remoteResult?.data || null;
+  if (_editedDuringBoot && _bootEditSnapshot) {
+    try { localStorage.setItem('stw-v7', JSON.stringify(_bootEditSnapshot)); } catch(e) {}
+    remote = null;
+  }
   // localStorage is only a fallback if Supabase is unreachable, never a winner.
-  const local = remote ? null : (() => { try { const s=localStorage.getItem('stw-v7'); return s?JSON.parse(s):null; } catch(e){return null;} })();
+  const local = remote ? null : (_editedDuringBoot && _bootEditSnapshot ? _bootEditSnapshot : (() => { try { const s=localStorage.getItem('stw-v7'); return s?JSON.parse(s):null; } catch(e){return null;} })());
   let useData = remote || local;
   if (remote) {
     // Supabase wins on all fields. The only merges are for append-only log data
@@ -4889,6 +4907,10 @@ async function boot() {
     document.getElementById('lockScreen').style.display = 'flex';
   }
   svSupaEnabled = true; // safe to write to Supabase now that real data is loaded
+  // An edit landed before this point was reached (see above) — it's already applied
+  // in memory and in localStorage, but Supabase itself still has the old version.
+  // Push it up now rather than waiting for the next unrelated edit to trigger a save.
+  if (_editedDuringBoot) { _editedDuringBoot = false; svImmediate(); }
   // If Supabase was unreachable and we fell back to localStorage, retry in background.
   // When it comes back, load fresh data and enable writes — prevents stale overwrites.
   if (!_svFromRemote) {
@@ -10118,30 +10140,45 @@ function triggerImport() {
   document.getElementById('icsImportInput').click();
 }
 let _icsPending = null;
-function importICS(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const text = e.target.result;
-    const { timed, allDay } = parseICSAllWeeks(text);
-    if (!timed.length && !allDay.length) { alert('No events found in this ICS file.'); return; }
-    _icsPending = { timed, allDay };
-    // Show category picker modal
-    const total = timed.length + allDay.length;
-    const weeks = new Set([...timed.map(x=>x.wkKeyStr),...allDay.map(x=>x.wkKeyStr)]).size;
-    document.getElementById('icsImportCount').textContent = `${total} event${total!==1?'s':''} across ${weeks} week${weeks!==1?'s':''}`;
-    // Populate preview list (first 8)
-    const preview = [...timed,...allDay].slice(0,8).map(x=>x.ev.name);
-    document.getElementById('icsImportPreview').innerHTML = preview.map(n=>`<div style="padding:2px 0;font-size:12px;color:var(--text-muted);">• ${n}</div>`).join('') + (total>8?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px;">…and ${total-8} more</div>`:'');
-    // Populate category select
-    const sel = document.getElementById('icsImportCat');
-    sel.innerHTML = Object.entries(CATS).sort((a,b)=>a[1].label.localeCompare(b[1].label)).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
-    sel.value = 'personal';
-    document.getElementById('icsImportMo').classList.add('open');
-  };
-  reader.readAsText(file);
+function _readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+async function importICS(event) {
+  const files = Array.from(event.target.files || []);
   event.target.value = '';
+  if (!files.length) return;
+  // Parse every selected file and merge their events into one pending set, so
+  // several .ics files can be imported into the same category in one go.
+  const timed = [], allDay = [];
+  let filesWithNoEvents = [];
+  for (const file of files) {
+    let text;
+    try { text = await _readFileAsText(file); } catch(e) { continue; }
+    const parsed = parseICSAllWeeks(text);
+    if (!parsed.timed.length && !parsed.allDay.length) { filesWithNoEvents.push(file.name); continue; }
+    timed.push(...parsed.timed);
+    allDay.push(...parsed.allDay);
+  }
+  if (!timed.length && !allDay.length) { alert('No events found in the selected ICS file' + (files.length>1?'s':'') + '.'); return; }
+  _icsPending = { timed, allDay };
+  // Show category picker modal
+  const total = timed.length + allDay.length;
+  const weeks = new Set([...timed.map(x=>x.wkKeyStr),...allDay.map(x=>x.wkKeyStr)]).size;
+  const fileNote = files.length > 1 ? ` from ${files.length} files` : '';
+  document.getElementById('icsImportCount').textContent = `${total} event${total!==1?'s':''} across ${weeks} week${weeks!==1?'s':''}${fileNote}`;
+  // Populate preview list (first 8)
+  const preview = [...timed,...allDay].slice(0,8).map(x=>x.ev.name);
+  document.getElementById('icsImportPreview').innerHTML = preview.map(n=>`<div style="padding:2px 0;font-size:12px;color:var(--text-muted);">• ${n}</div>`).join('') + (total>8?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px;">…and ${total-8} more</div>`:'') + (filesWithNoEvents.length?`<div style="font-size:11px;color:var(--text-faint);margin-top:4px;">No events found in: ${filesWithNoEvents.join(', ')}</div>`:'');
+  // Populate category select
+  const sel = document.getElementById('icsImportCat');
+  sel.innerHTML = Object.entries(CATS).sort((a,b)=>a[1].label.localeCompare(b[1].label)).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
+  sel.value = 'personal';
+  document.getElementById('icsImportMo').classList.add('open');
 }
 function openDeleteImportedMo() {
   const sel = document.getElementById('delImportCat');
@@ -13812,7 +13849,8 @@ function renderBriefingRow() {
       const h = SH + Math.floor(e.slot / SPH);
       const m = (e.slot % SPH) * 30;
       const time = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-      return `${time} - ${e.name}`;
+      const note = e.note ? `: ${e.note}` : '';
+      return `${time} - ${e.name}${note}`;
     });
     window._briefingTexts[i] = lines.length ? lines.join('\n') : 'Free';
     const copyBtn = `<button class="briefing-copy-btn" onclick="copyBriefingText(${i})" title="Copy to clipboard">📋</button>`;
@@ -13821,7 +13859,8 @@ function renderBriefingRow() {
         const h = SH + Math.floor(e.slot / SPH);
         const m = (e.slot % SPH) * 30;
         const time = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-        return `<li><span class="briefing-time">${time}</span><span style="font-size:12px;color:var(--text);">${e.name}</span></li>`;
+        const note = e.note ? `<span style="font-size:11px;color:var(--text-muted);">: ${e.note}</span>` : '';
+        return `<li><span class="briefing-time">${time}</span><span style="font-size:12px;color:var(--text);">${e.name}</span>${note}</li>`;
       }).join('') + '</ul>';
     } else {
       cell.innerHTML = copyBtn + '<span style="font-size:11px;color:var(--text-faint);">Free</span>';
