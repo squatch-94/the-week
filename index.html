@@ -4710,9 +4710,9 @@ function applyState(S) {
   migrateArtieEvents();
   migrateCategoryNames();
   migrateAddFeltItems();
-  // Re-sync the sidebar's expand/collapse state from the freshly loaded data —
-  // the fast-paint value set at script init may be stale localStorage data.
-  libCollapsed = Object.assign(Object.fromEntries(Object.keys(CATS).map(k=>[k,true])), wev.libCollapsed||{});
+  // Re-sync the sidebar's expand/collapse state now that CATS is finalised —
+  // the fast-paint value set at script init may have used a stale CATS list.
+  libCollapsed = getLibCollapsed();
   // Auto-seed historical mood indices if wev.daily is missing those dates
   autoSeedDailyLog();
 }
@@ -5527,7 +5527,7 @@ function _bkpIsDue() { const key = _bkpSlotKey(); return !!key && !_bkpSlotsLog(
 function _bkpBuildJson() {
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
-    version: 'v51_26',
+    version: 'v51_28',
     slot: _bkpSlot(),
     data: {lib, oo, wev, adev, goals, trips, tpls, ints, tpo},
     budgetTransactions: (typeof budgetTxs !== 'undefined'
@@ -7909,13 +7909,26 @@ function toggleGridRow(key){
   setHiddenRows(hidden);
   applyRowVisibility();
 }
-let libCollapsed=Object.assign(Object.fromEntries(Object.keys(CATS).map(k=>[k,true])), wev.libCollapsed||{});
+// Sidebar expand/collapse state is per-device UI state, not planner data — it's
+// stored in its own small localStorage key so toggling it never has to round-trip
+// the entire (large, growing) planner payload to Supabase. If an older version's
+// wev.libCollapsed exists (a previous fix synced it there), migrate it once.
+function getLibCollapsed(){
+  const defaults = Object.fromEntries(Object.keys(CATS).map(k=>[k,true]));
+  try {
+    const stored = localStorage.getItem('stw-libCollapsed');
+    if (stored) return Object.assign(defaults, JSON.parse(stored));
+  } catch(e){}
+  if (wev.libCollapsed) return Object.assign(defaults, wev.libCollapsed);
+  return defaults;
+}
+function setLibCollapsed(lc){
+  try { localStorage.setItem('stw-libCollapsed', JSON.stringify(lc)); } catch(e){}
+}
+let libCollapsed=getLibCollapsed();
 function toggleLibCat(cat){
   libCollapsed[cat]=!libCollapsed[cat];
-  // Persist expand/collapse state so the sidebar doesn't reset to all-collapsed
-  // on every reload — this was previously only kept in memory.
-  wev.libCollapsed = {...libCollapsed};
-  sv();
+  setLibCollapsed(libCollapsed);
   renderLib();
 }
 function renderGrid(){const dates=wkDates(wko);document.getElementById('wkLbl').textContent=wkLabel(dates);const today=new Date();today.setHours(0,0,0,0);const tbl=document.getElementById('gridTbl');tbl.innerHTML='';
@@ -13852,12 +13865,15 @@ function renderBriefingRow() {
   spacer.className = 'briefing-spacer';
   spacer.innerHTML = '<span class="briefing-spacer-lbl">Briefing</span>';
   frag.appendChild(spacer);
+  const adEvsAll = getAdEvs();
   viewDays.forEach(i => {
     const d = dates[i];
     const isToday = d.getTime() === today.getTime();
     const dayEvs = evs.filter(e => e.day === i).sort((a,b) => a.slot - b.slot);
+    const dayAdEvs = adEvsAll.filter(e => e.day === i);
     const cell = document.createElement('div');
     cell.className = 'briefing-cell' + (isToday ? ' briefing-cell-today' : '');
+    const adLines = dayAdEvs.map(e => `All day - ${e.name}`);
     const lines = dayEvs.map(e => {
       const h = SH + Math.floor(e.slot / SPH);
       const m = (e.slot % SPH) * 30;
@@ -13865,16 +13881,19 @@ function renderBriefingRow() {
       const note = e.note ? `: ${e.note}` : '';
       return `${time} - ${e.name}${note}`;
     });
-    window._briefingTexts[i] = lines.length ? lines.join('\n') : 'Free';
+    const allLines = adLines.concat(lines);
+    window._briefingTexts[i] = allLines.length ? allLines.join('\n') : 'Free';
     const copyBtn = `<button class="briefing-copy-btn" onclick="copyBriefingText(${i})" title="Copy to clipboard">📋</button>`;
-    if (dayEvs.length) {
-      cell.innerHTML = copyBtn + '<ul>' + dayEvs.map(e => {
+    if (dayAdEvs.length || dayEvs.length) {
+      const adHtml = dayAdEvs.map(e => `<li><span class="briefing-time">All day</span><span style="font-size:12px;color:var(--text);">📌 ${e.name}</span></li>`).join('');
+      const timedHtml = dayEvs.map(e => {
         const h = SH + Math.floor(e.slot / SPH);
         const m = (e.slot % SPH) * 30;
         const time = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
         const note = e.note ? `<span style="font-size:11px;color:var(--text-muted);">: ${e.note}</span>` : '';
         return `<li><span class="briefing-time">${time}</span><span style="font-size:12px;color:var(--text);">${e.name}</span>${note}</li>`;
-      }).join('') + '</ul>';
+      }).join('');
+      cell.innerHTML = copyBtn + '<ul>' + adHtml + timedHtml + '</ul>';
     } else {
       cell.innerHTML = copyBtn + '<span style="font-size:11px;color:var(--text-faint);">Free</span>';
     }
