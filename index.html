@@ -4899,7 +4899,24 @@ async function boot() {
     [()=>renderLib(),()=>renderGrid(),()=>renderBudget(),()=>renderPriorityTasks(),()=>renderMc(),()=>renderQc(),()=>renderAc(),()=>renderBuckets(),()=>renderList(),()=>renderTripBrains(),()=>renderItinerary(),()=>renderMorningRow(),()=>renderCycleRow(),()=>renderWorkoutRow(),()=>renderMorningRow(),()=>renderTodoRow(),()=>renderRoutineRow(),()=>renderDailyLogRow(),()=>applyRowVisibility(),()=>applyDirectRows(),()=>updateViewButtons(),()=>renderIndices(),()=>renderMonthlyAverages()].forEach(fn=>{
       try { fn(); } catch(e) { console.error('First paint error in ' + (fn.name||'anonymous') + ':', e); }
     });
-    setTimeout(()=>dlAutoSync(-1),200);
+    // NOTE (v51_35): dlAutoSync(-1) used to run here, 200ms into first paint —
+    // i.e. BEFORE ldRemote() below has resolved and BEFORE svSupaEnabled is true.
+    // dlAutoSync fills in Daily Log defaults from calendar/routine data (e.g. it
+    // always sets escit='Yes' if that field is missing) and, if anything changed,
+    // calls setDlData()->sv() to save it. Since this ran while svSupaEnabled was
+    // still false, sv() took its "edit happened during boot" branch — which sets
+    // _editedDuringBoot=true and snapshots the CURRENT (first-paint, localStorage)
+    // state as _bootEditSnapshot. Once that flag was set, boot() (below) discarded
+    // the freshly-fetched, CORRECT Supabase data entirely and used the stale
+    // first-paint snapshot instead, then pushed that stale snapshot back to
+    // Supabase as if it were a real edit. Because the degraded Sept 7-13 days were
+    // themselves missing fields like 'escit', dlAutoSync had something to "fix"
+    // on almost every boot, so this fired nearly every load — this is the actual
+    // root cause of the repeated week-36 Daily Log data loss, not a stale browser
+    // tab. Fix: don't run dlAutoSync until AFTER the real Supabase data has been
+    // loaded and applied (see the call added below, after applyState). Auto-fill
+    // still happens, just ~100ms later and against the correct data, so any save
+    // it triggers is a normal, safe save rather than a boot-time clobber.
   } catch(e) { console.error('First paint error:', e); }
   // Load from Supabase — Supabase is always the source of truth.
   const remoteResult = await ldRemote();
@@ -4984,6 +5001,7 @@ async function boot() {
     try {
       renderGoals();renderTrips();renderTallies();renderWeekGoals();loadIntent();renderMc();renderQc();renderAc();renderBuckets();
       if(tpo){tpSwitch('priorities');}
+      setTimeout(()=>dlAutoSync(-1),300);
     } catch(e) {}
   }
   if (getStoredPin()) {
@@ -5613,7 +5631,7 @@ function _bkpIsDue() { const key = _bkpSlotKey(); return !!key && !_bkpSlotsLog(
 function _bkpBuildJson() {
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
-    version: 'v51_33',
+    version: 'v51_35',
     slot: _bkpSlot(),
     data: {lib, oo, wev, adev, goals, trips, tpls, ints, tpo},
     budgetTransactions: (typeof budgetTxs !== 'undefined'
