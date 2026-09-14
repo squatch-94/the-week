@@ -4489,7 +4489,18 @@ async function _svGuardFresh() {
     if (r.ok) {
       const rows = await r.json();
       const serverTs = rows[0]?.updated_at || '';
-      if (serverTs && serverTs !== _svLastKnownUpdatedAt) {
+      // Compare actual instants, not raw strings: Postgres/PostgREST returns
+      // updated_at as "...991+00:00" while the client's own new Date().toISOString()
+      // (used to set _svLastKnownUpdatedAt after every write) always produces
+      // "...991Z". Those are the exact same instant but different strings, so a
+      // strict !== here was a false positive on EVERY comparison after the first
+      // write in a tab's lifetime — the freshness check never actually passed once
+      // this tab had saved anything, which is why the stale banner kept reappearing
+      // on every subsequent save attempt (e.g. every week navigation that triggered
+      // a dlAutoSync fill) even with no other tab and no real staleness at all.
+      const serverMs = serverTs ? new Date(serverTs).getTime() : NaN;
+      const knownMs = new Date(_svLastKnownUpdatedAt).getTime();
+      if (serverTs && serverMs !== knownMs) {
         _svStale = true;
         _showStaleBanner();
         return false;
@@ -4512,9 +4523,10 @@ async function svFlush() {
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
   try {
     const ts = new Date().toISOString();
-    if(supa) await supa.from('planner_data').upsert({id:SUPA_ROW,data,updated_at:ts},{onConflict:'id'});
+    let _err = null;
+    if(supa) { const _r = await supa.from('planner_data').upsert({id:SUPA_ROW,data,updated_at:ts},{onConflict:'id'}); _err = _r?.error || null; }
     svPending = false;
-    _svLastKnownUpdatedAt = ts;
+    if (!_err) _svLastKnownUpdatedAt = ts; // only trust it if the write actually landed
   } catch(e) {}
 }
 // Flush to Supabase on page hide using fetch keepalive (sendBeacon cannot set
@@ -4629,7 +4641,23 @@ function sv() {
   svTimer = setTimeout(async () => {
     const fresh = await _svGuardFresh();
     if (!fresh) { return; } // stale — banner already shown, nothing written
-    if(supa) await supa.from('planner_data').upsert({ id: SUPA_ROW, data, updated_at: ts }, { onConflict: 'id' });
+    // Check the SDK's own {error} result rather than assuming success — a
+    // rejection from the stw_daily_log_guard DB trigger comes back as `error`,
+    // not a thrown exception. Previously this was never checked, so a rejected
+    // write still marked itself "saved" (_svLastKnownUpdatedAt updated, unsaved
+    // indicator cleared) even though nothing was actually persisted — which then
+    // poisoned every future freshness check in this tab (comparing against a
+    // timestamp the server never actually has) and made the stale banner fire on
+    // the very next save attempt regardless of whether that one was fine.
+    let _upsertErr = null;
+    if (supa) { const _r = await supa.from('planner_data').upsert({ id: SUPA_ROW, data, updated_at: ts }, { onConflict: 'id' }); _upsertErr = _r?.error || null; }
+    if (_upsertErr) {
+      console.error('[stw] Save rejected by server:', _upsertErr.message || _upsertErr);
+      svPending = false;
+      const ind2 = document.getElementById('stw-unsaved-indicator');
+      if(ind2) { ind2.classList.remove('visible'); ind2.textContent = '⚠ Save blocked'; }
+      return; // do NOT update _svLastKnownUpdatedAt — nothing was actually saved
+    }
     svPending = false;
     _svLastKnownUpdatedAt = ts;
     const ind2 = document.getElementById('stw-unsaved-indicator');
@@ -4646,13 +4674,20 @@ async function svImmediate() {
   try { localStorage.setItem('stw-v7-ts', ts); } catch(e) {}
   try {
     // keepalive:true ensures the request survives page unload
-    await fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {
+    const _resp = await fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {
       method: 'POST',
       headers: {...H, Prefer: 'resolution=merge-duplicates,return=minimal'},
       body: JSON.stringify({id:SUPA_ROW, data, updated_at: ts}),
       keepalive: true
     });
-    _svLastKnownUpdatedAt = ts;
+    // A DB trigger rejection (e.g. stw_daily_log_guard) comes back as a non-ok
+    // HTTP status, not a thrown fetch error — check it explicitly rather than
+    // assuming any response means success (see the matching fix in sv() above).
+    if (_resp.ok) {
+      _svLastKnownUpdatedAt = ts;
+    } else {
+      console.error('[stw] Save rejected by server, status', _resp.status);
+    }
   } catch(e) {}
   svPending = false;
 }
