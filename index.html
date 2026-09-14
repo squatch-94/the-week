@@ -2385,7 +2385,10 @@ body {
   <div class="hdr-r">
     <button class="ql-btn" onclick="showPage('daily')">Daily</button>
     <button class="ql-btn" onclick="showPage('watchlist')">List</button>
-    <button class="ql-btn" onclick="showPage('relo')">Relocation</button>
+    <!-- Relocation retired from nav 14 Sep 2026 (Copenhagen move complete) — the page,
+    its data (reloTasks/relo_tasks) and its Budget cost-code/Expenses integration are
+    untouched, just no longer surfaced as a primary tab. Still reachable via the "View"
+    link on a relo line item in Budget, or showPage('relo') directly. -->
     <a class="ql-btn" href="https://www.worldtimebuddy.com/?pl=1&lid=2643743,2174003&h=2643743&hf=1" target="_blank" rel="noopener">Timezone</a>
     <span id="bkpStatus" style="font-size:10px;color:rgba(255,255,255,.65);transition:opacity 1.5s;opacity:0;white-space:nowrap;"></span>
     <button class="btn-copy" id="manualSaveBtn" onclick="manualSave(this)" title="Save changes now">💾 Save</button>
@@ -4462,19 +4465,66 @@ let _svFromRemote = false; // true only when ldRemote() successfully returned da
 // browser's own localStorage — they just never leave the machine.
 const _IS_LOCAL_FILE = window.location.protocol === 'file:';
 let _svMinWeekEvents = {}; // per-week high-water mark: { '2026-05-18': 55, ... }
+// ── ANTI-CLOBBER SAVE GUARD ──
+// _IS_LOCAL_FILE only protects against a locally-opened preview file writing back —
+// it does nothing for two live tabs of the deployed site itself. A tab that's been
+// open a while holds an in-memory snapshot that only gets staler as time passes and
+// other tabs/devices save; if it blind-overwrites Supabase on some later save trigger
+// (even an automatic one, like the boot()-time catch-up save below), it silently
+// destroys whatever changed since — this is what caused the repeat data-loss on
+// 14 Sep 2026 even after the file:// fix, tracked down via the pattern of several
+// "the week" tabs sitting open at once. _svLastKnownUpdatedAt is set once on initial
+// load and refreshed after every successful write; _svGuardFresh() does a cheap
+// updated_at-only check right before any write actually goes out, and refuses to
+// save (permanently, for the rest of this tab's life) if the server has moved on
+// without us — surfacing a reload banner instead of clobbering.
+let _svLastKnownUpdatedAt = null;
+let _svStale = false;
+async function _svGuardFresh() {
+  if (_svStale) return false; // already caught once this tab — never write again until reload
+  if (_IS_LOCAL_FILE) return false; // local file never writes regardless; skip the network check
+  if (!_svLastKnownUpdatedAt) return true; // nothing to compare against yet (shouldn't normally happen)
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/planner_data?select=updated_at&id=eq.${SUPA_ROW}`, {headers: H});
+    if (r.ok) {
+      const rows = await r.json();
+      const serverTs = rows[0]?.updated_at || '';
+      if (serverTs && serverTs !== _svLastKnownUpdatedAt) {
+        _svStale = true;
+        _showStaleBanner();
+        return false;
+      }
+    }
+  } catch(e) { /* network hiccup — let the write through rather than blocking on a transient failure */ }
+  return true;
+}
+function _showStaleBanner() {
+  if (document.getElementById('stw-stale-banner')) return;
+  const b = document.createElement('div');
+  b.id = 'stw-stale-banner';
+  b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;padding:12px 18px;font-family:inherit;font-size:14px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3);';
+  b.innerHTML = '⚠️ This tab is showing an out-of-date version — newer data was saved elsewhere. Nothing here will be saved until you reload, so nothing gets overwritten. <button onclick="location.reload()" style="margin-left:12px;padding:6px 14px;border-radius:6px;border:none;background:#fff;color:#c0392b;font-weight:700;cursor:pointer;">Reload now</button>';
+  document.body.appendChild(b);
+}
 // Flush to Supabase immediately (used on page unload)
 async function svFlush() {
-  if (_IS_LOCAL_FILE || !svPending || !svSupaEnabled) return;
+  if (_IS_LOCAL_FILE || _svStale || !svPending || !svSupaEnabled) return;
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
   try {
-    if(supa) await supa.from('planner_data').upsert({id:SUPA_ROW,data,updated_at:new Date().toISOString()},{onConflict:'id'});
+    const ts = new Date().toISOString();
+    if(supa) await supa.from('planner_data').upsert({id:SUPA_ROW,data,updated_at:ts},{onConflict:'id'});
     svPending = false;
+    _svLastKnownUpdatedAt = ts;
   } catch(e) {}
 }
 // Flush to Supabase on page hide using fetch keepalive (sendBeacon cannot set
 // custom headers so it always fails against Supabase REST — use fetch instead).
+// Deliberately skips the async freshness check here (there's no time to await an
+// extra round-trip during unload) — it relies on _svStale already having been set
+// by an earlier sv()/svImmediate() call in this tab's lifetime if this tab really is
+// stale. That's a real but small residual window; the main protection is below.
 function svBeacon() {
-  if (_IS_LOCAL_FILE || !svPending || !svSupaEnabled) return;
+  if (_IS_LOCAL_FILE || _svStale || !svPending || !svSupaEnabled) return;
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
   const body = JSON.stringify({id:SUPA_ROW,data,updated_at:new Date().toISOString()});
   try {
@@ -4556,6 +4606,9 @@ function sv() {
     // pending ldRemote() doesn't overwrite it once it resolves
   // Block writes from local file:// — read-only mode
   if (_IS_LOCAL_FILE) { return; }
+  // Once this tab has been caught holding a stale snapshot, never write again —
+  // see the anti-clobber guard above. Only a reload clears this.
+  if (_svStale) { return; }
   // Block writes if we fell back to localStorage (Supabase was unreachable on load)
   if (!_svFromRemote) {
     console.warn('[stw] Supabase write blocked — loaded from localStorage fallback, not remote');
@@ -4574,13 +4627,19 @@ function sv() {
   if(ind) ind.classList.add('visible');
   clearTimeout(svTimer);
   svTimer = setTimeout(async () => {
+    const fresh = await _svGuardFresh();
+    if (!fresh) { return; } // stale — banner already shown, nothing written
     if(supa) await supa.from('planner_data').upsert({ id: SUPA_ROW, data, updated_at: ts }, { onConflict: 'id' });
     svPending = false;
+    _svLastKnownUpdatedAt = ts;
     const ind2 = document.getElementById('stw-unsaved-indicator');
     if(ind2) ind2.classList.remove('visible');
   }, 400);
 }
 async function svImmediate() {
+  if (_IS_LOCAL_FILE || _svStale) return; // never write from a local file, or once flagged stale
+  const fresh = await _svGuardFresh();
+  if (!fresh) return; // stale — banner already shown, nothing written
   const data = {lib,oo,wev,adev,goals,trips,tpls,ints,tpo};
   const ts = new Date().toISOString();
   try { localStorage.setItem('stw-v7', JSON.stringify(data)); } catch(e) {}
@@ -4593,6 +4652,7 @@ async function svImmediate() {
       body: JSON.stringify({id:SUPA_ROW, data, updated_at: ts}),
       keepalive: true
     });
+    _svLastKnownUpdatedAt = ts;
   } catch(e) {}
   svPending = false;
 }
@@ -4843,6 +4903,10 @@ async function boot() {
   } catch(e) { console.error('First paint error:', e); }
   // Load from Supabase — Supabase is always the source of truth.
   const remoteResult = await ldRemote();
+  // Anchor the anti-clobber guard to what we just saw — any write this tab makes
+  // will re-check against this before going out, and refuse if the server has
+  // moved on without us in the meantime.
+  _svLastKnownUpdatedAt = remoteResult?.remoteTs || null;
   // If the user made an edit (e.g. renamed/recoloured a category) while this fetch was
   // still in flight, that edit only ever reached localStorage — svSupaEnabled was still
   // false, so sv() couldn't push it to Supabase yet. The remote row we just fetched
@@ -5549,7 +5613,7 @@ function _bkpIsDue() { const key = _bkpSlotKey(); return !!key && !_bkpSlotsLog(
 function _bkpBuildJson() {
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
-    version: 'v51_32',
+    version: 'v51_33',
     slot: _bkpSlot(),
     data: {lib, oo, wev, adev, goals, trips, tpls, ints, tpo},
     budgetTransactions: (typeof budgetTxs !== 'undefined'
@@ -6291,6 +6355,27 @@ const DL_CHIP_DATA = {
   vyv_dose: ['0 tablets','1 tablet'],
   wfh_spot: ['Home Desk','Bed','Couch','Co-working space'],
   sunlight: ['0','0.25','0.5','1','1.5','2','2.5','3','3.5','4','4.5+'],
+  // ── Copenhagen rehaul (from DL_REHAUL_CUTOVER onward) — additions/replacements only,
+  // the originals above stay untouched so pre-cutover days keep rendering exactly as
+  // they always have via buildDlCellCondensed/buildDlCellLegacy.
+  meds_v2: ['1 x Escitalopram','1 Vyvanse','1 x Dexamphetamine','2 x Dexamphetamine','3 x Dexamphetamine','4 x Dexamphetamine','None'],
+  symptoms_v2: [
+    {g:'🫁 Physical', items:['Shallow breathing','Rapid heartbeat','Excess sweating','Muscle tension','Restless legs']},
+    {g:'😬 Tension', items:['Jaw clenching']},
+    {g:'🍽 Appetite', items:['Lack of appetite']},
+    {g:'🧠 Neuro', items:["Couldn't control compulsions",'Moody','Very ADHD',"Couldn't sit down",'Introverted']},
+  ],
+  social_v2: [
+    {g:'❤️ Family', items:['Mum','Dad','Grandma','Georgia','Family']},
+    {g:'💑 Partner', items:['Martin (in-depth)']},
+    {g:'👥 Others', items:['Friends','Colleagues','Strangers']},
+  ],
+  outside_v2: [
+    {g:'🚶 On foot', items:['Left the house','Took Artie for a walk','Walked to the park','Rode my bike','Went for a swim']},
+    {g:'🚇 Transit', items:['Explored/Travelled','Took the metro']},
+    {g:'☕️ Out & about', items:['Went for coffee','Went for a drink','Went for food']},
+    {g:'🎭 Culture', items:['Saw a show/play/music','Went to a gallery/museum','Visited markets','Thrifted','Went shopping']},
+  ],
 };
 const TIME_OPTIONS_BED = ['8pm–8:30pm','8:30pm–9pm','9pm–9:30pm','9:30pm–10pm','10pm–10:30pm','10:30pm–11pm','11pm–11:30pm','11:30pm–12am','12am–12:30am','12:30am–1am','1am–1:30am','1:30am–2am','2am–2:30am','2:30am–3am','3am–3:30am','3:30am–4am','4am–4:30am','4:30am–5am'];
 const TIME_OPTIONS_WAKE = ['2am–2:30am','2:30am–3am','3am–3:30am','3:30am–4am','4am–4:30am','4:30am–5am','5am–5:30am','5:30am–6am','6am–6:30am','6:30am–7am','7am–7:30am','7:30am–8am','8am–8:30am','8:30am–9am','9am–9:30am','9:30am–10am'];
@@ -7043,11 +7128,223 @@ function buildDlCellCondensed(dayIdx){
     </div>
   </div>`;
 }
-// Dispatcher — entries dated before the cutover keep the full legacy layout (so past days
-// still show/edit every field they were originally filled in with); today (Mon 13 Jul 2026)
-// onward gets the condensed layout.
+// Copenhagen rehaul layout — same skeleton as buildDlCellCondensed, with Sasha's
+// 14 Sep 2026 markup applied: Anxiety/Stress folded into Mood & Feelings (its own
+// section removed), poop count + BP time dropped in favour of a single "You
+// regular?" toggle, the three separate medication toggle+dose+time flows replaced
+// by one quantity-chips field, a Neuro symptoms group + free-text add-on, a
+// "Family" chip, and the Outside chips updated for Copenhagen (bike/swim/metro/
+// gallery/markets/thrifted/shopping in, village walk + tube out). Applies from
+// DL_REHAUL_CUTOVER onward only — every entry before that date keeps rendering via
+// buildDlCellCondensed/buildDlCellLegacy exactly as it always has.
+function buildDlCellV2(dayIdx){
+  const d=getDlDay(dayIdx);
+  return `
+  <div class="dl-body" id="dl-body-${dayIdx}">
+    <div class="dl-row" style="padding:6px 6px 0;">
+      <span style="font-size:14px;font-weight:500;color:var(--header-bg);font-family:'SashasFont','DM Serif Display',serif;margin-bottom:3px;display:block;">Notes</span>
+      <textarea class="dl-ta" id="dl-today-notes-${dayIdx}" style="min-height:46px;" placeholder="Anything to note..." oninput="setDlField(${dayIdx},'today-notes',this.value)">${d['today-notes']||''}</textarea>
+      <div style="display:flex;gap:4px;align-items:center;margin-top:4px;">
+        <button class="dl-voice-btn" id="dl-voice-btn-${dayIdx}" onclick="dlToggleVoice(${dayIdx})" title="Record voice note">&#127908;</button>
+        <span class="dl-field-lbl" style="margin:0;font-size:9px;">Voice note</span>
+      </div>
+      <div id="dl-voice-status-${dayIdx}" style="font-size:9px;color:#8d0e3f;min-height:10px;"></div>
+      <div id="dl-voice-log-${dayIdx}" style="margin-top:2px;display:flex;flex-direction:column;gap:2px;"></div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button class="dl-save-btn" style="flex:1;background:#6a5858;" onclick="dlAutoPopulate(${dayIdx})">Auto-fill</button>
+        <button class="dl-save-btn" id="dl-save-btn-${dayIdx}" style="flex:1;" onclick="dlSaveToSheets(${dayIdx})">Save</button>
+      </div>
+      <div style="padding:6px 0 4px;margin-top:6px;border-top:1px solid #f0ebeb;">
+        <span style="font-size:9px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;">Status</span>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+          <button id="dl-complete-btn-${dayIdx}"
+            style="font-size:9px;font-weight:600;padding:3px 9px;border-radius:12px;border:1.5px solid ${getDlField(dayIdx,'log-complete')?'#5dac5b':'#ddd4d4'};background:${getDlField(dayIdx,'log-complete')?'#5dac5b':'transparent'};color:${getDlField(dayIdx,'log-complete')?'white':'var(--text-muted)'};cursor:pointer;white-space:nowrap;"
+            onclick="setDlField(${dayIdx},'log-complete',!getDlField(${dayIdx},'log-complete'));buildAndRefreshDlCell(${dayIdx});">
+            ${getDlField(dayIdx,'log-complete')?'✓ Complete':'Complete'}
+          </button>
+          <button id="dl-complete-app-btn-${dayIdx}"
+            style="font-size:9px;font-weight:600;padding:3px 9px;border-radius:12px;border:1.5px solid ${getDlField(dayIdx,'log-complete-app')?'#5dac5b':'#ddd4d4'};background:${getDlField(dayIdx,'log-complete-app')?'#5dac5b':'transparent'};color:${getDlField(dayIdx,'log-complete-app')?'white':'var(--text-muted)'};cursor:pointer;white-space:nowrap;"
+            onclick="setDlField(${dayIdx},'log-complete-app',!getDlField(${dayIdx},'log-complete-app'));buildAndRefreshDlCell(${dayIdx});">
+            ${getDlField(dayIdx,'log-complete-app')?'✓ On App':'On App'}
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="dl-section" data-s="mood" style="cursor:default;"><span style="flex:1;cursor:pointer;" onclick="dlToggleSection(this.closest('[data-s]'))">Mood &amp; Feelings &#127917;</span><span style="display:flex;gap:3px;"><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),false)" title="Collapse this day">▾</button><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),true)" title="Collapse all days">▾▾</button></span></div>
+    <div class="dl-section-body">
+    <div class="dl-row">
+      <span class="dl-field-lbl">Mood Valence &#127917;</span>
+      ${dlScale(dayIdx,'scale-mood','Very low','Joyful')}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Irritability</span>
+      ${dlScale(dayIdx,'scale-irritability','Patient','Very irritable')}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Today I felt...</span>
+      <textarea class="dl-ta" placeholder="How were you feeling today?" oninput="setDlField(${dayIdx},'other-feelings-text',this.value)">${d['other-feelings-text']||''}</textarea>
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Mood Stability</span>
+      ${dlScale(dayIdx,'scale-stability','Swinging wildly','Steady all day')}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Mental Activation &#9889;&#65039;</span>
+      ${dlScale(dayIdx,'scale-activation','Foggy/flat','Wired')}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Anxiety / Stress &#129402;</span>
+      ${dlScale(dayIdx,'scale-anxiety','None at all','Panic')}
+    </div>
+    </div>
+    <div class="dl-section" data-s="hydration" style="cursor:default;"><span style="flex:1;cursor:pointer;" onclick="dlToggleSection(this.closest('[data-s]'))">Hydration &amp; Fuel &#9749;&#127863;</span><span style="display:flex;gap:3px;"><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),false)" title="Collapse this day">▾</button><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),true)" title="Collapse all days">▾▾</button></span></div>
+    <div class="dl-section-body">
+    <div class="dl-row">
+      <span class="dl-field-lbl">Coffees &#9749;</span>
+      ${dlCounter(dayIdx,'counter-coffee')}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Alcohol units &#127866;</span>
+      ${dlCounter(dayIdx,'counter-alcohol')}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Food &amp; Drink Notes &#128221;</span>
+      <textarea class="dl-ta" placeholder="What did you eat and drink today?" oninput="setDlField(${dayIdx},'notes-food',this.value)">${d['notes-food']||''}</textarea>
+    </div>
+    </div>
+    <div class="dl-section" data-s="sleep" style="cursor:default;"><span style="flex:1;cursor:pointer;" onclick="dlToggleSection(this.closest('[data-s]'))">Sleep &#128164;</span><span style="display:flex;gap:3px;"><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),false)" title="Collapse this day">▾</button><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),true)" title="Collapse all days">▾▾</button></span></div>
+    <div class="dl-section-body">
+    <div class="dl-row">
+      <span class="dl-field-lbl">Sleep quality last night</span>
+      ${dlScale(dayIdx,'scale-sleep','Terrible','Amazing')}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Dreams or interruptions? &#128173;</span>
+      <textarea class="dl-ta" placeholder="Tell me all about it..." oninput="setDlField(${dayIdx},'sleep-dreams',this.value)">${d['sleep-dreams']||''}</textarea>
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Hours slept (estimated) &#129518;</span>
+      ${dlChips(dayIdx,'sleep-hours',DL_CHIP_DATA.hours)}
+    </div>
+    <div class="dl-2col">
+      <div class="dl-row">
+        <span class="dl-field-lbl">Bedtime &#128164;</span>
+        ${dlSelect(dayIdx,'sleep-bedtime',TIME_OPTIONS_BED,'',`dlCalcSleepHours(${dayIdx})`)}
+      </div>
+      <div class="dl-row">
+        <span class="dl-field-lbl">Wake up &#9200;</span>
+        ${dlSelect(dayIdx,'sleep-wakeup',TIME_OPTIONS_WAKE,'',`dlCalcSleepHours(${dayIdx})`)}
+      </div>
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Hours slept (auto) &#129518;</span>
+      <span id="dl-sleep-calc-${dayIdx}" style="font-size:11px;font-weight:700;color:#8d0e3f;">${getDlField(dayIdx,'hours-slept-auto') ? getDlField(dayIdx,'hours-slept-auto')+' hrs' : '&#8212;'}</span>
+    </div>
+    </div>
+    <div class="dl-section" data-s="body" style="cursor:default;"><span style="flex:1;cursor:pointer;" onclick="dlToggleSection(this.closest('[data-s]'))">Body &amp; Health &#128169;</span><span style="display:flex;gap:3px;"><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),false)" title="Collapse this day">▾</button><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),true)" title="Collapse all days">▾▾</button></span></div>
+    <div class="dl-section-body">
+    <div class="dl-row">
+      <span class="dl-field-lbl">You regular? &#128169;</span>
+      ${dlToggle(dayIdx,'regular',[{label:'Yes &#128169;',val:'Yes'},{label:'No &#128683;',val:'No'}])}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Gym today? &#128170;</span>
+      ${dlToggle(dayIdx,'gym',[{label:'Yes &#128170;',val:'Yes'},{label:'No',val:'No'}])}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Step count &#128095;</span>
+      <input class="dl-inp" type="number" placeholder="0" value="${d['steps']||''}" oninput="setDlField(${dayIdx},'steps',this.value)">
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Blood pressure</span>
+      <input class="dl-inp" type="text" placeholder="e.g. 120/80" value="${d['bp']||''}" oninput="setDlField(${dayIdx},'bp',this.value)">
+    </div>
+    </div>
+    <div class="dl-section" data-s="work" style="cursor:default;"><span style="flex:1;cursor:pointer;" onclick="dlToggleSection(this.closest('[data-s]'))">Work &amp; Focus &#128187;</span><span style="display:flex;gap:3px;"><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),false)" title="Collapse this day">▾</button><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),true)" title="Collapse all days">▾▾</button></span></div>
+    <div class="dl-section-body">
+    <div class="dl-row">
+      <span class="dl-field-lbl">Did you do paid work today? (paid)</span>
+      ${dlToggle(dayIdx,'worked',[{label:'Yes &#128187;',val:'Yes'},{label:'No',val:'No'}])}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Where?</span>
+      ${dlToggle(dayIdx,'work-location',[{label:'WFH &#127968;',val:'WFH'},{label:'Office &#127970;',val:'Office'},{label:'Co-working',val:'Co-working'}])}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Were you able to focus?</span>
+      ${dlToggle(dayIdx,'focus',[{label:'Yes &#127911;',val:'Yes'},{label:'Not really',val:'No'}])}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Work &amp; Focus Notes &#128221;</span>
+      <textarea class="dl-ta" placeholder="How did work go today?" oninput="setDlField(${dayIdx},'other-demand',this.value)">${d['other-demand']||''}</textarea>
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Distraction from work</span>
+      ${dlScale(dayIdx,'scale-distraction','Locked in &#128274;','Total chaos')}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Distractions / side quests &#128063;&#65039;</span>
+      <textarea class="dl-ta" placeholder="What sent you down a rabbit hole?" oninput="setDlField(${dayIdx},'notes-distractions',this.value)">${d['notes-distractions']||''}</textarea>
+    </div>
+    </div>
+    <div class="dl-section" data-s="medication" style="cursor:default;"><span style="flex:1;cursor:pointer;" onclick="dlToggleSection(this.closest('[data-s]'))">Medication &#128138;</span><span style="display:flex;gap:3px;"><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),false)" title="Collapse this day">▾</button><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),true)" title="Collapse all days">▾▾</button></span></div>
+    <div class="dl-section-body">
+    <div class="dl-row">
+      <span class="dl-field-lbl">Medication taken</span>
+      ${dlChips(dayIdx,'meds-taken',DL_CHIP_DATA.meds_v2)}
+    </div>
+    </div>
+    <div class="dl-section" data-s="skin" style="cursor:default;"><span style="flex:1;cursor:pointer;" onclick="dlToggleSection(this.closest('[data-s]'))">Self-care &#129767;</span><span style="display:flex;gap:3px;"><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),false)" title="Collapse this day">▾</button><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),true)" title="Collapse all days">▾▾</button></span></div>
+    <div class="dl-section-body">
+    <div class="dl-row">
+      <span class="dl-field-lbl">Did you skin pick? &#129767;</span>
+      ${dlToggle(dayIdx,'skinpick',[{label:'Yes',val:'Yes'},{label:'No &#127775;',val:'No'}])}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Today I... (self-care)</span>
+      ${dlChips(dayIdx,'selfcare',DL_CHIP_DATA.selfcare)}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Any symptoms?</span>
+      ${dlChips(dayIdx,'symptoms',DL_CHIP_DATA.symptoms_v2)}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Anything else?</span>
+      <textarea class="dl-ta" placeholder="Anything else to note..." oninput="setDlField(${dayIdx},'symptoms-other-text',this.value)">${d['symptoms-other-text']||''}</textarea>
+    </div>
+    </div>
+    <div class="dl-section" data-s="social" style="cursor:default;"><span style="flex:1;cursor:pointer;" onclick="dlToggleSection(this.closest('[data-s]'))">Social &amp; Activities &#127807;</span><span style="display:flex;gap:3px;"><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),false)" title="Collapse this day">▾</button><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),true)" title="Collapse all days">▾▾</button></span></div>
+    <div class="dl-section-body">
+    <div class="dl-row">
+      <span class="dl-field-lbl">Today I chatted to...</span>
+      ${dlChips(dayIdx,'social',DL_CHIP_DATA.social_v2)}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Activities today</span>
+      ${dlChips(dayIdx,'activities',DL_CHIP_DATA.activities)}
+    </div>
+    <div class="dl-row">
+      <span class="dl-field-lbl">Outside today</span>
+      ${dlChips(dayIdx,'outside',DL_CHIP_DATA.outside_v2)}
+    </div>
+    </div>
+    <div class="dl-section" data-s="about" style="cursor:default;"><span style="flex:1;cursor:pointer;" onclick="dlToggleSection(this.closest('[data-s]'))">About this entry</span><span style="display:flex;gap:3px;"><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),false)" title="Collapse this day">▾</button><button class="dl-sec-arrow" onclick="event.stopPropagation();dlToggleSection(this.closest('[data-s]'),true)" title="Collapse all days">▾▾</button></span></div>
+    <div class="dl-section-body">
+    <div class="dl-row">
+      <span class="dl-field-lbl">When are you filling this out?</span>
+      ${dlToggle(dayIdx,'filling-when',[{label:'Day of',val:'Day of'},{label:'Retrospectively',val:'Retrospectively'}])}
+    </div>
+    </div>
+  </div>`;
+}
+// Dispatcher — entries dated before the first cutover keep the full legacy layout (so
+// past days still show/edit every field they were originally filled in with); from
+// DL_CONDENSE_CUTOVER (Mon 13 Jul 2026) the condensed layout applies; from
+// DL_REHAUL_CUTOVER (Mon 14 Sep 2026, the Copenhagen move) the rehauled layout applies.
 const DL_CONDENSE_CUTOVER = '2026-07-13';
+const DL_REHAUL_CUTOVER = '2026-09-14';
 function buildDlCell(dayIdx){
+  if (dlKey(dayIdx) >= DL_REHAUL_CUTOVER) return buildDlCellV2(dayIdx);
   return dlKey(dayIdx) >= DL_CONDENSE_CUTOVER ? buildDlCellCondensed(dayIdx) : buildDlCellLegacy(dayIdx);
 }
 function dlCollapseAll(e){
@@ -7195,6 +7492,12 @@ function dlSaveToSheets(dayIdx){
     'AM Routine':(()=>{const done=getMorningRoutineItems(dayIdx).filter(r=>r.done).map(r=>r.text);const skip=getMorningRoutineItems(dayIdx).filter(r=>!r.done).map(r=>r.text);const parts=[];if(done.length)parts.push('Done: '+done.join(', '));if(skip.length)parts.push('Skipped: '+skip.join(', '));return parts.join(' | ');})(), // 69
     'PM Routine':(()=>{const done=getRoutineItems(dayIdx).filter(r=>r.done).map(r=>r.text);const skip=getRoutineItems(dayIdx).filter(r=>!r.done).map(r=>r.text);const parts=[];if(done.length)parts.push('Done: '+done.join(', '));if(skip.length)parts.push('Skipped: '+skip.join(', '));return parts.join(' | ');})(), // 70
     'To-Do':(()=>{const done=getTodoItems(dayIdx).filter(r=>r.done).map(r=>r.text);const skip=getTodoItems(dayIdx).filter(r=>!r.done).map(r=>r.text);const parts=[];if(done.length)parts.push('Done: '+done.join(', '));if(skip.length)parts.push('Skipped: '+skip.join(', '));return parts.join(' | ');})(),
+    // New trailing columns from the 14 Sep 2026 Copenhagen rehaul (buildDlCellV2) — appended
+    // at the end rather than inserted, so none of the existing positional columns above shift.
+    // Add matching headers to the Sheet in this order after the last existing column.
+    'You Regular?':d['regular']||'',                              // 71
+    'Medication Taken':arr('meds-taken'),                          // 72
+    'Symptoms (Anything Else)':d['symptoms-other-text']||'',       // 73
   };
   const btn=document.getElementById(`dl-save-btn-${dayIdx}`);
   if(btn){btn.textContent='Saving…';btn.disabled=true;}
@@ -14854,7 +15157,7 @@ function renderBudgetDashboard() {
       <button class="mps-item" onclick="mobGoPage('bucketlist')"><span class="mps-icon">✓</span><span class="mps-name">Bucketlist</span></button>
       <button class="mps-item" onclick="mobGoPage('trips')"><span class="mps-icon">✈</span><span class="mps-name">Plans</span></button>
       <button class="mps-item" onclick="mobGoPage('tracker')"><span class="mps-icon">⏱</span><span class="mps-name">Tracker</span></button>
-      <button class="mps-item" onclick="mobGoPage('relo')"><span class="mps-icon">📍</span><span class="mps-name">Relocation</span></button>
+      <!-- Relocation retired from nav 14 Sep 2026 — see matching comment by the desktop nav button -->
       <button class="mps-item" onclick="mobGoPage('budget')"><span class="mps-icon">£</span><span class="mps-name">Budget</span></button>
       <button class="mps-item" onclick="closeMobPanelSheet();setTimeout(()=>location.href='https://www.worldtimebuddy.com/?pl=1&lid=2643743,2174003&h=2643743&hf=1',60)"><span class="mps-icon">🌍</span><span class="mps-name">Timezone</span></button>
       <button class="mps-item" onclick="mobPanelTpSwitch('templates')"><span class="mps-icon">➕</span><span class="mps-name">Templates</span></button>
