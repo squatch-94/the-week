@@ -28,6 +28,7 @@
     --creative:#da2266;--creative-l:#fce8ef;--creative-t:#8f0f3d;--creative-b:#f4bcd0;
     --martin:#0e9e8a;--martin-l:#e0f5f2;--martin-t:#065a50;--martin-b:#8ed8cf;
     --routine:#8d0e3f;--routine-l:#f5f0f0;--routine-t:#4a2830;--routine-b:#d4b8b8;
+    --todo:#c9860a;--todo-l:#fdf3e0;--todo-t:#6b4400;--todo-b:#f0d090;
     --feelings:#7c3aed;--feelings-l:#f0ebfc;--feelings-t:#4c1d95;--feelings-b:#c4b5fd;
     --sh:28px;--cw:148px;--lw:200px;--tw:52px;
     --header-bg:#8d0e3f;--header-text:#fff;--header-muted:rgba(255,255,255,.65);
@@ -304,6 +305,11 @@
   .routine-chip-del:hover{opacity:1;}
   .routine-add{background:none;border:1.5px dashed var(--routine-b);border-radius:20px;padding:2px 8px;font-size:10px;color:var(--routine);cursor:pointer;white-space:nowrap;transition:all .15s;}
   .routine-add:hover{background:var(--routine-l);border-color:var(--routine);}
+  /* To-Do row reuses AM/PM's .routine-chip layout but with its own accent colour;
+     same specificity as .routine-chip so declaration order (below) makes this win. */
+  .todo-chip{background:white;border-color:var(--todo-b);color:var(--todo-t);}
+  .todo-chip:hover{background:var(--todo);color:white;border-color:var(--todo);}
+  .todo-chip.done{background:var(--todo);color:white;border-color:var(--todo);text-decoration:line-through;opacity:.7;}
   .bl-pg{padding:28px 32px;}
   /* ── CHECK IN FOOTER ── */
   .checkin-spacer{background:var(--surface);border-right:2px solid var(--border);border-top:2px solid var(--border);display:flex;align-items:flex-start;justify-content:flex-end;padding:6px 6px 0;flex-shrink:0;}
@@ -2398,6 +2404,8 @@ body {
         <button class="hdr-menu-item" onclick="clearThisWeekAmRoutine();closeHdrMenu()">Clear week (AM Routine)</button>
         <button class="hdr-menu-item" onclick="clearThisWeekPmRoutine();closeHdrMenu()">Clear week (PM Routine)</button>
         <button class="hdr-menu-item" onclick="clearThisWeekAmRoutine();clearThisWeekPmRoutine();closeHdrMenu()">Clear week (AM + PM Routine)</button>
+        <button class="hdr-menu-item" onclick="copyLastWeekTodo();closeHdrMenu()">Copy last week (To-Do)</button>
+        <button class="hdr-menu-item" onclick="clearThisWeekTodo();closeHdrMenu()">Clear week (To-Do)</button>
         <hr class="hdr-menu-divider">
         <button class="hdr-menu-item" onclick="openExportModal();closeHdrMenu()">Export (ICS)</button>
         <button class="hdr-menu-item" onclick="triggerIcsOrJsonImport();closeHdrMenu()">Import (ICS / JSON)</button>
@@ -2425,6 +2433,7 @@ body {
     <!-- Left strip: row toggles only -->
     <div class="lib" id="leftStrip">
       <button class="lib-row-btn" id="lrtb-am"       onclick="toggleGridRow('am')"         title="AM Routine">☀️</button>
+      <button class="lib-row-btn" id="lrtb-todo"     onclick="toggleGridRow('todo')"       title="To-Do">✅</button>
       <button class="lib-row-btn" id="lrtb-pm"       onclick="toggleGridRow('pm')"         title="PM Routine">🌙</button>
       <button class="lib-row-btn" id="lrtb-dn"       onclick="toggleGridRow('dn')"         title="Sleep">💤</button>
       <button class="lib-row-btn" id="lrtb-cycle"    onclick="toggleGridRow('cycle')"      title="Cycle">🌸</button>
@@ -4442,9 +4451,16 @@ let _editedDuringBoot = false; // true if the user edited something (e.g. a cate
   // clobbering the edit once it resolves. See sv() and boot().
 let _bootEditSnapshot = null; // the {lib,oo,wev,adev,...} data as of that early edit
 let _svFromRemote = false; // true only when ldRemote() successfully returned data this session
-// Note: local file:// is allowed to write to Supabase (same as live site).
-// Protection comes from _svFromRemote and _svMinWeekEvents guards instead.
-const _IS_LOCAL_FILE = false; // disabled — local file works same as live
+// A locally-opened copy of this file (file:// — e.g. a preview build sent for review)
+// loads real data from Supabase read-only but must NEVER write back to it: it has no
+// way to know if it's holding a stale snapshot relative to whatever's been edited on
+// the live site since. This was previously disabled ("same as live site") on the
+// assumption that only the deployed site would ever have this file open — but preview
+// copies delivered for review are exactly this file, opened via file://, and a save
+// from one caused a real data-loss incident (14 Sep 2026) by overwriting newer live
+// data with its own older snapshot. Local edits still work and persist to that
+// browser's own localStorage — they just never leave the machine.
+const _IS_LOCAL_FILE = window.location.protocol === 'file:';
 let _svMinWeekEvents = {}; // per-week high-water mark: { '2026-05-18': 55, ... }
 // Flush to Supabase immediately (used on page unload)
 async function svFlush() {
@@ -4820,7 +4836,7 @@ async function boot() {
     // renderBriefingRow crash that used to happen here) can't silently abort every
     // panel chained after it — that's what was causing The List (and others) to
     // render as empty even though renderList() itself was fine.
-    [()=>renderLib(),()=>renderGrid(),()=>renderBudget(),()=>renderPriorityTasks(),()=>renderMc(),()=>renderQc(),()=>renderAc(),()=>renderBuckets(),()=>renderList(),()=>renderTripBrains(),()=>renderItinerary(),()=>renderMorningRow(),()=>renderCycleRow(),()=>renderWorkoutRow(),()=>renderMorningRow(),()=>renderRoutineRow(),()=>renderDailyLogRow(),()=>applyRowVisibility(),()=>applyDirectRows(),()=>updateViewButtons(),()=>renderIndices(),()=>renderMonthlyAverages()].forEach(fn=>{
+    [()=>renderLib(),()=>renderGrid(),()=>renderBudget(),()=>renderPriorityTasks(),()=>renderMc(),()=>renderQc(),()=>renderAc(),()=>renderBuckets(),()=>renderList(),()=>renderTripBrains(),()=>renderItinerary(),()=>renderMorningRow(),()=>renderCycleRow(),()=>renderWorkoutRow(),()=>renderMorningRow(),()=>renderTodoRow(),()=>renderRoutineRow(),()=>renderDailyLogRow(),()=>applyRowVisibility(),()=>applyDirectRows(),()=>updateViewButtons(),()=>renderIndices(),()=>renderMonthlyAverages()].forEach(fn=>{
       try { fn(); } catch(e) { console.error('First paint error in ' + (fn.name||'anonymous') + ':', e); }
     });
     setTimeout(()=>dlAutoSync(-1),200);
@@ -4884,7 +4900,7 @@ async function boot() {
   if (useData) {
     applyState(useData);
     try {
-      [()=>renderLib(),()=>renderGrid(),()=>renderBudget(),()=>renderGoals(),()=>renderTrips(),()=>renderTallies(),()=>renderWeekGoals(),()=>renderPriorityTasks(),()=>loadIntent(),()=>renderMc(),()=>renderQc(),()=>renderAc(),()=>renderBuckets(),()=>renderList(),()=>renderTripBrains(),()=>renderItinerary(),()=>renderMorningRow(),()=>renderCycleRow(),()=>renderWorkoutRow(),()=>renderMorningRow(),()=>renderRoutineRow(),()=>renderDailyLogRow(),()=>applyRowVisibility(),()=>updateViewButtons()].forEach(fn=>{
+      [()=>renderLib(),()=>renderGrid(),()=>renderBudget(),()=>renderGoals(),()=>renderTrips(),()=>renderTallies(),()=>renderWeekGoals(),()=>renderPriorityTasks(),()=>loadIntent(),()=>renderMc(),()=>renderQc(),()=>renderAc(),()=>renderBuckets(),()=>renderList(),()=>renderTripBrains(),()=>renderItinerary(),()=>renderMorningRow(),()=>renderCycleRow(),()=>renderWorkoutRow(),()=>renderMorningRow(),()=>renderTodoRow(),()=>renderRoutineRow(),()=>renderDailyLogRow(),()=>applyRowVisibility(),()=>updateViewButtons()].forEach(fn=>{
         try { fn(); } catch(e) { console.error('Full render error in ' + (fn.name||'anonymous') + ':', e); }
       });
       if(tpo){tpSwitch('priorities');}
@@ -4923,7 +4939,7 @@ async function boot() {
       if (_r?.data) {
         clearInterval(_retryTimer);
         applyState(_r.data);
-        [()=>renderLib(),()=>renderGrid(),()=>renderBudget(),()=>renderGoals(),()=>renderTrips(),()=>renderTallies(),()=>renderWeekGoals(),()=>renderPriorityTasks(),()=>loadIntent(),()=>renderMc(),()=>renderQc(),()=>renderAc(),()=>renderBuckets(),()=>renderList(),()=>renderTripBrains(),()=>renderItinerary(),()=>renderMorningRow(),()=>renderRoutineRow(),()=>renderDailyLogRow(),()=>applyRowVisibility()].forEach(fn=>{
+        [()=>renderLib(),()=>renderGrid(),()=>renderBudget(),()=>renderGoals(),()=>renderTrips(),()=>renderTallies(),()=>renderWeekGoals(),()=>renderPriorityTasks(),()=>loadIntent(),()=>renderMc(),()=>renderQc(),()=>renderAc(),()=>renderBuckets(),()=>renderList(),()=>renderTripBrains(),()=>renderItinerary(),()=>renderMorningRow(),()=>renderTodoRow(),()=>renderRoutineRow(),()=>renderDailyLogRow(),()=>applyRowVisibility()].forEach(fn=>{
           try { fn(); } catch(e) { console.error('Supabase-recovered render error in ' + (fn.name||'anonymous') + ':', e); }
         });
         console.log('[stw] Supabase recovered — fresh data loaded, writes re-enabled');
@@ -4982,7 +4998,13 @@ function getAdEvs(){return adev[wkKey()]||[];}
 function setAdEvs(e){adev[wkKey()]=e;sv();}
 // ── ALL-DAY EVENTS ──
 function renderAdRow(){const adEvs=getAdEvs();for(let i=0;i<7;i++){const cell=document.querySelector(`.ad-cell[data-adday="${i}"]`);if(!cell)continue;const dayEvs=adEvs.filter(e=>e.day===i);cell.innerHTML='';dayEvs.forEach(ev=>{const cat=CATS[ev.cat]||CATS.personal;const el=document.createElement('div');el.className='ad-ev';el.draggable=true;el.style.cssText=`background:${cat.l};border-color:${cat.b};color:${cat.t};cursor:pointer;`;el.innerHTML=`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${ev.name}</span><button class="ad-ev-gcal" onclick="event.stopPropagation();openAdGcal('${ev.id}')" style="background:none;border:none;cursor:pointer;font-size:9px;font-weight:700;color:${cat.t};opacity:.7;padding:0 3px;flex-shrink:0;" title="Open in Google Calendar">GCal</button><button class="ad-ev-del" onclick="event.stopPropagation();delAdEv('${ev.id}',event)" style="color:${cat.t}">×</button>`;el.addEventListener('dblclick',e=>{e.stopPropagation();openAdEditModal(ev.id);});el.addEventListener('dragstart',e=>{drag={type:'adlib',adname:ev.name,adcat:ev.cat,lid:null,evid:null,tid:null,oo:false};e.dataTransfer.effectAllowed='copy';});cell.appendChild(el);});}}
-function openAdGcal(id){const adEvs=getAdEvs();const ev=adEvs.find(e=>e.id===id);if(!ev)return;const dates=wkDates(wko);const date=dates[ev.day];const ds=`${date.getFullYear()}${p2(date.getMonth()+1)}${p2(date.getDate())}`;const nd=new Date(date);nd.setDate(date.getDate()+1);const ds2=`${nd.getFullYear()}${p2(nd.getMonth()+1)}${p2(nd.getDate())}`;window.open(`https://calendar.google.com/calendar/render?action=EDIT&text=${encodeURIComponent(ev.name)}&dates=${ds}/${ds2}&ctz=Europe%2FLondon`,'_blank');}
+function openAdGcal(id){const adEvs=getAdEvs();const ev=adEvs.find(e=>e.id===id);if(!ev)return;const dates=wkDates(wko);const date=dates[ev.day];const ds=`${date.getFullYear()}${p2(date.getMonth()+1)}${p2(date.getDate())}`;const nd=new Date(date);nd.setDate(date.getDate()+1);const ds2=`${nd.getFullYear()}${p2(nd.getMonth()+1)}${p2(nd.getDate())}`;
+  // Fixed: was using the legacy render?action=EDIT endpoint with a ctz param, which
+  // doesn't reliably carry the date through for all-day events (that endpoint expects
+  // an existing event id to edit, not a new one). Switched to the same eventedit?
+  // action=TEMPLATE endpoint openGcal() uses for timed events, which is the correct
+  // "create new event" flow. All-day dates (8-digit, no time) don't need a tz param.
+  window.open(`https://calendar.google.com/calendar/r/eventedit?action=TEMPLATE&text=${encodeURIComponent(ev.name)}&dates=${ds}/${ds2}`,'_blank');}
 function delAdEv(id,e){e.stopPropagation();e.preventDefault();setAdEvs(getAdEvs().filter(ev=>ev.id!==id));renderAdRow();}
 function saveAdEv(){
   const name=document.getElementById('adName').value.trim();
@@ -5527,7 +5549,7 @@ function _bkpIsDue() { const key = _bkpSlotKey(); return !!key && !_bkpSlotsLog(
 function _bkpBuildJson() {
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
-    version: 'v51_28',
+    version: 'v51_32',
     slot: _bkpSlot(),
     data: {lib, oo, wev, adev, goals, trips, tpls, ints, tpo},
     budgetTransactions: (typeof budgetTxs !== 'undefined'
@@ -5702,6 +5724,90 @@ function renderMorningRow(){
   document.querySelectorAll('.morning-row-cell,.morning-row-spacer').forEach(e=>e.remove());
   const viewDays=getViewDays();
   viewDays.forEach(i=>refreshAMRoutineCell(i));
+}
+// ── TO-DO ──
+// Per-day list, mirrors AM Routine exactly: same data shape, same static-cell grid
+// pattern (cells created once in renderGrid(), refreshed in place — no dynamic append),
+// same chip UI. Sits underneath AM Routine in the grid. Resets fresh each day, like AM/PM.
+function getTodoData(){return wev['todo']||{};}
+function setTodoData(d){wev['todo']=d;sv();}
+function todoKey(dayIdx){return wkKey(wko)+'-todo'+dayIdx;}
+function getTodoItems(dayIdx){const d=getTodoData();return d[todoKey(dayIdx)]||[];}
+function setTodoItems(dayIdx,items){const d=getTodoData();d[todoKey(dayIdx)]=items;setTodoData(d);}
+function toggleTodoChip(dayIdx,itemId){
+  const items=getTodoItems(dayIdx);
+  const item=items.find(i=>i.id===itemId);
+  if(item)item.done=!item.done;
+  setTodoItems(dayIdx,items);
+  refreshTodoCell(dayIdx);
+  setTimeout(()=>dlAutoSync(dayIdx),100);
+}
+function delTodoChip(dayIdx,itemId){
+  setTodoItems(dayIdx,getTodoItems(dayIdx).filter(i=>i.id!==itemId));
+  refreshTodoCell(dayIdx);
+}
+function addTodoChip(dayIdx){
+  const text=prompt('Add to-do task:','');
+  if(!text||!text.trim())return;
+  const items=getTodoItems(dayIdx);
+  items.push({id:'todo'+dayIdx+'_'+Date.now(),text:text.trim(),done:false});
+  setTodoItems(dayIdx,items);
+  refreshTodoCell(dayIdx);
+}
+function renameTodoChip(dayIdx,itemId){
+  const items=getTodoItems(dayIdx);
+  const item=items.find(i=>i.id===itemId);
+  if(!item)return;
+  const text=prompt('Edit item:',item.text);
+  if(text===null)return;
+  if(!text.trim()){delTodoChip(dayIdx,itemId);return;}
+  item.text=text.trim();
+  setTodoItems(dayIdx,items);
+  refreshTodoCell(dayIdx);
+}
+function refreshTodoCell(i){
+  const cell=document.getElementById('todoCell-'+i);
+  if(!cell)return;
+  cell.innerHTML='';
+  const items=getTodoItems(i);
+  items.forEach(item=>{
+    const chip=document.createElement('div');
+    chip.className='routine-chip todo-chip'+(item.done?' done':'');
+    chip.draggable=true;
+    chip.innerHTML=`<span onclick="event.stopPropagation();renameTodoChip(${i},'${item.id}')">${item.text}</span><button class="routine-chip-del" onclick="event.stopPropagation();toggleTodoChip(${i},'${item.id}')">✓</button><button class="routine-chip-del" onclick="event.stopPropagation();delTodoChip(${i},'${item.id}')">×</button>`;
+    chip.addEventListener('click',()=>toggleTodoChip(i,item.id));
+    chip.addEventListener('dragstart',e=>{drag={type:'routine',rname:item.text,rcat:'routine',lid:null,evid:null,tid:null,oo:false};e.dataTransfer.effectAllowed='copy';e.stopPropagation();});
+    cell.appendChild(chip);
+  });
+}
+function renderTodoRow(){
+  const viewDays=getViewDays();
+  viewDays.forEach(i=>refreshTodoCell(i));
+}
+function copyLastWeekTodo(){
+  const d=getTodoData();
+  const lastWko=wko-1;
+  let copied=0;
+  for(let i=0;i<7;i++){
+    const lastKey=wkKey(lastWko)+'-todo'+i;
+    const thisKey=todoKey(i);
+    if(d[lastKey]){
+      d[thisKey]=d[lastKey].map(item=>({...item,done:false,id:'todo'+i+'_'+Date.now()+Math.random()}));
+      copied++;
+    }
+  }
+  setTodoData(d);
+  renderTodoRow();
+  if(copied===0)showToast('No To-Do list found for last week.');
+  else showToast('✓ To-Do list copied from last week');
+}
+function clearThisWeekTodo(){
+  if(!confirm('Clear all To-Do items for this week?'))return;
+  const d=getTodoData();
+  for(let i=0;i<7;i++)delete d[todoKey(i)];
+  setTodoData(d);
+  renderTodoRow();
+  showToast('✓ To-Do list cleared');
 }
 // ── CYCLE ROW ──
 // Cycle anchor: Day 1 = 28 Apr 2026, 30-day repeating cycle
@@ -5946,7 +6052,7 @@ function triggerIcsOrJsonImport(){
           localStorage.setItem('stw-v7-ts', _importTs);
           fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {method:'POST',headers:{...H,Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:SUPA_ROW,data:imported,updated_at:_importTs})}).catch(()=>{});
           applyState(imported);
-          renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();
+          renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderTodoRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();
           showToast('✓ Data restored from backup');
         } catch(err){ showToast('Could not parse JSON file'); }
       };
@@ -5983,7 +6089,7 @@ function handleJsonImport(input){
       localStorage.setItem('stw-v7-ts', _importTs2);
       fetch(`${SUPA_URL}/rest/v1/planner_data?on_conflict=id`, {method:'POST',headers:{...H,Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:SUPA_ROW,data:imported,updated_at:_importTs2})}).catch(()=>{});
       applyState(imported);
-      renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();
+      renderLib();renderGrid();renderBudget();renderGoals();renderTrips();renderTallies();renderWeekGoals();renderPriorityTasks();loadIntent();renderMc();renderQc();renderAc();renderBuckets();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderTodoRow();renderRoutineRow();renderDailyLogRow();applyRowVisibility();
       // Restore watchlist to Supabase if present in backup
       if(_importedWatchlist&&_importedWatchlist.length&&typeof window.wlRestoreFromBackup==='function'){
         window.wlRestoreFromBackup(_importedWatchlist);
@@ -7088,6 +7194,7 @@ function dlSaveToSheets(dayIdx){
     })(),
     'AM Routine':(()=>{const done=getMorningRoutineItems(dayIdx).filter(r=>r.done).map(r=>r.text);const skip=getMorningRoutineItems(dayIdx).filter(r=>!r.done).map(r=>r.text);const parts=[];if(done.length)parts.push('Done: '+done.join(', '));if(skip.length)parts.push('Skipped: '+skip.join(', '));return parts.join(' | ');})(), // 69
     'PM Routine':(()=>{const done=getRoutineItems(dayIdx).filter(r=>r.done).map(r=>r.text);const skip=getRoutineItems(dayIdx).filter(r=>!r.done).map(r=>r.text);const parts=[];if(done.length)parts.push('Done: '+done.join(', '));if(skip.length)parts.push('Skipped: '+skip.join(', '));return parts.join(' | ');})(), // 70
+    'To-Do':(()=>{const done=getTodoItems(dayIdx).filter(r=>r.done).map(r=>r.text);const skip=getTodoItems(dayIdx).filter(r=>!r.done).map(r=>r.text);const parts=[];if(done.length)parts.push('Done: '+done.join(', '));if(skip.length)parts.push('Skipped: '+skip.join(', '));return parts.join(' | ');})(),
   };
   const btn=document.getElementById(`dl-save-btn-${dayIdx}`);
   if(btn){btn.textContent='Saving…';btn.disabled=true;}
@@ -7881,6 +7988,7 @@ function applyRowVisibility(){
   setHiddenRows(hidden);
   Object.entries({
     am:       ()=>document.querySelectorAll('[id^="amRoutineCell"]'),
+    todo:     ()=>document.querySelectorAll('.todo-row-spacer, .todo-row-cell'),
     dn:       ()=>document.querySelectorAll('.dn-spacer, .dn-cell'),
     pm:       ()=>document.querySelectorAll('.routine-row-spacer, .routine-row-cell'),
     cycle:    ()=>document.querySelectorAll('.cycle-row-spacer, .cycle-row-cell'),
@@ -7895,8 +8003,11 @@ function applyRowVisibility(){
     const lbtn=document.getElementById('lrtb-'+key);
     if(lbtn){lbtn.classList.toggle('off',isHidden);lbtn.classList.toggle('active',!isHidden);}
     if(key==='am'){
+      // Both AM and To-Do spacers share the base .routine-spacer class (for shared
+      // layout) but are separately-toggleable rows, so exclude To-Do's spacer here
+      // the same way PM's is excluded (PM/To-Do each carry their own row-spacer class).
       document.querySelectorAll('.grid-table > .routine-spacer').forEach(el=>{
-        if(!el.classList.contains('routine-row-spacer'))el.style.display=isHidden?'none':'';
+        if(!el.classList.contains('routine-row-spacer')&&!el.classList.contains('todo-row-spacer'))el.style.display=isHidden?'none':'';
       });
     }
     getEls().forEach(el=>el.style.display=isHidden?'none':'');
@@ -7959,9 +8070,20 @@ amCell.addEventListener('dblclick',()=>addMorningChip(i));
 amCell.addEventListener('drop',e=>{e.preventDefault();amCell.classList.remove('dov');if(drag.type==='lib'||drag.type==='routine'){const name=drag.type==='lib'?([...lib,...oo].find(x=>x.id===drag.lid)||{}).name:drag.rname;if(!name)return;const items=getMorningRoutineItems(i);items.push({id:'mri'+i+'_'+Date.now(),text:name,done:false});setMorningRoutineItems(i,items);refreshAMRoutineCell(i);}});
 tbl.appendChild(amCell);});
 }
+// To-Do row (sits between AM Routine and time slots) — per-day list, styled and
+// built exactly like AM Routine (static cells refreshed in place, not dynamic-append),
+// with its own accent colour (--todo) instead of AM/PM's routine colour.
+{const tdSp=document.createElement('div');tdSp.className='routine-spacer todo-row-spacer';tdSp.innerHTML='<span class="routine-spacer-lbl">To-Do</span>';tbl.appendChild(tdSp);
+viewDays.forEach(i=>{const tdCell=document.createElement('div');tdCell.className='routine-cell todo-row-cell'+(i>=5?' weekend':'');tdCell.style.background='var(--todo-l)';tdCell.dataset.day=i;tdCell.id='todoCell-'+i;
+tdCell.addEventListener('dragover',e=>{e.preventDefault();tdCell.classList.add('dov');});
+tdCell.addEventListener('dragleave',()=>tdCell.classList.remove('dov'));
+tdCell.addEventListener('dblclick',()=>addTodoChip(i));
+tdCell.addEventListener('drop',e=>{e.preventDefault();tdCell.classList.remove('dov');if(drag.type==='lib'||drag.type==='routine'){const name=drag.type==='lib'?([...lib,...oo].find(x=>x.id===drag.lid)||{}).name:drag.rname;if(!name)return;const items=getTodoItems(i);items.push({id:'todo'+i+'_'+Date.now(),text:name,done:false});setTodoItems(i,items);refreshTodoCell(i);}});
+tbl.appendChild(tdCell);});
+}
 // Time slots
 for(let s=0;s<TOTAL;s++){const hour=SH+Math.floor(s/SPH),min=(s%SPH)*30,isHr=min===0;const tc=document.createElement('div');tc.className='tc'+(isHr?' hr':'');tc.textContent=isHr?fmtHourAmPm(hour):'';tbl.appendChild(tc);viewDays.forEach(d=>{const slot=document.createElement('div');slot.className='slot'+(isHr?' ht':'')+(d>=5?' weekend':'');slot.dataset.day=d;slot.dataset.slot=s;slot.addEventListener('dragover',onSOver);slot.addEventListener('dragleave',onSLeave);slot.addEventListener('drop',onSDrop);slot.addEventListener('click',()=>{if(isMobile()){if(feelingsLayerActive)openFeelingAdd(d,s);else openMobileAddSheet(d,s);}});
-slot.addEventListener('dblclick',()=>{if(!isMobile()){if(feelingsLayerActive)openFeelingAdd(d,s);else openSlotAdd(d,s);}});tbl.appendChild(slot);})}renderEvents();renderAdRow();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderRoutineRow();renderBriefingRow();renderDailyLogRow();applyRowVisibility();}
+slot.addEventListener('dblclick',()=>{if(!isMobile()){if(feelingsLayerActive)openFeelingAdd(d,s);else openSlotAdd(d,s);}});tbl.appendChild(slot);})}renderEvents();renderAdRow();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderTodoRow();renderRoutineRow();renderBriefingRow();renderDailyLogRow();applyRowVisibility();}
 function renderEvents(){document.querySelectorAll('.gev').forEach(e=>e.remove());
   let evs = getEvs();
   let feelingsDimOthers = false;
@@ -12742,6 +12864,24 @@ const DIRECT_ROW_MAP = {
   ad:  { tblClass:'ad-row-hidden',  btnId:'lrtb-allday' },
   cal: { tblClass:'cal-hidden',     btnId:'lrtb-cal' },
 };
+// ── DIRECT ROW TOGGLES (wx, txt, ad, cal) — active = row IS hidden ──
+// Moved here (must be defined before boot() runs): this used to live in a later
+// script tag that hadn't executed yet by the time boot() called it, causing
+// "applyDirectRows is not defined" on first paint.
+function applyDirectRows(){
+  const tbl = document.getElementById('gridTbl');
+  if(!tbl) return;
+  Object.entries(DIRECT_ROW_MAP).forEach(([key,{tblClass,btnId}])=>{
+    const hidden = !!_hiddenDirectRows[key];
+    tbl.classList.toggle(tblClass, hidden);
+    const btn = document.getElementById(btnId);
+    // off = greyed out when row is hidden
+    if(btn){ btn.classList.toggle('off', hidden); btn.classList.toggle('active',!hidden); }
+  });
+}
+// budgetTxs must also be declared before boot() runs — referenced by
+// _syncItinRowsToBudget() (called from renderItinerary) during first paint.
+let budgetTxs = [];
 // boot() handles all initial rendering — mobile init happens inside boot callback
 checkFirstVisit();
 // Start Supabase auth — loads remote data if logged in, shows login if not
@@ -13989,7 +14129,7 @@ function loadTpBudgRecent() {
   </div>`).join('');
 }
 // ── BUDGET ──
-let budgetTxs = [];
+// budgetTxs declaration moved above boot() — see comment near DIRECT_ROW_MAP
 let _activeBudgTab = 'budgets';
 let _budgExpFilter = 'all'; // 'all' | 'actualised' | 'predicted'
 function txStatus(t){ return t.status || 'actualised'; }
@@ -14768,18 +14908,7 @@ function toggleTimeLabels() {
   if (btn) { btn.classList.toggle('off', _hideTimelabels); btn.classList.toggle('active', !_hideTimelabels); }
   renderEvents();
 }
-// ── DIRECT ROW TOGGLES (wx, txt, ad, cal) — active = row IS hidden ──
-function applyDirectRows(){
-  const tbl = document.getElementById('gridTbl');
-  if(!tbl) return;
-  Object.entries(DIRECT_ROW_MAP).forEach(([key,{tblClass,btnId}])=>{
-    const hidden = !!_hiddenDirectRows[key];
-    tbl.classList.toggle(tblClass, hidden);
-    const btn = document.getElementById(btnId);
-    // off = greyed out when row is hidden
-    if(btn){ btn.classList.toggle('off', hidden); btn.classList.toggle('active',!hidden); }
-  });
-}
+// applyDirectRows() now lives above, before boot() — see comment there.
 function toggleGridRowDirect(key){
   _hiddenDirectRows[key] = !_hiddenDirectRows[key];
   localStorage.setItem(DIRECT_ROW_KEY, JSON.stringify(_hiddenDirectRows));
