@@ -5666,7 +5666,7 @@ function _bkpIsDue() { const key = _bkpSlotKey(); return !!key && !_bkpSlotsLog(
 function _bkpBuildJson() {
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
-    version: 'v51_35',
+    version: 'v51_36',
     slot: _bkpSlot(),
     data: {lib, oo, wev, adev, goals, trips, tpls, ints, tpo},
     budgetTransactions: (typeof budgetTxs !== 'undefined'
@@ -8336,7 +8336,36 @@ function getHiddenRows(){
 }
 function setHiddenRows(arr){
   localStorage.setItem(ROW_HIDDEN_KEY,JSON.stringify(arr));
-  wev.hiddenRows=arr; sv();
+  // THE actual root cause of the ongoing "nothing saves" bug (found 18 Sep 2026):
+  // boot() calls this UNCONDITIONALLY as its very first action, on every single
+  // page load, to make sure 'cycle'/'workout' are in the hidden-rows list — before
+  // this fix, it called sv() every time regardless of whether anything changed.
+  // Since this runs before ldRemote() resolves (svSupaEnabled still false), sv()
+  // took the "edit happened during boot" branch on EVERY boot, snapshotting
+  // whatever `wev` happened to be from the synchronous localStorage first-paint
+  // (`const S = ...localStorage.getItem('stw-v7')` a few hundred lines up) as
+  // _bootEditSnapshot. If that tab's localStorage copy of wev.daily was stale for
+  // any day (which it will be for any day edited from another device/tab/session
+  // since this one last saved), boot() then discarded the correct, freshly-fetched
+  // Supabase data and used that stale snapshot instead — every single load — and
+  // pushed it back via svImmediate(). This is a strictly worse version of the
+  // dlAutoSync bug fixed earlier the same day (v51_35's first fix): that one only
+  // fired when dlAutoSync found a default to backfill; this one fired 100% of the
+  // time, on every boot, no matter what. It's why saves kept failing for days
+  // afterward even with that fix and the stw_daily_log_guard DB trigger both in
+  // place — the trigger was correctly rejecting these stale boot-time resaves
+  // (visible in the console as "[stw] Save rejected by server: ... regress"), but
+  // the app never told the user that, and — critically — once _editedDuringBoot
+  // was set, boot() had ALREADY thrown away the correct remote data for the
+  // in-memory state the user then saw and edited on top of, so nothing new could
+  // ever be saved either (its diff against the real server always looked like a
+  // regression, for a day the user never even touched). Fix: only touch wev and
+  // call sv() if the hidden-rows list is actually changing — a no-op call (the
+  // overwhelming majority of boots, once this has run once per device) now does
+  // nothing beyond the harmless localStorage write above.
+  const changed = JSON.stringify(wev.hiddenRows||[]) !== JSON.stringify(arr);
+  wev.hiddenRows=arr;
+  if (changed) sv();
 }
 function applyRowVisibility(){
   // Ensure dl and pm are never permanently hidden (they have their own toggle buttons)
