@@ -5667,7 +5667,7 @@ function _bkpIsDue() { const key = _bkpSlotKey(); return !!key && !_bkpSlotsLog(
 function _bkpBuildJson() {
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
-    version: 'v51_37',
+    version: 'v51_38',
     slot: _bkpSlot(),
     data: {lib, oo, wev, adev, goals, trips, tpls, ints, tpo},
     budgetTransactions: (typeof budgetTxs !== 'undefined'
@@ -10855,6 +10855,39 @@ function confirmIcsImport() {
   closeMo('icsImportMo');
   if (typeof showToast === 'function') showToast(`✓ Imported ${total} event${total!==1?'s':''}` + (skipped ? `, skipped ${skipped} already in your calendar` : ''));
 }
+// v51_38: ICS timezone helpers (used by parseICSAllWeeks)
+const _ICS_WIN_TZ = {
+  'romance standard time':'Europe/Paris','w. europe standard time':'Europe/Berlin',
+  'central europe standard time':'Europe/Budapest','central european standard time':'Europe/Warsaw',
+  'gmt standard time':'Europe/London','greenwich standard time':'Atlantic/Reykjavik','utc':'UTC',
+  'coordinated universal time':'UTC','e. europe standard time':'Europe/Chisinau','fle standard time':'Europe/Kiev',
+  'e. australia standard time':'Australia/Brisbane','aus eastern standard time':'Australia/Sydney',
+  'eastern standard time':'America/New_York','pacific standard time':'America/Los_Angeles',
+  'central standard time':'America/Chicago','korea standard time':'Asia/Seoul','tokyo standard time':'Asia/Tokyo'
+};
+function _icsResolveTz(params) {
+  const m = String(params||'').match(/TZID=("?)([^";:]+)\1/i);
+  if (!m) return '';
+  let tz = m[2].trim().replace(/^\/[^\/]+\/[^\/]+\//,''); // strip "/mozilla.org/20050126_1/" style prefixes
+  const win = _ICS_WIN_TZ[tz.toLowerCase()];
+  if (win) tz = win;
+  try { new Intl.DateTimeFormat('en-GB',{timeZone:tz}); return tz; } catch(e) { return ''; }
+}
+function _icsWallParts(utcMs, tz) {
+  const parts = {};
+  new Intl.DateTimeFormat('en-GB',{timeZone:tz,hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+    .formatToParts(new Date(utcMs)).forEach(p => parts[p.type] = p.value);
+  return { y:+parts.year, mo:+parts.month-1, d:+parts.day, h:+parts.hour%24, m:+parts.minute };
+}
+function _icsZonedToUtc(y,mo,d,h,m,tz) {
+  const target = Date.UTC(y,mo,d,h,m);
+  let guess = target;
+  for (let i=0;i<2;i++) {
+    const w = _icsWallParts(guess, tz);
+    guess += target - Date.UTC(w.y,w.mo,w.d,w.h,w.m);
+  }
+  return guess;
+}
 function parseICSAllWeeks(text) {
   const timed = [], allDay = [];
   const blocks = text.split('BEGIN:VEVENT').slice(1);
@@ -10864,15 +10897,32 @@ function parseICSAllWeeks(text) {
     d.setDate(d.getDate()+diff);
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   };
-  const parsedt = s => {
+  // v51_38: timezone-aware. Every timed event is converted to Copenhagen wall-clock time.
+  //  - "...Z" values are UTC (Google Calendar exports) -> converted
+  //  - TZID=<zone> values (Outlook, Apple) -> converted from that zone
+  //  - floating values (no zone) -> taken as Copenhagen time already
+  //  - files exported by The Week itself are kept exactly as stored (their TZID label is a legacy London tag)
+  const HOME_TZ = 'Europe/Copenhagen';
+  const ownExport = /PRODID:[^\r\n]*Sasha Weekly Planner/.test(text);
+  const parsedt = (s, params) => {
     const c = s.replace(/[^0-9T]/g,'');
     const y=+c.slice(0,4),mo=+c.slice(4,6)-1,d=+c.slice(6,8);
     const h=c.length>8?+c.slice(9,11):0,m=c.length>11?+c.slice(11,13):0;
-    return new Date(y,mo,d,h,m);
+    if (ownExport) return new Date(y,mo,d,h,m);
+    let utcMs = null;
+    if (/Z\s*$/i.test(s)) utcMs = Date.UTC(y,mo,d,h,m);
+    else {
+      const tz = _icsResolveTz(params);
+      if (tz && tz !== HOME_TZ) utcMs = _icsZonedToUtc(y,mo,d,h,m,tz);
+    }
+    if (utcMs == null || isNaN(utcMs)) return new Date(y,mo,d,h,m);
+    const w = _icsWallParts(utcMs, HOME_TZ);
+    return new Date(w.y,w.mo,w.d,w.h,w.m);
   };
   blocks.forEach(block => {
     try {
       const get = key => { const m=block.match(new RegExp(key+'[^:]*:([^\r\n]+)')); return m?m[1].trim():''; };
+      const getParams = key => { const m=block.match(new RegExp('(?:^|\\n)'+key+'([^:\\r\\n]*):')); return m?m[1]:''; };
       const summary = get('SUMMARY');
       if (!summary||summary.startsWith('🎯')) return;
       const dtstart = get('DTSTART');
@@ -10884,7 +10934,7 @@ function parseICSAllWeeks(text) {
         const date=new Date(+c.slice(0,4),+c.slice(4,6)-1,+c.slice(6,8));
         allDay.push({wkKeyStr:getMondayKey(date),ev:{id:'ev'+Date.now()+Math.random(),name:summary,cat:guessCat(summary),day:(date.getDay()+6)%7}});
       } else {
-        const start=parsedt(dtstart),end=dtend?parsedt(dtend):new Date(start.getTime()+3600000);
+        const start=parsedt(dtstart,getParams('DTSTART')),end=dtend?parsedt(dtend,getParams('DTEND')):new Date(start.getTime()+3600000);
         const startMins=start.getHours()*60+start.getMinutes();
         const endMins=end.getHours()*60+end.getMinutes();
         timed.push({wkKeyStr:getMondayKey(start),ev:{id:'ev'+Date.now()+Math.random(),day:(start.getDay()+6)%7,slot:Math.max(0,Math.round((startMins-SH*60)/30)),slots:Math.max(1,Math.round((endMins-startMins)/30)),name:summary,cat:guessCat(summary),note:get('DESCRIPTION')||''}});
