@@ -4174,9 +4174,10 @@ body {
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Found <strong id="icsImportCount"></strong></p>
     <div id="icsImportPreview" style="background:var(--bg-warm);border-radius:8px;padding:8px 12px;margin-bottom:14px;max-height:160px;overflow-y:auto;"></div>
     <div class="fg">
-      <label style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;display:block;">Assign category</label>
-      <select id="icsImportCat" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--text);outline:none;"></select>
+      <label id="icsImportCatLbl" style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;display:block;">Assign category</label>
+      <select id="icsImportCat" onchange="_icsSetAllCats(this.value)" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--text);outline:none;"></select>
     </div>
+    <div id="icsImportFiles" style="display:none;margin-top:12px;max-height:220px;overflow-y:auto;"></div>
     <div style="display:flex;gap:8px;margin-top:16px;">
       <button class="btn-save" onclick="confirmIcsImport()" style="flex:1;">Import</button>
       <button class="btn-cancel" onclick="closeMo('icsImportMo')">Cancel</button>
@@ -5666,7 +5667,7 @@ function _bkpIsDue() { const key = _bkpSlotKey(); return !!key && !_bkpSlotsLog(
 function _bkpBuildJson() {
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
-    version: 'v51_36',
+    version: 'v51_37',
     slot: _bkpSlot(),
     data: {lib, oo, wev, adev, goals, trips, tpls, ints, tpo},
     budgetTransactions: (typeof budgetTxs !== 'undefined'
@@ -6150,8 +6151,16 @@ function triggerIcsOrJsonImport(){
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.ics,.json';
+  input.multiple = true; // v51_37: bulk ICS upload
   input.onchange = e => {
-    const file = e.target.files[0];
+    const _allFiles = Array.from(e.target.files || []);
+    const _icsFiles = _allFiles.filter(f => !/\.json$/i.test(f.name));
+    if(_icsFiles.length){
+      if(_icsFiles.length < _allFiles.length) alert('Backup .json files can\'t be imported alongside .ics files, so only the .ics files will be imported.');
+      importICS({target:{files:_icsFiles}});
+      return;
+    }
+    const file = _allFiles[0];
     if(!file) return;
     if(file.name.endsWith('.json')){
       const reader = new FileReader();
@@ -10677,35 +10686,101 @@ function _readFileAsText(file) {
 }
 async function importICS(event) {
   const files = Array.from(event.target.files || []);
-  event.target.value = '';
+  try { event.target.value = ''; } catch(e) {}
   if (!files.length) return;
-  // Parse every selected file and merge their events into one pending set, so
-  // several .ics files can be imported into the same category in one go.
-  const timed = [], allDay = [];
-  let filesWithNoEvents = [];
+  // v51_37: bulk upload. Each file keeps its own group so it can be given its own
+  // category (guessed from the file name, e.g. the "Export > ZIP" per-category files).
+  const groups = [];
+  const filesWithNoEvents = [];
   for (const file of files) {
     let text;
-    try { text = await _readFileAsText(file); } catch(e) { continue; }
+    try { text = await _readFileAsText(file); } catch(e) { filesWithNoEvents.push(file.name); continue; }
     const parsed = parseICSAllWeeks(text);
     if (!parsed.timed.length && !parsed.allDay.length) { filesWithNoEvents.push(file.name); continue; }
-    timed.push(...parsed.timed);
-    allDay.push(...parsed.allDay);
+    const guessed = _icsGuessCatFromFilename(file.name);
+    groups.push({ name: file.name, timed: parsed.timed, allDay: parsed.allDay, cat: guessed || 'personal', guessed: !!guessed });
   }
-  if (!timed.length && !allDay.length) { alert('No events found in the selected ICS file' + (files.length>1?'s':'') + '.'); return; }
-  _icsPending = { timed, allDay };
-  // Show category picker modal
+  if (!groups.length) { alert('No events found in the selected ICS file' + (files.length>1?'s':'') + '.'); return; }
+  _icsPending = { groups };
+  const timed = groups.flatMap(g => g.timed), allDay = groups.flatMap(g => g.allDay);
   const total = timed.length + allDay.length;
   const weeks = new Set([...timed.map(x=>x.wkKeyStr),...allDay.map(x=>x.wkKeyStr)]).size;
-  const fileNote = files.length > 1 ? ` from ${files.length} files` : '';
+  const fileNote = groups.length > 1 ? ` from ${groups.length} files` : '';
   document.getElementById('icsImportCount').textContent = `${total} event${total!==1?'s':''} across ${weeks} week${weeks!==1?'s':''}${fileNote}`;
-  // Populate preview list (first 8)
+  const dupes = _icsSplitDupes(timed, allDay).skipped;
   const preview = [...timed,...allDay].slice(0,8).map(x=>x.ev.name);
-  document.getElementById('icsImportPreview').innerHTML = preview.map(n=>`<div style="padding:2px 0;font-size:12px;color:var(--text-muted);">• ${n}</div>`).join('') + (total>8?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px;">…and ${total-8} more</div>`:'') + (filesWithNoEvents.length?`<div style="font-size:11px;color:var(--text-faint);margin-top:4px;">No events found in: ${filesWithNoEvents.join(', ')}</div>`:'');
-  // Populate category select
+  document.getElementById('icsImportPreview').innerHTML =
+    preview.map(n=>`<div style="padding:2px 0;font-size:12px;color:var(--text-muted);">• ${_icsEsc(n)}</div>`).join('') +
+    (total>8?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px;">…and ${total-8} more</div>`:'') +
+    (dupes?`<div style="font-size:11px;color:var(--text-faint);margin-top:4px;">${dupes} already in your calendar, so ${dupes===1?'it':'they'} will be skipped</div>`:'') +
+    (filesWithNoEvents.length?`<div style="font-size:11px;color:var(--text-faint);margin-top:4px;">No events found in: ${filesWithNoEvents.map(_icsEsc).join(', ')}</div>`:'');
+  const catOpts = Object.entries(CATS).sort((a,b)=>a[1].label.localeCompare(b[1].label));
   const sel = document.getElementById('icsImportCat');
-  sel.innerHTML = Object.entries(CATS).sort((a,b)=>a[1].label.localeCompare(b[1].label)).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
-  sel.value = 'personal';
+  const lbl = document.getElementById('icsImportCatLbl');
+  const list = document.getElementById('icsImportFiles');
+  if (groups.length === 1) {
+    lbl.textContent = 'Assign category';
+    sel.innerHTML = catOpts.map(([k,v])=>`<option value="${k}">${_icsEsc(v.label)}</option>`).join('');
+    sel.value = groups[0].cat;
+    list.style.display = 'none'; list.innerHTML = '';
+  } else {
+    lbl.textContent = 'Set every file to';
+    sel.innerHTML = '<option value="">Keep per-file choices</option>' + catOpts.map(([k,v])=>`<option value="${k}">${_icsEsc(v.label)}</option>`).join('');
+    sel.value = '';
+    list.style.display = 'block';
+    list.innerHTML = groups.map((g,i) => {
+      const n = g.timed.length + g.allDay.length;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_icsEsc(g.name)}">${_icsEsc(g.name)}</div>
+          <div style="font-size:11px;color:var(--text-faint);">${n} event${n!==1?'s':''}${g.guessed?', category matched from file name':''}</div>
+        </div>
+        <select data-ics-group="${i}" onchange="_icsPending&&(_icsPending.groups[${i}].cat=this.value)" style="width:48%;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;background:var(--bg);color:var(--text);outline:none;">
+          ${catOpts.map(([k,v])=>`<option value="${k}"${k===g.cat?' selected':''}>${_icsEsc(v.label)}</option>`).join('')}
+        </select>
+      </div>`;
+    }).join('');
+  }
   document.getElementById('icsImportMo').classList.add('open');
+}
+function _icsEsc(s) {
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// Match a file name to a category: exact key prefix (ZIP export uses "<catKey>-<range>.ics"),
+// then category key or label slug anywhere in the name. Longest match wins. Returns '' if none.
+function _icsGuessCatFromFilename(fname) {
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const base = slug(String(fname).replace(/\.ics$/i,''));
+  const squashed = base.replace(/-/g,'');
+  let best = '', bestLen = 0;
+  Object.entries(CATS).forEach(([k,v]) => {
+    const key = k.toLowerCase(), lab = slug(v.label||'');
+    let len = 0;
+    if (base.startsWith(key + '-') || base === key) len = 1000 + key.length;
+    else if (lab && base.includes(lab)) len = 500 + lab.length;
+    else if (key.length >= 4 && squashed.includes(key)) len = key.length;
+    if (len > bestLen) { best = k; bestLen = len; }
+  });
+  return best;
+}
+function _icsSetAllCats(val) {
+  if (!_icsPending || !_icsPending.groups) return;
+  if (_icsPending.groups.length === 1) { _icsPending.groups[0].cat = val; return; }
+  if (!val) return;
+  _icsPending.groups.forEach(g => g.cat = val);
+  document.querySelectorAll('#icsImportFiles select[data-ics-group]').forEach(s => s.value = val);
+}
+// Split pending events into ones to add and duplicates (same week, day, start and name
+// as something already in the planner, or earlier in this same batch).
+function _icsSplitDupes(timed, allDay) {
+  const norm = s => String(s||'').trim().toLowerCase();
+  const tKeys = new Set(), aKeys = new Set();
+  Object.entries(wev).forEach(([wk, evs]) => { if (Array.isArray(evs) && /^\d{4}-\d{2}-\d{2}$/.test(wk)) evs.forEach(e => tKeys.add(`${wk}|${e.day}|${e.slot}|${norm(e.name)}`)); });
+  Object.entries(adev).forEach(([wk, evs]) => { if (Array.isArray(evs)) evs.forEach(e => aKeys.add(`${wk}|${e.day}|${norm(e.name)}`)); });
+  const addT = [], addA = []; let skipped = 0;
+  timed.forEach(x => { const k = `${x.wkKeyStr}|${x.ev.day}|${x.ev.slot}|${norm(x.ev.name)}`; if (tKeys.has(k)) { skipped++; return; } tKeys.add(k); addT.push(x); });
+  allDay.forEach(x => { const k = `${x.wkKeyStr}|${x.ev.day}|${norm(x.ev.name)}`; if (aKeys.has(k)) { skipped++; return; } aKeys.add(k); addA.push(x); });
+  return { timed: addT, allDay: addA, skipped };
 }
 function openDeleteImportedMo() {
   const sel = document.getElementById('delImportCat');
@@ -10756,24 +10831,29 @@ function confirmDeleteImported() {
 }
 function confirmIcsImport() {
   if (!_icsPending) return;
-  const cat = document.getElementById('icsImportCat').value;
-  const { timed, allDay } = _icsPending;
+  // v51_37: each file group carries its own category
+  const groups = _icsPending.groups || [{ timed: _icsPending.timed||[], allDay: _icsPending.allDay||[], cat: document.getElementById('icsImportCat').value }];
+  if (groups.length === 1) groups[0].cat = document.getElementById('icsImportCat').value || groups[0].cat;
+  const allT = [], allA = [];
+  groups.forEach(g => {
+    g.timed.forEach(x => { x.ev.cat = g.cat; allT.push(x); });
+    g.allDay.forEach(x => { x.ev.cat = g.cat; allA.push(x); });
+  });
+  const { timed, allDay, skipped } = _icsSplitDupes(allT, allA);
   timed.forEach(({ wkKeyStr, ev }) => {
-    ev.cat = cat;
     if (!wev[wkKeyStr]) wev[wkKeyStr] = [];
     wev[wkKeyStr].push(ev);
   });
   allDay.forEach(({ wkKeyStr, ev }) => {
-    ev.cat = cat;
     if (!adev[wkKeyStr]) adev[wkKeyStr] = [];
     adev[wkKeyStr].push(ev);
   });
   _icsPending = null;
-  sv();
+  const total = timed.length + allDay.length;
+  if (total) sv();
   renderEvents(); renderAdRow(); renderBudget(); renderTallies();
   closeMo('icsImportMo');
-  const total = timed.length + allDay.length;
-  showToast && showToast(`✓ Imported ${total} event${total!==1?'s':''}`);
+  if (typeof showToast === 'function') showToast(`✓ Imported ${total} event${total!==1?'s':''}` + (skipped ? `, skipped ${skipped} already in your calendar` : ''));
 }
 function parseICSAllWeeks(text) {
   const timed = [], allDay = [];
