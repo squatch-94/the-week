@@ -5697,7 +5697,7 @@ function _bkpIsDue() { const key = _bkpSlotKey(); return !!key && !_bkpSlotsLog(
 function _bkpBuildJson() {
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
-    version: 'v51_40',
+    version: 'v51_41',
     slot: _bkpSlot(),
     data: {lib, oo, wev, adev, goals, trips, tpls, ints, tpo},
     budgetTransactions: (typeof budgetTxs !== 'undefined'
@@ -10849,12 +10849,13 @@ async function importICS(event) {
   const weeks = new Set([...timed.map(x=>x.wkKeyStr),...allDay.map(x=>x.wkKeyStr)]).size;
   const fileNote = groups.length > 1 ? ` from ${groups.length} files` : '';
   document.getElementById('icsImportCount').textContent = `${total} event${total!==1?'s':''} across ${weeks} week${weeks!==1?'s':''}${fileNote}`;
-  const dupes = _icsSplitDupes(timed, allDay).skipped;
+  const _dup = _icsSplitDupes(timed, allDay), dupes = _dup.skipped - _dup.upgrades.length, _upg = _dup.upgrades.length;
   const preview = [...timed,...allDay].slice(0,8).map(x=>x.ev.name);
   document.getElementById('icsImportPreview').innerHTML =
     preview.map(n=>`<div style="padding:2px 0;font-size:12px;color:var(--text-muted);">• ${_icsEsc(n)}</div>`).join('') +
     (total>8?`<div style="font-size:11px;color:var(--text-faint);margin-top:2px;">…and ${total-8} more</div>`:'') +
     (dupes?`<div style="font-size:11px;color:var(--text-faint);margin-top:4px;">${dupes} already in your calendar, so ${dupes===1?'it':'they'} will be skipped</div>`:'') +
+    (_upg?`<div style="font-size:11px;color:var(--text-faint);margin-top:4px;">${_upg} already in your calendar with a cut-off description, which will be completed</div>`:'') +
     (filesWithNoEvents.length?`<div style="font-size:11px;color:var(--text-faint);margin-top:4px;">No events found in: ${filesWithNoEvents.map(_icsEsc).join(', ')}</div>`:'');
   const catOpts = Object.entries(CATS).sort((a,b)=>a[1].label.localeCompare(b[1].label));
   const sel = document.getElementById('icsImportCat');
@@ -10916,13 +10917,21 @@ function _icsSetAllCats(val) {
 // as something already in the planner, or earlier in this same batch).
 function _icsSplitDupes(timed, allDay) {
   const norm = s => String(s||'').trim().toLowerCase();
-  const tKeys = new Set(), aKeys = new Set();
-  Object.entries(wev).forEach(([wk, evs]) => { if (Array.isArray(evs) && /^\d{4}-\d{2}-\d{2}$/.test(wk)) evs.forEach(e => tKeys.add(`${wk}|${e.day}|${e.slot}|${norm(e.name)}`)); });
-  Object.entries(adev).forEach(([wk, evs]) => { if (Array.isArray(evs)) evs.forEach(e => aKeys.add(`${wk}|${e.day}|${norm(e.name)}`)); });
-  const addT = [], addA = []; let skipped = 0;
-  timed.forEach(x => { const k = `${x.wkKeyStr}|${x.ev.day}|${x.ev.slot}|${norm(x.ev.name)}`; if (tKeys.has(k)) { skipped++; return; } tKeys.add(k); addT.push(x); });
-  allDay.forEach(x => { const k = `${x.wkKeyStr}|${x.ev.day}|${norm(x.ev.name)}`; if (aKeys.has(k)) { skipped++; return; } aKeys.add(k); addA.push(x); });
-  return { timed: addT, allDay: addA, skipped };
+  const tKeys = new Map(), aKeys = new Map();
+  Object.entries(wev).forEach(([wk, evs]) => { if (Array.isArray(evs) && /^\d{4}-\d{2}-\d{2}$/.test(wk)) evs.forEach(e => tKeys.set(`${wk}|${e.day}|${e.slot}|${norm(e.name)}`, e)); });
+  Object.entries(adev).forEach(([wk, evs]) => { if (Array.isArray(evs)) evs.forEach(e => aKeys.set(`${wk}|${e.day}|${norm(e.name)}`, e)); });
+  const addT = [], addA = [], upgrades = []; let skipped = 0;
+  // v51_41: a duplicate whose saved description is a cut-off start of the incoming one gets
+  // its description completed (fixes events imported before line-unfolding existed).
+  const consider = (existing, x) => {
+    const incoming = x.ev.note || '';
+    if (!existing || !incoming) return;
+    const cur = _icsUnescape(existing.note || '');
+    if (incoming.length > cur.length && incoming.startsWith(cur)) upgrades.push({ target: existing, note: incoming });
+  };
+  timed.forEach(x => { const k = `${x.wkKeyStr}|${x.ev.day}|${x.ev.slot}|${norm(x.ev.name)}`; if (tKeys.has(k)) { skipped++; consider(tKeys.get(k), x); return; } tKeys.set(k, null); addT.push(x); });
+  allDay.forEach(x => { const k = `${x.wkKeyStr}|${x.ev.day}|${norm(x.ev.name)}`; if (aKeys.has(k)) { skipped++; consider(aKeys.get(k), x); return; } aKeys.set(k, null); addA.push(x); });
+  return { timed: addT, allDay: addA, skipped, upgrades };
 }
 function openDeleteImportedMo() {
   const sel = document.getElementById('delImportCat');
@@ -10981,7 +10990,8 @@ function confirmIcsImport() {
     g.timed.forEach(x => { x.ev.cat = g.cat; allT.push(x); });
     g.allDay.forEach(x => { x.ev.cat = g.cat; allA.push(x); });
   });
-  const { timed, allDay, skipped } = _icsSplitDupes(allT, allA);
+  const { timed, allDay, skipped, upgrades } = _icsSplitDupes(allT, allA);
+  upgrades.forEach(u => { u.target.note = u.note; });
   timed.forEach(({ wkKeyStr, ev }) => {
     if (!wev[wkKeyStr]) wev[wkKeyStr] = [];
     wev[wkKeyStr].push(ev);
@@ -10992,10 +11002,10 @@ function confirmIcsImport() {
   });
   _icsPending = null;
   const total = timed.length + allDay.length;
-  if (total) sv();
+  if (total || upgrades.length) sv();
   renderEvents(); renderAdRow(); renderBudget(); renderTallies();
   closeMo('icsImportMo');
-  if (typeof showToast === 'function') showToast(`✓ Imported ${total} event${total!==1?'s':''}` + (skipped ? `, skipped ${skipped} already in your calendar` : ''));
+  if (typeof showToast === 'function') showToast(`✓ Imported ${total} event${total!==1?'s':''}` + (upgrades.length ? `, completed ${upgrades.length} description${upgrades.length!==1?'s':''}` : '') + ((skipped-upgrades.length) ? `, skipped ${skipped-upgrades.length} already in your calendar` : ''));
 }
 // v51_38: ICS timezone helpers (used by parseICSAllWeeks)
 const _ICS_WIN_TZ = {
@@ -11030,7 +11040,13 @@ function _icsZonedToUtc(y,mo,d,h,m,tz) {
   }
   return guess;
 }
+function _icsUnescape(s) {
+  return String(s||'').replace(/\\n/gi,'\n').replace(/\\([,;\\])/g,'$1').trim();
+}
 function parseICSAllWeeks(text) {
+  // v51_41: unfold long lines first. Calendar apps wrap any line over 75 characters onto
+  // continuation lines that start with a space; reading only the first line cut descriptions off.
+  text = String(text||'').replace(/\r?\n[ \t]/g, '');
   const timed = [], allDay = [];
   const blocks = text.split('BEGIN:VEVENT').slice(1);
   const getMondayKey = date => {
@@ -11074,14 +11090,14 @@ function parseICSAllWeeks(text) {
       if (isAllDay) {
         const c=dtstart.replace('VALUE=DATE:','').replace(/[^0-9]/g,'');
         const date=new Date(+c.slice(0,4),+c.slice(4,6)-1,+c.slice(6,8));
-        const _adDesc=String(get('DESCRIPTION')||'').replace(/\\n/gi,'\n').replace(/\\([,;\\])/g,'$1').trim();
+        const _adDesc=_icsUnescape(get('DESCRIPTION'));
         const _adEv={id:'ev'+Date.now()+Math.random(),name:summary,cat:guessCat(summary),day:(date.getDay()+6)%7}; if(_adDesc) _adEv.note=_adDesc;
         allDay.push({wkKeyStr:getMondayKey(date),ev:_adEv});
       } else {
         const start=parsedt(dtstart,getParams('DTSTART')),end=dtend?parsedt(dtend,getParams('DTEND')):new Date(start.getTime()+3600000);
         const startMins=start.getHours()*60+start.getMinutes();
         const endMins=end.getHours()*60+end.getMinutes();
-        timed.push({wkKeyStr:getMondayKey(start),ev:{id:'ev'+Date.now()+Math.random(),day:(start.getDay()+6)%7,slot:Math.max(0,Math.round((startMins-SH*60)/30)),slots:Math.max(1,Math.round((endMins-startMins)/30)),name:summary,cat:guessCat(summary),note:get('DESCRIPTION')||''}});
+        timed.push({wkKeyStr:getMondayKey(start),ev:{id:'ev'+Date.now()+Math.random(),day:(start.getDay()+6)%7,slot:Math.max(0,Math.round((startMins-SH*60)/30)),slots:Math.max(1,Math.round((endMins-startMins)/30)),name:summary,cat:guessCat(summary),note:_icsUnescape(get('DESCRIPTION'))}});
       }
     } catch(e) {}
   });
