@@ -2413,6 +2413,7 @@ body {
         <button class="hdr-menu-item" onclick="openExportModal();closeHdrMenu()">Export (ICS)</button>
         <button class="hdr-menu-item" onclick="triggerIcsOrJsonImport();closeHdrMenu()">Import (ICS / JSON)</button>
         <button class="hdr-menu-item" onclick="openDeleteImportedMo();closeHdrMenu()">Delete imported events…</button>
+        <button class="hdr-menu-item" onclick="openExtCalMo();closeHdrMenu()">Linked calendars…</button>
         <button class="hdr-menu-item" onclick="downloadBackup();closeHdrMenu()">Download Backup (JSON)</button>
         <button class="hdr-menu-item" onclick="bkpPickFolder()">📁 Set auto-backup folder…</button>
         <hr class="hdr-menu-divider">
@@ -4280,6 +4281,27 @@ body {
 </div>
 <div id="mobileEvSheetOverlay" class="mob-sheet-overlay" onclick="closeMobileEvSheet()"></div>
 <!-- EXPORT MODAL -->
+<!-- LINKED CALENDARS MODAL (v51_39) -->
+<div class="mo" id="extCalMo">
+  <div class="md" style="max-width:440px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <h3 style="font-family:'SashasFont',serif;font-size:18px;color:var(--header-bg);">Linked calendars</h3>
+      <button onclick="closeMo('extCalMo')" class="btn-x">×</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.45;">Read-only calendars shown on the planner as a dashed layer. They refresh on load and every 15 minutes, and are never saved into your planner data.</p>
+    <div id="extCalList"></div>
+    <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:12px;">
+      <div class="fg"><label style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;display:block;">Name</label>
+        <input id="extCalName" placeholder="e.g. Darcy's Work" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--text);outline:none;"></div>
+      <div class="fg" style="margin-top:8px;"><label style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;display:block;">Apps Script web app URL</label>
+        <input id="extCalUrl" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--text);outline:none;"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn-save" onclick="addExtCal()" style="flex:1;">Add calendar</button>
+        <button class="btn-cancel" onclick="extCalRefresh(true)">Refresh now</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="mo" id="exportMo">
   <div class="md" style="width:420px;">
     <h3>Export to Calendar</h3>
@@ -4387,6 +4409,7 @@ body {
       <select id="adCat"></select>
     </div>
     <div class="fg"><label>Day</label><div class="dp" id="adDayPick"></div></div>
+    <div class="fg"><label>Description (optional)</label><textarea id="adNote" placeholder="Any details..."></textarea></div>
     <div class="md-btns"><button class="btn-cancel" onclick="closeMo('adMo')">Cancel</button><button class="btn-save" onclick="saveAdEv()">Add</button></div>
   </div>
 </div>
@@ -5044,6 +5067,9 @@ async function boot() {
     document.getElementById('lockScreen').style.display = 'flex';
   }
   svSupaEnabled = true; // safe to write to Supabase now that real data is loaded
+  // v51_39: linked calendars are read-only and never call sv()
+  setTimeout(()=>{ try { extCalRefresh(false); } catch(e) { console.error('[stw] extCal', e); } }, 800);
+  setInterval(()=>{ try { extCalRefresh(false); } catch(e) {} }, 15 * 60 * 1000);
   // An edit landed before this point was reached (see above) — it's already applied
   // in memory and in localStorage, but Supabase itself still has the old version.
   // Push it up now rather than waiting for the next unrelated edit to trigger a save.
@@ -5115,27 +5141,29 @@ function setEvs(e){wev[wkKey()]=e;sv();setTimeout(()=>dlAutoSync(-1),100);}
 function getAdEvs(){return adev[wkKey()]||[];}
 function setAdEvs(e){adev[wkKey()]=e;sv();}
 // ── ALL-DAY EVENTS ──
-function renderAdRow(){const adEvs=getAdEvs();for(let i=0;i<7;i++){const cell=document.querySelector(`.ad-cell[data-adday="${i}"]`);if(!cell)continue;const dayEvs=adEvs.filter(e=>e.day===i);cell.innerHTML='';dayEvs.forEach(ev=>{const cat=CATS[ev.cat]||CATS.personal;const el=document.createElement('div');el.className='ad-ev';el.draggable=true;el.style.cssText=`background:${cat.l};border-color:${cat.b};color:${cat.t};cursor:pointer;`;el.innerHTML=`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${ev.name}</span><button class="ad-ev-gcal" onclick="event.stopPropagation();openAdGcal('${ev.id}')" style="background:none;border:none;cursor:pointer;font-size:9px;font-weight:700;color:${cat.t};opacity:.7;padding:0 3px;flex-shrink:0;" title="Open in Google Calendar">GCal</button><button class="ad-ev-del" onclick="event.stopPropagation();delAdEv('${ev.id}',event)" style="color:${cat.t}">×</button>`;el.addEventListener('dblclick',e=>{e.stopPropagation();openAdEditModal(ev.id);});el.addEventListener('dragstart',e=>{drag={type:'adlib',adname:ev.name,adcat:ev.cat,lid:null,evid:null,tid:null,oo:false};e.dataTransfer.effectAllowed='copy';});cell.appendChild(el);});}}
+function renderAdRow(){const adEvs=getAdEvs();for(let i=0;i<7;i++){const cell=document.querySelector(`.ad-cell[data-adday="${i}"]`);if(!cell)continue;const dayEvs=adEvs.filter(e=>e.day===i);cell.innerHTML='';dayEvs.forEach(ev=>{const cat=CATS[ev.cat]||CATS.personal;const el=document.createElement('div');el.className='ad-ev';el.draggable=true;el.style.cssText=`background:${cat.l};border-color:${cat.b};color:${cat.t};cursor:pointer;`;if(ev.note)el.title=`${ev.name}\n${ev.note}`;el.innerHTML=`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${ev.name}</span>${ev.note?`<span title="Has a description" style="font-size:10px;opacity:.6;padding:0 2px;flex-shrink:0;">&#8801;</span>`:''}<button class="ad-ev-gcal" onclick="event.stopPropagation();openAdGcal('${ev.id}')" style="background:none;border:none;cursor:pointer;font-size:9px;font-weight:700;color:${cat.t};opacity:.7;padding:0 3px;flex-shrink:0;" title="Open in Google Calendar">GCal</button><button class="ad-ev-del" onclick="event.stopPropagation();delAdEv('${ev.id}',event)" style="color:${cat.t}">×</button>`;el.addEventListener('dblclick',e=>{e.stopPropagation();openAdEditModal(ev.id);});el.addEventListener('dragstart',e=>{drag={type:'adlib',adname:ev.name,adcat:ev.cat,lid:null,evid:null,tid:null,oo:false};e.dataTransfer.effectAllowed='copy';});cell.appendChild(el);});}_extRenderAllDay();}
 function openAdGcal(id){const adEvs=getAdEvs();const ev=adEvs.find(e=>e.id===id);if(!ev)return;const dates=wkDates(wko);const date=dates[ev.day];const ds=`${date.getFullYear()}${p2(date.getMonth()+1)}${p2(date.getDate())}`;const nd=new Date(date);nd.setDate(date.getDate()+1);const ds2=`${nd.getFullYear()}${p2(nd.getMonth()+1)}${p2(nd.getDate())}`;
   // Fixed: was using the legacy render?action=EDIT endpoint with a ctz param, which
   // doesn't reliably carry the date through for all-day events (that endpoint expects
   // an existing event id to edit, not a new one). Switched to the same eventedit?
   // action=TEMPLATE endpoint openGcal() uses for timed events, which is the correct
   // "create new event" flow. All-day dates (8-digit, no time) don't need a tz param.
-  window.open(`https://calendar.google.com/calendar/r/eventedit?action=TEMPLATE&text=${encodeURIComponent(ev.name)}&dates=${ds}/${ds2}`,'_blank');}
+  window.open(`https://calendar.google.com/calendar/r/eventedit?action=TEMPLATE&text=${encodeURIComponent(ev.name)}&dates=${ds}/${ds2}${ev.note?`&details=${encodeURIComponent(ev.note)}`:''}`,'_blank');}
 function delAdEv(id,e){e.stopPropagation();e.preventDefault();setAdEvs(getAdEvs().filter(ev=>ev.id!==id));renderAdRow();}
 function saveAdEv(){
   const name=document.getElementById('adName').value.trim();
   if(!name)return;
   if(adPickedDay===null){alert('Please select a day.');return;}
   const cat=document.getElementById('adCat').value;
+  const note=(document.getElementById('adNote')?.value||'').trim(); // v51_40: all-day description
   const editId=document.getElementById('adEditId').value;
   const evs=getAdEvs();
   if(editId){
     const ev=evs.find(e=>e.id===editId);
-    if(ev){ev.name=name;ev.cat=cat;ev.day=adPickedDay;}
+    if(ev){ev.name=name;ev.cat=cat;ev.day=adPickedDay;if(note)ev.note=note;else delete ev.note;}
   } else {
-    evs.push({id:'ad'+Date.now(),day:adPickedDay,name,cat});
+    const nev={id:'ad'+Date.now(),day:adPickedDay,name,cat}; if(note) nev.note=note;
+    evs.push(nev);
   }
   setAdEvs(evs);renderAdRow();closeMo('adMo');
 }
@@ -5145,6 +5173,7 @@ function openAdEditModal(id){
   document.getElementById('adEditId').value=id;
   document.getElementById('adMoTitle').textContent='Edit All-Day Event';
   document.getElementById('adName').value=ev.name;
+  document.getElementById('adNote').value=ev.note||'';
   populateCatSelect('adCat', ev.cat||'personal');
   const pick=document.getElementById('adDayPick');
   pick.innerHTML=DAYS.map((d,i)=>`<button class="dp-btn${i===ev.day?' sel':''}" onclick="pickAdDay(${i},this)">${d}</button>`).join('');
@@ -5165,6 +5194,7 @@ function openAdModal(){
   document.getElementById('adEditId').value='';
   document.getElementById('adMoTitle').textContent='Add All-Day Event';
   document.getElementById('adName').value='';
+  document.getElementById('adNote').value='';
   populateCatSelect('adCat','personal');
   const pick=document.getElementById('adDayPick');
   pick.innerHTML=DAYS.map((d,i)=>`<button class="dp-btn" onclick="pickAdDay(${i},this)">${d}</button>`).join('');
@@ -5667,7 +5697,7 @@ function _bkpIsDue() { const key = _bkpSlotKey(); return !!key && !_bkpSlotsLog(
 function _bkpBuildJson() {
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
-    version: 'v51_38',
+    version: 'v51_40',
     slot: _bkpSlot(),
     data: {lib, oo, wev, adev, goals, trips, tpls, ints, tpo},
     budgetTransactions: (typeof budgetTxs !== 'undefined'
@@ -8454,7 +8484,7 @@ viewDays.forEach(i=>{
 });
 // All-day row
 const ads=document.createElement('div');ads.className='ad-spacer';ads.innerHTML='<span class="ad-lbl">all day</span>';tbl.appendChild(ads);viewDays.forEach(i=>{const ac=document.createElement('div');ac.className='ad-cell';ac.dataset.adday=i;ac.addEventListener('dragover',e=>{e.preventDefault();ac.classList.add('dov');});ac.addEventListener('dragleave',()=>ac.classList.remove('dov'));ac.addEventListener('drop',e=>{e.preventDefault();ac.classList.remove('dov');if(drag.type==='adlib'){const day=parseInt(ac.dataset.adday);getAdEvs().push({id:'ad'+Date.now(),day,name:drag.adname,cat:drag.adcat});setAdEvs(getAdEvs());renderAdRow();drag={type:null,lid:null,evid:null,tid:null,oo:false,adname:null,adcat:null};}});
-ac.addEventListener('dblclick',()=>{if(!isMobile()){const d=parseInt(ac.dataset.adday);document.getElementById('adEditId').value='';document.getElementById('adMoTitle').textContent='Add All-Day Event';document.getElementById('adName').value='';populateCatSelect('adCat','personal');const pick=document.getElementById('adDayPick');pick.innerHTML=DAYS.map((dn,i)=>`<button class="dp-btn${i===d?' sel':''}" onclick="pickAdDay(${i},this)">${dn}</button>`).join('');adPickedDay=d;const saveBtn=document.querySelector('#adMo .btn-save');if(saveBtn)saveBtn.textContent='Add';document.getElementById('adMo').classList.add('open');setTimeout(()=>document.getElementById('adName').focus(),100);}});tbl.appendChild(ac);});
+ac.addEventListener('dblclick',()=>{if(!isMobile()){const d=parseInt(ac.dataset.adday);document.getElementById('adEditId').value='';document.getElementById('adMoTitle').textContent='Add All-Day Event';document.getElementById('adName').value='';document.getElementById('adNote').value='';populateCatSelect('adCat','personal');const pick=document.getElementById('adDayPick');pick.innerHTML=DAYS.map((dn,i)=>`<button class="dp-btn${i===d?' sel':''}" onclick="pickAdDay(${i},this)">${dn}</button>`).join('');adPickedDay=d;const saveBtn=document.querySelector('#adMo .btn-save');if(saveBtn)saveBtn.textContent='Add';document.getElementById('adMo').classList.add('open');setTimeout(()=>document.getElementById('adName').focus(),100);}});tbl.appendChild(ac);});
 // AM Routine row (sits between all-day and time slots)
 {const amSp=document.createElement('div');amSp.className='routine-spacer';amSp.innerHTML='<span class="routine-spacer-lbl">AM</span>';tbl.appendChild(amSp);
 viewDays.forEach(i=>{const amCell=document.createElement('div');amCell.className='routine-cell'+(i>=5?' weekend':'');amCell.style.background='var(--routine-l)';amCell.dataset.day=i;amCell.id='amRoutineCell-'+i;
@@ -8478,6 +8508,113 @@ tbl.appendChild(tdCell);});
 // Time slots
 for(let s=0;s<TOTAL;s++){const hour=SH+Math.floor(s/SPH),min=(s%SPH)*30,isHr=min===0;const tc=document.createElement('div');tc.className='tc'+(isHr?' hr':'');tc.textContent=isHr?fmtHourAmPm(hour):'';tbl.appendChild(tc);viewDays.forEach(d=>{const slot=document.createElement('div');slot.className='slot'+(isHr?' ht':'')+(d>=5?' weekend':'');slot.dataset.day=d;slot.dataset.slot=s;slot.addEventListener('dragover',onSOver);slot.addEventListener('dragleave',onSLeave);slot.addEventListener('drop',onSDrop);slot.addEventListener('click',()=>{if(isMobile()){if(feelingsLayerActive)openFeelingAdd(d,s);else openMobileAddSheet(d,s);}});
 slot.addEventListener('dblclick',()=>{if(!isMobile()){if(feelingsLayerActive)openFeelingAdd(d,s);else openSlotAdd(d,s);}});tbl.appendChild(slot);})}renderEvents();renderAdRow();renderMorningRow();renderCycleRow();renderWorkoutRow();renderMorningRow();renderTodoRow();renderRoutineRow();renderBriefingRow();renderDailyLogRow();applyRowVisibility();}
+// ── LINKED CALENDARS (v51_39) ──
+// Read-only overlay fed by a Google Apps Script web app (JSON). Nothing here writes to wev
+// except the user's own config changes in the Linked calendars modal.
+function _extState(){ if(!window.__stwExt){ let cache={}; try{ cache=JSON.parse(localStorage.getItem('stw-extcal-cache')||'{}')||{}; }catch(e){} window.__stwExt={ data:cache, status:{} }; } return window.__stwExt; }
+function _extCfg(){ const c=(typeof wev!=='undefined'&&wev&&wev.extCalCfg&&Array.isArray(wev.extCalCfg.list))?wev.extCalCfg.list:[]; return c; }
+function _extSaveCfg(list){ wev.extCalCfg={ list }; sv(); }
+const _EXT_COLORS=['#64748b','#0f766e','#9a3412','#4338ca'];
+function _extMondayKey(y,mo,d){ const dt=new Date(y,mo,d); const diff=dt.getDay()===0?-6:1-dt.getDay(); dt.setDate(dt.getDate()+diff); return `${dt.getFullYear()}-${p2(dt.getMonth()+1)}-${p2(dt.getDate())}`; }
+function _extBuild(cfg, payload){
+  // -> { '<weekKey>': { timed:[...], allDay:[...] } }
+  const out={};
+  const bucket=wk=>(out[wk]||(out[wk]={timed:[],allDay:[]}));
+  (payload.events||[]).forEach((e,i)=>{
+    try{
+      const name=String(e.title||'(busy)');
+      if(e.allDay){
+        const [y,m,d]=String(e.start).split('-').map(Number);
+        const [y2,m2,d2]=String(e.end||e.start).split('-').map(Number);
+        const cur=new Date(y,m-1,d), end=new Date(y2,m2-1,d2);
+        if(!(end>cur)) end.setTime(cur.getTime()+86400000);
+        let n=0;
+        while(cur<end && n<62){
+          bucket(_extMondayKey(cur.getFullYear(),cur.getMonth(),cur.getDate())).allDay.push({ id:`x_${cfg.id}_${i}_${n}`, _ext:true, cal:cfg.name, color:cfg.color, name, day:(cur.getDay()+6)%7, location:e.location||'', desc:e.description||'' });
+          cur.setDate(cur.getDate()+1); n++;
+        }
+      } else {
+        const ps=s=>{ const m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); return m?{y:+m[1],mo:+m[2]-1,d:+m[3],mins:+m[4]*60+ +m[5]}:null; };
+        const s=ps(e.start), en=ps(e.end)||s; if(!s) return;
+        const sameDay = en.y===s.y && en.mo===s.mo && en.d===s.d;
+        let sm=Math.max(s.mins, SH*60), em=Math.min(sameDay?en.mins:EH*60, EH*60);
+        if(em<=sm) return; // entirely outside the visible hours
+        const slot=Math.round((sm-SH*60)/30), slots=Math.max(1,Math.round((em-sm)/30));
+        const dt=new Date(s.y,s.mo,s.d);
+        bucket(_extMondayKey(s.y,s.mo,s.d)).timed.push({ id:`x_${cfg.id}_${i}`, _ext:true, cal:cfg.name, color:cfg.color, name, day:(dt.getDay()+6)%7, slot, slots, location:e.location||'',
+          timeStr:`${p2(Math.floor(s.mins/60))}:${p2(s.mins%60)}–${p2(Math.floor(en.mins/60))}:${p2(en.mins%60)}` });
+      }
+    }catch(err){}
+  });
+  return out;
+}
+function _extWeek(){ const st=_extState(), wk=wkKey(); const res={timed:[],allDay:[]};
+  _extCfg().forEach(c=>{ if(c.show===false) return; const w=st.data[c.id]&&st.data[c.id].weeks&&st.data[c.id].weeks[wk]; if(w){ res.timed.push(...w.timed.map(x=>({...x,color:c.color,cal:c.name}))); res.allDay.push(...w.allDay.map(x=>({...x,color:c.color,cal:c.name}))); } });
+  return res; }
+function _extTimedForWeek(){ try{ return _extWeek().timed; }catch(e){ return []; } }
+function _extEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function _extStyleTimed(el,ev,lay){
+  const {left,right,z}=lay||{left:0,right:0,z:5};
+  const lPad=left===0?2:0, rPad=right===0?2:0, c=ev.color||'#64748b';
+  el.classList.add('gev-ext');
+  el.style.cssText=`background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 6px,${c}24 6px,${c}24 12px);border:1px dashed ${c}99;border-left:3px solid ${c};color:${c};top:0;height:${ev.slots*SHP-2}px;left:calc(${left}% + ${lPad}px);right:calc(${right}% + ${rPad}px);z-index:${z};cursor:default;`;
+  el.title=`${ev.cal}: ${ev.name}\n${ev.timeStr}${ev.location?'\n'+ev.location:''}\n(read-only, linked calendar)`;
+  const small=ev.slots===1;
+  el.innerHTML = small
+    ? `<div class="ev-t" style="font-size:10px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_extEsc(ev.name)} <span style="opacity:.6;font-weight:400;">${_extEsc(ev.cal)}</span></div>`
+    : `<div class="ev-t">${_extEsc(ev.name)}</div><div class="ev-tm" style="opacity:.75;">${ev.timeStr} · ${_extEsc(ev.cal)}</div>`;
+}
+function _extRenderAllDay(){
+  let evs=[]; try{ evs=_extWeek().allDay; }catch(e){}
+  evs.forEach(ev=>{ const cell=document.querySelector(`.ad-cell[data-adday="${ev.day}"]`); if(!cell) return;
+    const c=ev.color||'#64748b', el=document.createElement('div'); el.className='ad-ev ad-ev-ext';
+    el.style.cssText=`background:transparent;border:1px dashed ${c};color:${c};cursor:default;`;
+    el.title=`${ev.cal}: ${ev.name}${ev.desc?'\n'+ev.desc:''}${ev.location?'\n'+ev.location:''}\n(read-only, linked calendar)`;
+    el.innerHTML=`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${_extEsc(ev.name)}</span>`;
+    cell.appendChild(el); });
+}
+async function extCalRefresh(manual){
+  const st=_extState(); const list=_extCfg(); if(!list.length){ if(manual) renderExtCalList(); return; }
+  await Promise.all(list.map(async c=>{
+    try{
+      const r=await fetch(c.url+(c.url.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const payload=await r.json();
+      if(payload.error) throw new Error(payload.error);
+      st.data[c.id]={ weeks:_extBuild(c,payload), fetchedAt:new Date().toISOString(), count:(payload.events||[]).length };
+      st.status[c.id]={ ok:true };
+    }catch(err){ st.status[c.id]={ ok:false, msg:String(err.message||err) }; console.warn('[stw] linked calendar failed:', c.name, err); }
+  }));
+  try{ localStorage.setItem('stw-extcal-cache', JSON.stringify(st.data)); }catch(e){}
+  try{ renderEvents(); renderAdRow(); }catch(e){}
+  if(document.getElementById('extCalMo')?.classList.contains('open')) renderExtCalList();
+}
+function openExtCalMo(){ renderExtCalList(); document.getElementById('extCalMo').classList.add('open'); }
+function renderExtCalList(){
+  const st=_extState(), box=document.getElementById('extCalList'); if(!box) return;
+  const list=_extCfg();
+  if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--text-faint);font-style:italic;">No linked calendars yet.</div>'; return; }
+  box.innerHTML=list.map((c,i)=>{ const d=st.data[c.id], s=st.status[c.id];
+    const info = s&&!s.ok ? `<span style="color:#b42318;">Couldn't refresh: ${_extEsc(s.msg)}</span>` : d ? `${d.count} events, updated ${new Date(d.fetchedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}` : 'Not loaded yet';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:${i?'1px solid var(--border)':'none'};">
+      <span style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0;"></span>
+      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--text);">${_extEsc(c.name)}</div><div style="font-size:11px;color:var(--text-faint);">${info}</div></div>
+      <label style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" ${c.show!==false?'checked':''} onchange="toggleExtCal('${c.id}',this.checked)">Show</label>
+      <button class="btn-x" title="Remove" onclick="removeExtCal('${c.id}')">×</button></div>`; }).join('');
+}
+function addExtCal(){
+  const name=document.getElementById('extCalName').value.trim(), url=document.getElementById('extCalUrl').value.trim();
+  if(!name||!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){ alert('Add a name and the Apps Script web app URL (it starts with https://script.google.com/).'); return; }
+  const list=_extCfg().slice();
+  list.push({ id:'c'+Date.now().toString(36), name, url, show:true, color:_EXT_COLORS[list.length%_EXT_COLORS.length] });
+  _extSaveCfg(list);
+  document.getElementById('extCalName').value=''; document.getElementById('extCalUrl').value='';
+  renderExtCalList(); extCalRefresh(true);
+}
+function toggleExtCal(id,on){ const list=_extCfg().map(c=>c.id===id?{...c,show:on}:c); _extSaveCfg(list); renderEvents(); renderAdRow(); }
+function removeExtCal(id){ const c=_extCfg().find(x=>x.id===id); if(!c||!confirm(`Remove "${c.name}" from linked calendars? (Its events were never saved, so nothing else changes.)`)) return;
+  _extSaveCfg(_extCfg().filter(x=>x.id!==id)); const st=_extState(); delete st.data[id]; try{ localStorage.setItem('stw-extcal-cache', JSON.stringify(st.data)); }catch(e){}
+  renderExtCalList(); renderEvents(); renderAdRow(); }
 function renderEvents(){document.querySelectorAll('.gev').forEach(e=>e.remove());
   let evs = getEvs();
   let feelingsDimOthers = false;
@@ -8488,6 +8625,7 @@ function renderEvents(){document.querySelectorAll('.gev').forEach(e=>e.remove())
   } else {
     // Normal mode: hide feelings events, apply any category filter
     evs = evs.filter(ev => ev.cat !== 'feelings' && (!plannerCatFilter.size || plannerCatFilter.has(ev.cat)));
+    if (!plannerCatFilter.size) evs = evs.concat(_extTimedForWeek()); // v51_39 linked calendars (read-only)
   }
 function overlaps(a,b){return a.slot<b.slot+b.slots&&b.slot<a.slot+a.slots;}
 // ── Google Calendar–style greedy column packing ──
@@ -8535,6 +8673,7 @@ Object.values(byDay).forEach(dayEvs=>{
   });
 });
 evs.forEach(ev=>{const cat=CATS[ev.cat]||CATS.personal;const el=document.createElement('div');el.className='gev';
+if(ev._ext){_extStyleTimed(el,ev,layout[ev.id]);const _s=document.querySelector(`.slot[data-day="${ev.day}"][data-slot="${ev.slot}"]`);if(_s)_s.appendChild(el);return;}
 const {left,right,topOff,z}=layout[ev.id]||{left:0,right:0,topOff:0,z:5};
 const lPad=left===0?2:0, rPad=right===0?2:0;
 el.style.cssText=`background:var(--surface);border-color:rgba(0,0,0,.06);border-left-color:${cat.color};border-left-width:3px;color:${cat.t};top:${topOff}px;height:${ev.slots*SHP-2}px;left:calc(${left}% + ${lPad}px);right:calc(${right}% + ${rPad}px);z-index:${z};`;
@@ -8662,7 +8801,8 @@ function saveEvEdit() {
       const targetWko=resolved?resolved.weekOffset:wko;
       const savedWko=wko; wko=targetWko;
       const adEvs=getAdEvs();
-      adEvs.push({id:'ev'+Date.now(),name:name||ev.name,cat:cat||ev.cat,day:targetDay});
+      const _adConv={id:'ev'+Date.now(),name:name||ev.name,cat:cat||ev.cat,day:targetDay}; const _cn=(typeof note!=='undefined'?note:ev.note); if(_cn) _adConv.note=_cn;
+      adEvs.push(_adConv);
       setAdEvs(adEvs);
       // Remove from timed events
       const newEvs=evs.filter(e=>e.id!==id);
@@ -8877,7 +9017,9 @@ function buildICSLines(weekOffsets, catFilter) {
       const ds = `${date.getFullYear()}${p2(date.getMonth()+1)}${p2(date.getDate())}`;
       const nd = new Date(date); nd.setDate(date.getDate()+1);
       const ds2 = `${nd.getFullYear()}${p2(nd.getMonth()+1)}${p2(nd.getDate())}`;
-      lines.push('BEGIN:VEVENT',`UID:${ev.id}-${key}@stw`,`DTSTART;VALUE=DATE:${ds}`,`DTEND;VALUE=DATE:${ds2}`,`SUMMARY:${ev.name}`,`CATEGORIES:${CATS[ev.cat]?.label||ev.cat}`,'END:VEVENT');
+      lines.push('BEGIN:VEVENT',`UID:${ev.id}-${key}@stw`,`DTSTART;VALUE=DATE:${ds}`,`DTEND;VALUE=DATE:${ds2}`,`SUMMARY:${ev.name}`);
+      if (ev.note) lines.push(`DESCRIPTION:${String(ev.note).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n')}`);
+      lines.push(`CATEGORIES:${CATS[ev.cat]?.label||ev.cat}`,'END:VEVENT');
       hasEvents = true;
     });
     evs.forEach(ev => {
@@ -10932,7 +11074,9 @@ function parseICSAllWeeks(text) {
       if (isAllDay) {
         const c=dtstart.replace('VALUE=DATE:','').replace(/[^0-9]/g,'');
         const date=new Date(+c.slice(0,4),+c.slice(4,6)-1,+c.slice(6,8));
-        allDay.push({wkKeyStr:getMondayKey(date),ev:{id:'ev'+Date.now()+Math.random(),name:summary,cat:guessCat(summary),day:(date.getDay()+6)%7}});
+        const _adDesc=String(get('DESCRIPTION')||'').replace(/\\n/gi,'\n').replace(/\\([,;\\])/g,'$1').trim();
+        const _adEv={id:'ev'+Date.now()+Math.random(),name:summary,cat:guessCat(summary),day:(date.getDay()+6)%7}; if(_adDesc) _adEv.note=_adDesc;
+        allDay.push({wkKeyStr:getMondayKey(date),ev:_adEv});
       } else {
         const start=parsedt(dtstart,getParams('DTSTART')),end=dtend?parsedt(dtend,getParams('DTEND')):new Date(start.getTime()+3600000);
         const startMins=start.getHours()*60+start.getMinutes();
@@ -14528,7 +14672,7 @@ function renderBriefingRow() {
     const dayAdEvs = adEvsAll.filter(e => e.day === i);
     const cell = document.createElement('div');
     cell.className = 'briefing-cell' + (isToday ? ' briefing-cell-today' : '');
-    const adLines = dayAdEvs.map(e => `All day - ${e.name}`);
+    const adLines = dayAdEvs.map(e => `All day - ${e.name}${e.note ? `: ${e.note}` : ''}`);
     const lines = dayEvs.map(e => {
       const h = SH + Math.floor(e.slot / SPH);
       const m = (e.slot % SPH) * 30;
@@ -14540,7 +14684,7 @@ function renderBriefingRow() {
     window._briefingTexts[i] = allLines.length ? allLines.join('\n') : 'Free';
     const copyBtn = `<button class="briefing-copy-btn" onclick="copyBriefingText(${i})" title="Copy to clipboard">📋</button>`;
     if (dayAdEvs.length || dayEvs.length) {
-      const adHtml = dayAdEvs.map(e => `<li><span class="briefing-time">All day</span><span style="font-size:12px;color:var(--text);">📌 ${e.name}</span></li>`).join('');
+      const adHtml = dayAdEvs.map(e => `<li><span class="briefing-time">All day</span><span style="font-size:12px;color:var(--text);">📌 ${e.name}</span>${e.note?`<span style="font-size:11px;color:var(--text-muted);">: ${e.note}</span>`:''}</li>`).join('');
       const timedHtml = dayEvs.map(e => {
         const h = SH + Math.floor(e.slot / SPH);
         const m = (e.slot % SPH) * 30;
