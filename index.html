@@ -40,7 +40,7 @@
   .logo{font-family:'SashasFont','DM Serif Display',serif;font-size:12px;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;color:var(--header-text);cursor:pointer;font-weight:700;}
   .logo em{font-style:italic;color:var(--header-muted);}
   .tabs{display:flex;gap:2px;background:transparent;padding:2px;}
-  .tab{padding:4px 10px;border-radius:20px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;border:1.5px solid transparent;background:transparent;color:var(--header-muted);transition:all .15s;font-family:'SashasFont','DM Serif Display',serif;white-space:nowrap;}
+  .tab{padding:4px 7px;border-radius:20px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;border:1.5px solid transparent;background:transparent;color:var(--header-muted);transition:all .15s;font-family:'SashasFont','DM Serif Display',serif;white-space:nowrap;}
   .tab:hover{color:var(--header-text);background:rgba(255,255,255,.12);}
   .tab.active{background:rgba(255,255,255,.18);color:var(--header-text);border-color:rgba(255,255,255,.5);}
   .hdr-centre{display:flex;align-items:center;justify-content:center;gap:6px;}
@@ -2367,6 +2367,7 @@ body {
     <button class="tab" onclick="showPage('itinerary')">Itinerary</button>
     <button class="tab" onclick="showPage('trips')">Plans</button>
     <button class="tab" onclick="showPage('budget')">Budget</button>
+    <button class="tab" onclick="showPage('brief')">Brief</button>
   </div>
   <div class="hdr-centre" id="hdrCentre">
     <div class="wk-nav">
@@ -2392,6 +2393,7 @@ body {
     <a class="ql-btn" href="https://www.worldtimebuddy.com/?pl=1&lid=2643743,2174003&h=2643743&hf=1" target="_blank" rel="noopener">Timezone</a>
     <span id="bkpStatus" style="font-size:10px;color:rgba(255,255,255,.65);transition:opacity 1.5s;opacity:0;white-space:nowrap;"></span>
     <button class="btn-copy" id="manualSaveBtn" onclick="manualSave(this)" title="Save changes now">💾 Save</button>
+    <button class="btn-copy" id="hdrBackupBtn" onclick="downloadBackup()" title="Download backup (JSON)" aria-label="Download backup">&#8595;</button>
     <button class="btn-copy" onclick="openSearch()" title="Search (Ctrl+K)">🔍</button>
     <button class="btn-copy" id="undoBtn" onclick="doUndo()" title="Undo last change" style="opacity:0.5;pointer-events:none;" disabled>↩</button>
     <div class="hdr-menu-wrap" id="hdrMenuWrap">
@@ -2401,8 +2403,6 @@ body {
         <button class="hdr-menu-item" onclick="copySetWeekEvents();closeHdrMenu()">Copy set week (Events)</button>
         <button class="hdr-menu-item" onclick="clearWeekEvents();closeHdrMenu()">Clear week (Events)</button>
         <hr class="hdr-menu-divider">
-        <button class="hdr-menu-item" onclick="copyLastWeekMorningRoutine();closeHdrMenu()">Copy last week (AM Routine)</button>
-        <button class="hdr-menu-item" onclick="copyLastWeekRoutine();closeHdrMenu()">Copy last week (PM Routine)</button>
         <button class="hdr-menu-item" onclick="copyLastWeekMorningRoutine();copyLastWeekRoutine();closeHdrMenu()">Copy last week (AM + PM Routine)</button>
         <button class="hdr-menu-item" onclick="clearThisWeekAmRoutine();closeHdrMenu()">Clear week (AM Routine)</button>
         <button class="hdr-menu-item" onclick="clearThisWeekPmRoutine();closeHdrMenu()">Clear week (PM Routine)</button>
@@ -3530,6 +3530,23 @@ body {
   </div>
 </div>
 <!-- BUCKET LIST PAGE -->
+<!-- v51_42: Morning Brief tab. The brief is a private claude.ai artifact, which can't be
+iframed on another site, so this page is a link card that opens the latest version in a new tab.
+Pure HTML, no data or save paths touched. -->
+<div class="page" id="page-brief" style="overflow-y:auto;">
+  <div class="bl-pg" style="max-width:720px;">
+    <div style="margin-bottom:22px;"><h2>Morning Brief</h2><p class="sub">Today's deadlines, to-dos and calendar at a glance.</p></div>
+    <a href="https://claude.ai/artifact/XkGwgPMjrq9SwQLidyzaNE" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);padding:22px 24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Sasha's Morning Brief</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">Opens the latest version on claude.ai in a new tab.</div>
+        </div>
+        <span style="display:inline-block;background:var(--header-bg);color:var(--header-text);border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;white-space:nowrap;">Open brief &#8599;</span>
+      </div>
+    </a>
+  </div>
+</div>
 <div class="page" id="page-bucketlist">
   <div class="bl-pg">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;">
@@ -5095,7 +5112,7 @@ async function boot() {
   setInterval(() => { _bkpRun(); }, 15 * 60 * 1000);
   // Hash-based routing: honour #relo, #budget, #trips etc on load
   const _hash = window.location.hash.slice(1);
-  const _pgList = ['planner','relo','budget','trips','plans-history','itinerary','daily','tracker','checklist','goals','activities','bucketlist','list','watchlist'];
+  const _pgList = ['planner','relo','budget','trips','plans-history','itinerary','daily','tracker','checklist','goals','activities','bucketlist','list','watchlist','brief'];
   if(_hash && _pgList.includes(_hash)) showPage(_hash);
   // Mobile init — runs after full render so layout is stable
   if (isMobile()) {
@@ -5697,7 +5714,7 @@ function _bkpIsDue() { const key = _bkpSlotKey(); return !!key && !_bkpSlotsLog(
 function _bkpBuildJson() {
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
-    version: 'v51_41',
+    version: 'v51_42',
     slot: _bkpSlot(),
     data: {lib, oo, wev, adev, goals, trips, tpls, ints, tpo},
     budgetTransactions: (typeof budgetTxs !== 'undefined'
